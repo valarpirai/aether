@@ -1,5 +1,7 @@
 //! Built-in functions for Aether
 
+use std::rc::Rc;
+
 use super::{RuntimeError, Value};
 
 /// Built-in function: print(...values)
@@ -57,7 +59,7 @@ pub fn builtin_type(args: &[Value]) -> Result<Value, RuntimeError> {
         });
     }
 
-    Ok(Value::String(args[0].type_name().to_string()))
+    Ok(Value::String(Rc::new(args[0].type_name().to_string())))
 }
 
 /// Built-in function: int(value)
@@ -124,7 +126,7 @@ pub fn builtin_str(args: &[Value]) -> Result<Value, RuntimeError> {
         });
     }
 
-    Ok(Value::String(format!("{}", args[0])))
+    Ok(Value::String(Rc::new(format!("{}", args[0]))))
 }
 
 /// Built-in function: bool(value)

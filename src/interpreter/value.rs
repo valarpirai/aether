@@ -1,27 +1,28 @@
 //! Runtime value types for the Aether interpreter
 
 use std::fmt;
+use std::rc::Rc;
 
 use super::RuntimeError;
 
 /// Type for built-in function implementations
 pub type BuiltinFn = fn(&[Value]) -> Result<Value, RuntimeError>;
 
-/// Runtime value type
+/// Runtime value type with reference-counted garbage collection
 #[derive(Debug, Clone)]
 pub enum Value {
     /// Integer value
     Int(i64),
     /// Float value
     Float(f64),
-    /// String value
-    String(String),
+    /// String value (reference counted for GC)
+    String(Rc<String>),
     /// Boolean value
     Bool(bool),
     /// Null value
     Null,
-    /// Array of values
-    Array(Vec<Value>),
+    /// Array of values (reference counted for GC)
+    Array(Rc<Vec<Value>>),
     /// Function with closure
     Function {
         params: Vec<String>,
@@ -37,6 +38,16 @@ pub enum Value {
 }
 
 impl Value {
+    /// Helper: Create a string value (for convenience)
+    pub fn string(s: impl Into<String>) -> Self {
+        Value::String(Rc::new(s.into()))
+    }
+
+    /// Helper: Create an array value (for convenience)
+    pub fn array(vec: Vec<Value>) -> Self {
+        Value::Array(Rc::new(vec))
+    }
+
     /// Check if value is truthy (for conditional expressions)
     pub fn is_truthy(&self) -> bool {
         match self {

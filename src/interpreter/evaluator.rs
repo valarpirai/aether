@@ -1,5 +1,7 @@
 //! Expression evaluation and statement execution for the Aether interpreter
 
+use std::rc::Rc;
+
 use super::environment::{Environment, RuntimeError};
 use super::value::Value;
 use crate::parser::ast::{BinaryOp, Expr, Stmt, UnaryOp};
@@ -151,7 +153,7 @@ impl Evaluator {
         match expr {
             Expr::Integer(n) => Ok(Value::Int(*n)),
             Expr::Float(f) => Ok(Value::Float(*f)),
-            Expr::String(s) => Ok(Value::String(s.clone())),
+            Expr::String(s) => Ok(Value::String(Rc::new(s.clone()))),
             Expr::Bool(b) => Ok(Value::Bool(*b)),
             Expr::Null => Ok(Value::Null),
             Expr::Identifier(name) => self.environment.get(name),
@@ -160,7 +162,7 @@ impl Evaluator {
                 for elem in elements {
                     values.push(self.eval_expr(elem)?);
                 }
-                Ok(Value::Array(values))
+                Ok(Value::Array(Rc::new(values)))
             }
             Expr::Unary(op, operand) => self.eval_unary(*op, operand),
             Expr::Binary(left, op, right) => self.eval_binary(left, *op, right),
@@ -239,7 +241,7 @@ impl Evaluator {
             (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a + b)),
             (Value::Int(a), Value::Float(b)) => Ok(Value::Float(a as f64 + b)),
             (Value::Float(a), Value::Int(b)) => Ok(Value::Float(a + b as f64)),
-            (Value::String(a), Value::String(b)) => Ok(Value::String(format!("{}{}", a, b))),
+            (Value::String(a), Value::String(b)) => Ok(Value::String(Rc::new(format!("{}{}", a, b)))),
             (left, right) => Err(RuntimeError::TypeError {
                 expected: "number or string".to_string(),
                 got: format!("{} and {}", left.type_name(), right.type_name()),
@@ -422,13 +424,13 @@ impl Evaluator {
                 }
                 let item = self.eval_expr(&args[0])?;
 
-                // Mutate the array
-                let mut new_elements = elements.clone();
+                // Clone the inner Vec, mutate it, wrap in new Rc
+                let mut new_elements = (**elements).to_vec();
                 new_elements.push(item);
 
                 // Update in environment (only works for identifiers)
                 if let Expr::Identifier(name) = object {
-                    self.environment.set(name, Value::Array(new_elements))?;
+                    self.environment.set(name, Value::Array(Rc::new(new_elements)))?;
                 }
 
                 Ok(Value::Null)
@@ -441,13 +443,13 @@ impl Evaluator {
                     });
                 }
 
-                // Pop from array
-                let mut new_elements = elements.clone();
+                // Clone the inner Vec, mutate it, wrap in new Rc
+                let mut new_elements = (**elements).to_vec();
                 let popped = new_elements.pop();
 
                 // Update in environment (only works for identifiers)
                 if let Expr::Identifier(name) = object {
-                    self.environment.set(name, Value::Array(new_elements))?;
+                    self.environment.set(name, Value::Array(Rc::new(new_elements)))?;
                 }
 
                 Ok(popped.unwrap_or(Value::Null))
@@ -461,7 +463,7 @@ impl Evaluator {
                         got: args.len(),
                     });
                 }
-                Ok(Value::String(s.to_uppercase()))
+                Ok(Value::String(Rc::new(s.to_uppercase())))
             }
             (Value::String(s), "lower") => {
                 if !args.is_empty() {
@@ -470,7 +472,7 @@ impl Evaluator {
                         got: args.len(),
                     });
                 }
-                Ok(Value::String(s.to_lowercase()))
+                Ok(Value::String(Rc::new(s.to_lowercase())))
             }
             (Value::String(s), "trim") => {
                 if !args.is_empty() {
@@ -479,7 +481,7 @@ impl Evaluator {
                         got: args.len(),
                     });
                 }
-                Ok(Value::String(s.trim().to_string()))
+                Ok(Value::String(Rc::new(s.trim().to_string())))
             }
             (Value::String(s), "split") => {
                 if args.len() != 1 {
@@ -493,9 +495,9 @@ impl Evaluator {
                     let parts: Vec<Value> = if s.is_empty() {
                         vec![]
                     } else {
-                        s.split(&delim).map(|part| Value::String(part.to_string())).collect()
+                        s.split(delim.as_str()).map(|part| Value::String(Rc::new(part.to_string()))).collect()
                     };
-                    Ok(Value::Array(parts))
+                    Ok(Value::Array(Rc::new(parts)))
                 } else {
                     Err(RuntimeError::TypeError {
                         expected: "string".to_string(),
@@ -583,8 +585,8 @@ impl Evaluator {
 
                 match iter_val {
                     Value::Array(elements) => {
-                        for element in elements {
-                            self.environment.define(var.clone(), element);
+                        for element in elements.iter() {
+                            self.environment.define(var.clone(), element.clone());
 
                             let flow = self.exec_stmt_internal(body)?;
                             match flow {
@@ -656,18 +658,20 @@ impl Evaluator {
                 let index_val = self.eval_expr(index)?;
 
                 match (array_val, index_val) {
-                    (Value::Array(mut elements), Value::Int(idx)) => {
+                    (Value::Array(elements), Value::Int(idx)) => {
                         if idx < 0 || idx as usize >= elements.len() {
                             return Err(RuntimeError::IndexOutOfBounds {
                                 index: idx,
                                 length: elements.len(),
                             });
                         }
-                        elements[idx as usize] = value;
+                        // Clone the inner Vec, mutate, wrap in new Rc
+                        let mut new_elements = (**elements).to_vec();
+                        new_elements[idx as usize] = value;
 
                         // Update the array in environment (only works for simple identifiers)
                         if let Expr::Identifier(name) = &**array {
-                            self.environment.set(name, Value::Array(elements))?;
+                            self.environment.set(name, Value::Array(Rc::new(new_elements)))?;
                         }
                         Ok(())
                     }
