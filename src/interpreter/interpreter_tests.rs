@@ -8,13 +8,13 @@ use super::value::Value;
 fn test_value_creation() {
     let int_val = Value::Int(42);
     let float_val = Value::Float(3.14);
-    let string_val = Value::String("hello".to_string());
+    let string_val = Value::string("hello");
     let bool_val = Value::Bool(true);
     let null_val = Value::Null;
 
     assert_eq!(int_val, Value::Int(42));
     assert_eq!(float_val, Value::Float(3.14));
-    assert_eq!(string_val, Value::String("hello".to_string()));
+    assert_eq!(string_val, Value::string("hello"));
     assert_eq!(bool_val, Value::Bool(true));
     assert_eq!(null_val, Value::Null);
 }
@@ -23,11 +23,11 @@ fn test_value_creation() {
 fn test_value_display() {
     assert_eq!(format!("{}", Value::Int(42)), "42");
     assert_eq!(format!("{}", Value::Float(3.14)), "3.14");
-    assert_eq!(format!("{}", Value::String("hello".to_string())), "hello");
+    assert_eq!(format!("{}", Value::string("hello")), "hello");
     assert_eq!(format!("{}", Value::Bool(true)), "true");
     assert_eq!(format!("{}", Value::Null), "null");
     assert_eq!(
-        format!("{}", Value::Array(vec![Value::Int(1), Value::Int(2)])),
+        format!("{}", Value::array(vec![Value::Int(1), Value::Int(2)])),
         "[1, 2]"
     );
 }
@@ -41,20 +41,20 @@ fn test_value_is_truthy() {
     assert!(Value::Int(1).is_truthy());
     assert!(!Value::Float(0.0).is_truthy());
     assert!(Value::Float(1.0).is_truthy());
-    assert!(!Value::String("".to_string()).is_truthy());
-    assert!(Value::String("hello".to_string()).is_truthy());
-    assert!(!Value::Array(vec![]).is_truthy());
-    assert!(Value::Array(vec![Value::Int(1)]).is_truthy());
+    assert!(!Value::string("").is_truthy());
+    assert!(Value::string("hello").is_truthy());
+    assert!(!Value::array(vec![]).is_truthy());
+    assert!(Value::array(vec![Value::Int(1)]).is_truthy());
 }
 
 #[test]
 fn test_value_type_name() {
     assert_eq!(Value::Int(42).type_name(), "int");
     assert_eq!(Value::Float(3.14).type_name(), "float");
-    assert_eq!(Value::String("hello".to_string()).type_name(), "string");
+    assert_eq!(Value::string("hello").type_name(), "string");
     assert_eq!(Value::Bool(true).type_name(), "bool");
     assert_eq!(Value::Null.type_name(), "null");
-    assert_eq!(Value::Array(vec![]).type_name(), "array");
+    assert_eq!(Value::array(vec![]).type_name(), "array");
 }
 
 // Environment tests
@@ -132,7 +132,7 @@ fn test_eval_literals() {
     assert_eq!(eval.eval_expr(&Expr::Float(3.14)).unwrap(), Value::Float(3.14));
     assert_eq!(
         eval.eval_expr(&Expr::String("hello".to_string())).unwrap(),
-        Value::String("hello".to_string())
+        Value::string("hello")
     );
     assert_eq!(eval.eval_expr(&Expr::Bool(true)).unwrap(), Value::Bool(true));
     assert_eq!(eval.eval_expr(&Expr::Null).unwrap(), Value::Null);
@@ -249,7 +249,7 @@ fn test_eval_string_concat() {
     );
     assert_eq!(
         eval.eval_expr(&expr).unwrap(),
-        Value::String("Hello, World!".to_string())
+        Value::string("Hello, World!")
     );
 }
 
@@ -264,7 +264,7 @@ fn test_eval_array_literal() {
     ]);
     assert_eq!(
         eval.eval_expr(&expr).unwrap(),
-        Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)])
+        Value::array(vec![Value::Int(1), Value::Int(2), Value::Int(3)])
     );
 }
 
@@ -273,7 +273,7 @@ fn test_eval_array_indexing() {
     let mut eval = Evaluator::new();
     eval.environment.define(
         "arr".to_string(),
-        Value::Array(vec![Value::Int(10), Value::Int(20), Value::Int(30)]),
+        Value::array(vec![Value::Int(10), Value::Int(20), Value::Int(30)]),
     );
 
     let expr = Expr::Index(
@@ -303,7 +303,7 @@ fn test_eval_index_out_of_bounds() {
     let mut eval = Evaluator::new();
     eval.environment.define(
         "arr".to_string(),
-        Value::Array(vec![Value::Int(10)]),
+        Value::array(vec![Value::Int(10)]),
     );
 
     let expr = Expr::Index(
