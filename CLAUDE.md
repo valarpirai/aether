@@ -23,32 +23,30 @@ Aether is a general-purpose programming language implementation written in Rust.
 - String interpolation: `"Hello ${name}"`
 - REPL support
 
-## Documentation
+## Documentation Index
 
-- **[DESIGN.md](docs/DESIGN.md)** - Complete language design specification covering:
-  - Type system and operators
-  - Control flow structures
-  - Function syntax and scoping rules
-  - Built-in functions and methods
-  - Module system design
-  - Implementation phases
-  - Example programs
+### Language & Project Documentation
+- **[DESIGN.md](docs/DESIGN.md)** - Complete language specification (types, syntax, features)
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture and roadmap
+- **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Development guidelines and best practices
 
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Architecture overview and roadmap covering:
-  - Interpreter architecture (lexer → parser → interpreter)
-  - Module structure and responsibilities
-  - Data flow and compilation pipeline
-  - Implemented features (detailed checklist)
-  - Pending features and phase breakdown
-  - Test coverage and quality metrics
+### Component Documentation
+- **[LEXER.md](docs/LEXER.md)** - Lexer implementation details
+  - Token types and scanning process
+  - Error handling and position tracking
+  - 14 tests, all passing ✅
 
-- **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Development guidelines covering:
-  - Code organization and module structure
-  - Testing strategy and TDD workflow
-  - Error handling patterns
-  - Code style and Rust idioms
-  - Incremental development process
-  - Quality assurance and CI/CD
+- **[PARSER.md](docs/PARSER.md)** - Parser implementation details
+  - Recursive descent parsing
+  - AST node definitions
+  - Operator precedence
+  - 53 tests, all passing ✅
+
+- **[INTERPRETER.md](docs/INTERPRETER.md)** - Interpreter implementation details
+  - Value types and runtime representation
+  - Environment and variable scoping
+  - Expression evaluation and statement execution
+  - 80 tests passing, 2 loop tests need debugging 🚧
 
 ## Development Commands
 
