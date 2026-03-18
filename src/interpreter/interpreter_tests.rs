@@ -416,7 +416,6 @@ fn test_exec_if_else() {
 }
 
 #[test]
-#[ignore] // Temporarily ignore - infinite loop issue
 fn test_exec_while_loop() {
     let mut eval = Evaluator::new();
 
@@ -449,7 +448,6 @@ fn test_exec_while_loop() {
 }
 
 #[test]
-#[ignore] // Temporarily ignore - debugging loops
 fn test_exec_for_loop() {
     let mut eval = Evaluator::new();
 
