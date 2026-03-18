@@ -19,3 +19,6 @@ pub mod parser;
 
 /// Module for interpreting and executing the AST
 pub mod interpreter;
+
+/// REPL module for interactive sessions
+pub mod repl;

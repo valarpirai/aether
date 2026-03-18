@@ -1,0 +1,11 @@
+// Simple Aether example program
+
+fn greet(name) {
+    return "Hello, " + name + "!"
+}
+
+fn main() {
+    let message = greet("Aether")
+    let numbers = [1, 2, 3, 4, 5]
+    let sum = numbers[0] + numbers[4]
+}
