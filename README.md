@@ -50,36 +50,38 @@ cargo clippy
 Create a file `example.ae`:
 
 ```aether
-fn fibonacci(n) {
-    if (n <= 1) {
-        return n
-    }
-
-    let a = 0
-    let b = 1
-
-    for i in range(2, n + 1) {
-        let temp = a + b
-        a = b
-        b = temp
-    }
-
-    return b
-}
+// Functional programming with stdlib
+fn square(x) { return x * x }
+fn is_even(x) { return x % 2 == 0 }
 
 fn main() {
-    println("Fibonacci Sequence")
+    println("=== Functional Pipeline Demo ===")
 
-    for i in range(0, 10) {
-        let result = fibonacci(i)
-        println("fib(${i}) = ${result}")
-    }
+    // Sum of squares of even numbers from 1-10
+    let numbers = range(1, 11)
+    let squares = map(numbers, square)
+    let even_squares = filter(squares, is_even)
+    let total = sum(even_squares)
+
+    println("Numbers:", numbers)
+    println("Squares:", squares)
+    println("Even squares:", even_squares)
+    println("Sum:", total)  // 220
+
+    println()
+    println("=== Text Processing ===")
+
+    let words = ["hello", "beautiful", "world"]
+    let sentence = join(words, " ")
+    println("Original:", sentence)
+    println("Uppercase:", sentence.upper())
+    println("Reversed:", reverse(sentence))
 }
 ```
 
 Run it with:
 ```bash
-aether example.ae
+cargo run example.ae
 ```
 
 ## Documentation
@@ -91,46 +93,42 @@ aether example.ae
 
 ## Development Status
 
-**Current Phase**: Phase 1 - Core Interpreter (70% Complete)
+**Current Phase**: Phase 3 - Standard Library (Complete ✅)
 
-### Completed ✅
-- ✅ Language design specification ([DESIGN.md](docs/DESIGN.md))
-- ✅ Development environment setup
-- ✅ Project structure with comprehensive documentation
-- ✅ **Lexer (100%)** - Full tokenization with 14 tests
-  - All token types (literals, keywords, operators)
-  - String escape sequences
-  - Comments (single/multi-line)
-  - Error handling
-- ✅ **Parser (80%)** - Recursive descent parser with 23 tests
-  - All expressions with proper precedence
-  - Variable declarations (`let`)
-  - Control flow (if/else, while, for)
-  - Return/break/continue statements
-
-### In Progress 🚧
-- 🚧 **Parser (Advanced)** - Remaining features:
-  - Function declarations
-  - Function calls
-  - Arrays and indexing
-  - Assignment statements
-- 🚧 **Interpreter** - Starting soon
-- 🚧 **REPL** - Starting soon
+### What's Working
+- ✅ **Complete Interpreter** - Tree-walking interpreter with full language support
+- ✅ **230 Tests Passing** - 100% success rate
+- ✅ **Garbage Collection** - Reference-counted memory management (Rc-based)
+- ✅ **Standard Library** - 28+ functions written in Aether itself
+  - Core: `range()`, `enumerate()`
+  - Collections: `map()`, `filter()`, `reduce()`, `find()`, `every()`, `some()`
+  - Math: `abs()`, `min()`, `max()`, `sum()`, `clamp()`, `sign()`
+  - String: `join()`, `repeat()`, `reverse()`, `starts_with()`, `ends_with()`
+- ✅ **Built-in Functions** - `print()`, `println()`, `type()`, `len()`, type conversions
+- ✅ **Collection Methods** - Array (`push`, `pop`, `length`) and String (`upper`, `lower`, `trim`, `split`)
+- ✅ **Interactive REPL** - Line editing with history
+- ✅ **First-class Functions** - Functions with closures
 
 ### Test Coverage
-- **37 tests passing** (14 lexer + 23 parser)
+- **230 tests passing** ✅
+  - 94 unit tests
+  - 136 integration tests
 - **0 clippy warnings**
-- **100% passing rate**
+- **100% success rate**
 
-### Up Next ⏳
-- ⏳ Complete parser (functions, arrays, assignments)
-- ⏳ Tree-walking interpreter
-- ⏳ Interactive REPL
-- ⏳ Phase 2: Functions and closures
-- ⏳ Phase 3: Collections & built-ins
-- ⏳ Phase 4: Module system
+### Recent Achievements
+- 🎉 **Fixed 135 GB Memory Leak** - Implemented GC (99%+ memory reduction)
+- 🎉 **Stdlib Bootstrapping** - Standard library written in Aether, not Rust
+- 🎉 **Zero Deployment** - Stdlib embedded in binary using `include_str!()`
 
-See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed roadmap and feature checklist.
+### Up Next (Phase 4+)
+- ⏳ Function expressions (inline anonymous functions)
+- ⏳ Module system (import/from statements)
+- ⏳ Error handling (try/catch)
+- ⏳ String indexing (direct character access)
+- ⏳ Stdlib expansion (io, json, http, time)
+
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed roadmap and [CLAUDE.md](CLAUDE.md) for complete project status.
 
 ## Contributing
 
