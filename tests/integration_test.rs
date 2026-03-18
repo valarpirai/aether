@@ -204,3 +204,34 @@ fn test_error_arity_mismatch() {
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("Expected 2 arguments"));
 }
+
+// Built-in function tests
+#[test]
+fn test_builtin_print() {
+    let code = r#"
+        print("Hello")
+        print(42)
+    "#;
+    let result = eval_expr(code);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_builtin_println() {
+    let code = r#"
+        println("Hello World")
+        println(1, 2, 3)
+    "#;
+    let result = eval_expr(code);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_builtin_print_multiple_args() {
+    let code = r#"
+        println("Sum:", 1 + 2 + 3)
+        println("Values:", 10, 20, 30)
+    "#;
+    let result = eval_expr(code);
+    assert!(result.is_ok());
+}

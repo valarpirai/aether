@@ -22,9 +22,35 @@ pub struct Evaluator {
 impl Evaluator {
     /// Create a new evaluator with a fresh environment
     pub fn new() -> Self {
-        Self {
+        let mut evaluator = Self {
             environment: Environment::new(),
-        }
+        };
+        evaluator.register_builtins();
+        evaluator
+    }
+
+    /// Register all built-in functions in the environment
+    fn register_builtins(&mut self) {
+        use super::builtins;
+
+        // I/O functions
+        self.environment.define(
+            "print".to_string(),
+            Value::BuiltinFn {
+                name: "print".to_string(),
+                arity: usize::MAX, // variadic
+                func: builtins::builtin_print,
+            },
+        );
+
+        self.environment.define(
+            "println".to_string(),
+            Value::BuiltinFn {
+                name: "println".to_string(),
+                arity: usize::MAX, // variadic
+                func: builtins::builtin_println,
+            },
+        );
     }
 
     /// Evaluate an expression
@@ -500,6 +526,24 @@ impl Evaluator {
                 self.environment = saved_env;
 
                 Ok(result)
+            }
+            Value::BuiltinFn { name: _, arity, func } => {
+                // Check arity (unless variadic - represented by usize::MAX)
+                if arity != usize::MAX && arity != args.len() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: arity,
+                        got: args.len(),
+                    });
+                }
+
+                // Evaluate arguments
+                let mut arg_values = Vec::new();
+                for arg in args {
+                    arg_values.push(self.eval_expr(arg)?);
+                }
+
+                // Call the built-in function
+                func(&arg_values)
             }
             _ => Err(RuntimeError::TypeError {
                 expected: "function".to_string(),

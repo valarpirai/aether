@@ -3,6 +3,7 @@
 pub mod value;
 pub mod environment;
 pub mod evaluator;
+pub mod builtins;
 
 #[cfg(test)]
 mod interpreter_tests;

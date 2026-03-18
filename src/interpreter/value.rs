@@ -2,6 +2,11 @@
 
 use std::fmt;
 
+use super::RuntimeError;
+
+/// Type for built-in function implementations
+pub type BuiltinFn = fn(&[Value]) -> Result<Value, RuntimeError>;
+
 /// Runtime value type
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -22,6 +27,12 @@ pub enum Value {
         params: Vec<String>,
         body: Box<crate::parser::ast::Stmt>,
         closure: Box<super::environment::Environment>,
+    },
+    /// Built-in function
+    BuiltinFn {
+        name: String,
+        arity: usize, // Number of parameters (or usize::MAX for variadic)
+        func: BuiltinFn,
     },
 }
 
@@ -49,6 +60,7 @@ impl Value {
             Value::Null => "null",
             Value::Array(_) => "array",
             Value::Function { .. } => "function",
+            Value::BuiltinFn { .. } => "builtin_function",
         }
     }
 }
@@ -63,6 +75,7 @@ impl PartialEq for Value {
             (Value::Null, Value::Null) => true,
             (Value::Array(a), Value::Array(b)) => a == b,
             (Value::Function { .. }, Value::Function { .. }) => false, // Functions never equal
+            (Value::BuiltinFn { .. }, Value::BuiltinFn { .. }) => false, // Built-ins never equal
             _ => false,
         }
     }
@@ -88,6 +101,9 @@ impl fmt::Display for Value {
             }
             Value::Function { params, .. } => {
                 write!(f, "<fn({})>", params.len())
+            }
+            Value::BuiltinFn { name, .. } => {
+                write!(f, "<builtin {}>", name)
             }
         }
     }
