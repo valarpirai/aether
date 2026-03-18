@@ -119,3 +119,199 @@ fn test_environment_shadowing() {
     assert_eq!(local.get("x").unwrap(), Value::Int(20));
     assert_eq!(global.get("x").unwrap(), Value::Int(10));
 }
+
+// Evaluator tests
+use super::evaluator::Evaluator;
+use crate::parser::ast::{BinaryOp, Expr, UnaryOp};
+
+#[test]
+fn test_eval_literals() {
+    let mut eval = Evaluator::new();
+
+    assert_eq!(eval.eval_expr(&Expr::Integer(42)).unwrap(), Value::Int(42));
+    assert_eq!(eval.eval_expr(&Expr::Float(3.14)).unwrap(), Value::Float(3.14));
+    assert_eq!(
+        eval.eval_expr(&Expr::String("hello".to_string())).unwrap(),
+        Value::String("hello".to_string())
+    );
+    assert_eq!(eval.eval_expr(&Expr::Bool(true)).unwrap(), Value::Bool(true));
+    assert_eq!(eval.eval_expr(&Expr::Null).unwrap(), Value::Null);
+}
+
+#[test]
+fn test_eval_arithmetic() {
+    let mut eval = Evaluator::new();
+
+    // Addition
+    let expr = Expr::Binary(
+        Box::new(Expr::Integer(10)),
+        BinaryOp::Add,
+        Box::new(Expr::Integer(20)),
+    );
+    assert_eq!(eval.eval_expr(&expr).unwrap(), Value::Int(30));
+
+    // Subtraction
+    let expr = Expr::Binary(
+        Box::new(Expr::Integer(30)),
+        BinaryOp::Subtract,
+        Box::new(Expr::Integer(10)),
+    );
+    assert_eq!(eval.eval_expr(&expr).unwrap(), Value::Int(20));
+
+    // Multiplication
+    let expr = Expr::Binary(
+        Box::new(Expr::Integer(6)),
+        BinaryOp::Multiply,
+        Box::new(Expr::Integer(7)),
+    );
+    assert_eq!(eval.eval_expr(&expr).unwrap(), Value::Int(42));
+
+    // Division
+    let expr = Expr::Binary(
+        Box::new(Expr::Integer(20)),
+        BinaryOp::Divide,
+        Box::new(Expr::Integer(4)),
+    );
+    assert_eq!(eval.eval_expr(&expr).unwrap(), Value::Int(5));
+}
+
+#[test]
+fn test_eval_unary() {
+    let mut eval = Evaluator::new();
+
+    // Negation
+    let expr = Expr::Unary(UnaryOp::Negate, Box::new(Expr::Integer(42)));
+    assert_eq!(eval.eval_expr(&expr).unwrap(), Value::Int(-42));
+
+    // Not
+    let expr = Expr::Unary(UnaryOp::Not, Box::new(Expr::Bool(true)));
+    assert_eq!(eval.eval_expr(&expr).unwrap(), Value::Bool(false));
+}
+
+#[test]
+fn test_eval_comparison() {
+    let mut eval = Evaluator::new();
+
+    // Less than
+    let expr = Expr::Binary(
+        Box::new(Expr::Integer(10)),
+        BinaryOp::Less,
+        Box::new(Expr::Integer(20)),
+    );
+    assert_eq!(eval.eval_expr(&expr).unwrap(), Value::Bool(true));
+
+    // Greater than
+    let expr = Expr::Binary(
+        Box::new(Expr::Integer(30)),
+        BinaryOp::Greater,
+        Box::new(Expr::Integer(20)),
+    );
+    assert_eq!(eval.eval_expr(&expr).unwrap(), Value::Bool(true));
+
+    // Equal
+    let expr = Expr::Binary(
+        Box::new(Expr::Integer(42)),
+        BinaryOp::Equal,
+        Box::new(Expr::Integer(42)),
+    );
+    assert_eq!(eval.eval_expr(&expr).unwrap(), Value::Bool(true));
+}
+
+#[test]
+fn test_eval_logical() {
+    let mut eval = Evaluator::new();
+
+    // And (short-circuit)
+    let expr = Expr::Binary(
+        Box::new(Expr::Bool(true)),
+        BinaryOp::And,
+        Box::new(Expr::Bool(false)),
+    );
+    assert_eq!(eval.eval_expr(&expr).unwrap(), Value::Bool(false));
+
+    // Or (short-circuit)
+    let expr = Expr::Binary(
+        Box::new(Expr::Bool(true)),
+        BinaryOp::Or,
+        Box::new(Expr::Bool(false)),
+    );
+    assert_eq!(eval.eval_expr(&expr).unwrap(), Value::Bool(true));
+}
+
+#[test]
+fn test_eval_string_concat() {
+    let mut eval = Evaluator::new();
+
+    let expr = Expr::Binary(
+        Box::new(Expr::String("Hello, ".to_string())),
+        BinaryOp::Add,
+        Box::new(Expr::String("World!".to_string())),
+    );
+    assert_eq!(
+        eval.eval_expr(&expr).unwrap(),
+        Value::String("Hello, World!".to_string())
+    );
+}
+
+#[test]
+fn test_eval_array_literal() {
+    let mut eval = Evaluator::new();
+
+    let expr = Expr::Array(vec![
+        Expr::Integer(1),
+        Expr::Integer(2),
+        Expr::Integer(3),
+    ]);
+    assert_eq!(
+        eval.eval_expr(&expr).unwrap(),
+        Value::Array(vec![Value::Int(1), Value::Int(2), Value::Int(3)])
+    );
+}
+
+#[test]
+fn test_eval_array_indexing() {
+    let mut eval = Evaluator::new();
+    eval.environment.define(
+        "arr".to_string(),
+        Value::Array(vec![Value::Int(10), Value::Int(20), Value::Int(30)]),
+    );
+
+    let expr = Expr::Index(
+        Box::new(Expr::Identifier("arr".to_string())),
+        Box::new(Expr::Integer(1)),
+    );
+    assert_eq!(eval.eval_expr(&expr).unwrap(), Value::Int(20));
+}
+
+#[test]
+fn test_eval_division_by_zero() {
+    let mut eval = Evaluator::new();
+
+    let expr = Expr::Binary(
+        Box::new(Expr::Integer(10)),
+        BinaryOp::Divide,
+        Box::new(Expr::Integer(0)),
+    );
+    assert!(matches!(
+        eval.eval_expr(&expr),
+        Err(RuntimeError::DivisionByZero)
+    ));
+}
+
+#[test]
+fn test_eval_index_out_of_bounds() {
+    let mut eval = Evaluator::new();
+    eval.environment.define(
+        "arr".to_string(),
+        Value::Array(vec![Value::Int(10)]),
+    );
+
+    let expr = Expr::Index(
+        Box::new(Expr::Identifier("arr".to_string())),
+        Box::new(Expr::Integer(5)),
+    );
+    assert!(matches!(
+        eval.eval_expr(&expr),
+        Err(RuntimeError::IndexOutOfBounds { .. })
+    ));
+}
