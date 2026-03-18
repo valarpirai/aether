@@ -1,0 +1,103 @@
+//! Abstract Syntax Tree node definitions
+
+/// Expression AST node
+#[derive(Debug, Clone, PartialEq)]
+pub enum Expr {
+    /// Integer literal
+    Integer(i64),
+    /// Float literal
+    Float(f64),
+    /// String literal
+    String(String),
+    /// Boolean literal
+    Bool(bool),
+    /// Null literal
+    Null,
+    /// Variable identifier
+    Identifier(String),
+    /// Binary operation (left, operator, right)
+    Binary(Box<Expr>, BinaryOp, Box<Expr>),
+    /// Unary operation (operator, operand)
+    Unary(UnaryOp, Box<Expr>),
+    /// Function call (function, arguments)
+    Call(Box<Expr>, Vec<Expr>),
+    /// Array literal
+    Array(Vec<Expr>),
+    /// Dictionary literal (key-value pairs)
+    Dict(Vec<(Expr, Expr)>),
+    /// Index access (object, index)
+    Index(Box<Expr>, Box<Expr>),
+    /// Member access (object, member)
+    Member(Box<Expr>, String),
+}
+
+/// Binary operators
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BinaryOp {
+    // Arithmetic
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Modulo,
+
+    // Comparison
+    Equal,
+    NotEqual,
+    Less,
+    Greater,
+    LessEqual,
+    GreaterEqual,
+
+    // Logical
+    And,
+    Or,
+}
+
+/// Unary operators
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnaryOp {
+    Negate,
+    Not,
+}
+
+/// Statement AST node
+#[derive(Debug, Clone, PartialEq)]
+pub enum Stmt {
+    /// Expression statement
+    Expr(Expr),
+    /// Variable declaration (name, initializer)
+    Let(String, Expr),
+    /// Assignment (target, value)
+    Assign(Expr, Expr),
+    /// Compound assignment (target, operator, value)
+    CompoundAssign(Expr, BinaryOp, Expr),
+    /// Block statement (statements)
+    Block(Vec<Stmt>),
+    /// If statement (condition, then_branch, else_branch)
+    If(Expr, Box<Stmt>, Option<Box<Stmt>>),
+    /// While loop (condition, body)
+    While(Expr, Box<Stmt>),
+    /// For loop (variable, iterable, body)
+    For(String, Expr, Box<Stmt>),
+    /// Return statement
+    Return(Option<Expr>),
+    /// Break statement
+    Break,
+    /// Continue statement
+    Continue,
+    /// Function declaration (name, parameters, body)
+    Function(String, Vec<String>, Box<Stmt>),
+}
+
+/// Program (top-level statements)
+#[derive(Debug, Clone, PartialEq)]
+pub struct Program {
+    pub statements: Vec<Stmt>,
+}
+
+impl Program {
+    pub fn new(statements: Vec<Stmt>) -> Self {
+        Self { statements }
+    }
+}

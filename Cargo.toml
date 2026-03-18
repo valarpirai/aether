@@ -1,0 +1,19 @@
+[package]
+name = "aether"
+version = "0.1.0"
+edition = "2021"
+authors = ["Aether Contributors"]
+description = "A general-purpose, dynamically typed programming language with automatic memory management"
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/yourusername/aether"
+keywords = ["interpreter", "programming-language", "dynamic", "repl"]
+categories = ["development-tools"]
+
+[dependencies]
+
+[dev-dependencies]
+
+[[bin]]
+name = "aether"
+path = "src/main.rs"
