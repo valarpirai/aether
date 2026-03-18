@@ -154,14 +154,9 @@ All planned features for Phase 1 have been implemented and tested.
   - **Integration Tests**: 20 passing
 - **Code Quality**: 0 clippy warnings
 
-### Implementation Guidelines
-- ✅ Follow Rust best practices and idioms
-- ✅ Test-driven development (write tests first)
-- ✅ Refer to `docs/DESIGN.md` for language specification
-- ✅ Create files incrementally, not all at once
-- ✅ Test each component before moving to the next
-- ✅ Use separate `<module>_tests.rs` files for tests
+## Development Resources
 
-## Quick Reference
-
-For detailed development guidelines, code organization, testing strategies, and best practices, see **[DEVELOPMENT.md](docs/DEVELOPMENT.md)**.
+For contributing or extending Aether, see:
+- **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Guidelines, TDD workflow, code organization
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design and roadmap
+- Component docs: LEXER.md, PARSER.md, INTERPRETER.md, REPL.md
