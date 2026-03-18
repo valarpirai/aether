@@ -84,6 +84,146 @@ Run it with:
 cargo run example.ae
 ```
 
+## Running Aether Programs
+
+### Quick Start
+
+```bash
+# Run a program (development mode)
+cargo run myprogram.ae
+
+# Start interactive REPL
+cargo run
+
+# Build optimized binary
+cargo build --release
+
+# Run with optimized binary
+./target/release/aether myprogram.ae
+```
+
+### REPL Mode (Interactive)
+
+Start the REPL by running Aether without arguments:
+
+```bash
+cargo run
+# or
+./target/release/aether
+```
+
+**REPL Features:**
+- Line editing with arrow keys
+- Command history (up/down arrows)
+- Multi-line support
+
+**Special Commands:**
+- `_help` - Show help information
+- `_env` - Display environment variables
+- `_exit` - Exit the REPL
+
+**Example REPL Session:**
+```
+Welcome to Aether REPL v0.1.0
+Type _help for more information, _exit to quit
+
+>>> let x = 42
+null
+>>> x * 2
+84
+>>> fn greet(name) { return "Hello, " + name }
+null
+>>> greet("World")
+Hello, World
+>>> let nums = range(1, 6)
+null
+>>> map(nums, fn(x) { return x * x })
+[1, 4, 9, 16, 25]
+>>> _exit
+```
+
+### File Mode (Running Scripts)
+
+Run Aether programs from files:
+
+```bash
+# Using cargo (development)
+cargo run path/to/program.ae
+
+# Using built binary
+./target/release/aether path/to/program.ae
+```
+
+**Program Requirements:**
+- Every program needs a `main()` function as the entry point
+- Standard library functions are automatically available
+
+**Example Program (`hello.ae`):**
+```aether
+fn main() {
+    println("Hello, Aether!")
+
+    let numbers = range(1, 11)
+    let sum = sum(numbers)
+    println("Sum of 1-10:", sum)
+}
+```
+
+Run it:
+```bash
+cargo run hello.ae
+```
+
+### Example Programs
+
+Try the included example programs:
+
+```bash
+# Simple hello world
+cargo run examples/hello.ae
+
+# Standard library demos
+cargo run examples/stdlib_demo.ae       # Core functions (range, enumerate)
+cargo run examples/collections_demo.ae  # map, filter, reduce
+cargo run examples/math_demo.ae         # Math utilities
+cargo run examples/string_demo.ae       # String operations
+
+# Performance test
+cargo run examples/gc_stress_test.ae    # GC stress test
+```
+
+### Building for Production
+
+Create an optimized release build:
+
+```bash
+# Build with optimizations
+cargo build --release
+
+# Binary location
+./target/release/aether
+
+# Optional: Install globally
+cargo install --path .
+
+# Now run from anywhere
+aether myprogram.ae
+```
+
+### Usage Summary
+
+```
+USAGE:
+    aether              # Start interactive REPL
+    aether <file.ae>    # Run an Aether program
+
+EXAMPLES:
+    aether                          # Interactive mode
+    aether hello.ae                 # Run hello.ae
+    aether examples/stdlib_demo.ae  # Run example
+    aether /path/to/script.ae       # Run from any path
+```
+
 ## Documentation
 
 - **[Language Design](docs/DESIGN.md)** - Complete language specification
