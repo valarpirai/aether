@@ -469,3 +469,52 @@ fn test_exec_for_loop() {
 
     assert_eq!(eval.environment.get("sum").unwrap(), Value::Int(6));
 }
+
+// Function tests
+#[test]
+fn test_function_declaration() {
+    let mut eval = Evaluator::new();
+
+    let stmt = Stmt::Function(
+        "add".to_string(),
+        vec!["a".to_string(), "b".to_string()],
+        Box::new(Stmt::Return(Some(Expr::Binary(
+            Box::new(Expr::Identifier("a".to_string())),
+            BinaryOp::Add,
+            Box::new(Expr::Identifier("b".to_string())),
+        )))),
+    );
+    eval.exec_stmt(&stmt).unwrap();
+
+    // Function should be defined
+    assert!(matches!(
+        eval.environment.get("add").unwrap(),
+        Value::Function { .. }
+    ));
+}
+
+#[test]
+fn test_function_call() {
+    let mut eval = Evaluator::new();
+
+    // Define function: fn add(a, b) { return a + b }
+    let func_stmt = Stmt::Function(
+        "add".to_string(),
+        vec!["a".to_string(), "b".to_string()],
+        Box::new(Stmt::Return(Some(Expr::Binary(
+            Box::new(Expr::Identifier("a".to_string())),
+            BinaryOp::Add,
+            Box::new(Expr::Identifier("b".to_string())),
+        )))),
+    );
+    eval.exec_stmt(&func_stmt).unwrap();
+
+    // Call function: add(10, 20)
+    let call_expr = Expr::Call(
+        Box::new(Expr::Identifier("add".to_string())),
+        vec![Expr::Integer(10), Expr::Integer(20)],
+    );
+    let result = eval.eval_expr(&call_expr).unwrap();
+
+    assert_eq!(result, Value::Int(30));
+}

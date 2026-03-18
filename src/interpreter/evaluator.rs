@@ -52,12 +52,7 @@ impl Evaluator {
                     "Member access not yet implemented".to_string(),
                 ))
             }
-            Expr::Call(_callee, _args) => {
-                // Function calls not yet implemented
-                Err(RuntimeError::InvalidOperation(
-                    "Function calls not yet implemented".to_string(),
-                ))
-            }
+            Expr::Call(callee, args) => self.eval_call(callee, args),
             Expr::Dict(_) => {
                 // Dictionaries not yet implemented
                 Err(RuntimeError::InvalidOperation(
@@ -380,11 +375,15 @@ impl Evaluator {
             }
             Stmt::Break => Ok(ControlFlow::Break),
             Stmt::Continue => Ok(ControlFlow::Continue),
-            Stmt::Function(_name, _params, _body) => {
-                // Function declarations will be implemented in Phase 7
-                Err(RuntimeError::InvalidOperation(
-                    "Function declarations not yet implemented".to_string(),
-                ))
+            Stmt::Function(name, params, body) => {
+                // Create function value with current environment as closure
+                let func = Value::Function {
+                    params: params.clone(),
+                    body: body.clone(),
+                    closure: Box::new(self.environment.clone()),
+                };
+                self.environment.define(name.clone(), func);
+                Ok(ControlFlow::None)
             }
         }
     }
@@ -458,6 +457,55 @@ impl Evaluator {
             self.exec_stmt_internal(stmt)?;
         }
         Ok(())
+    }
+
+    /// Evaluate function call
+    fn eval_call(&mut self, callee: &Expr, args: &[Expr]) -> Result<Value, RuntimeError> {
+        let func_val = self.eval_expr(callee)?;
+
+        match func_val {
+            Value::Function { params, body, closure } => {
+                // Check arity
+                if params.len() != args.len() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: params.len(),
+                        got: args.len(),
+                    });
+                }
+
+                // Evaluate arguments
+                let mut arg_values = Vec::new();
+                for arg in args {
+                    arg_values.push(self.eval_expr(arg)?);
+                }
+
+                // Save current environment
+                let saved_env = self.environment.clone();
+
+                // Create new environment with closure as parent
+                self.environment = Environment::with_parent((*closure).clone());
+
+                // Bind parameters
+                for (param, value) in params.iter().zip(arg_values) {
+                    self.environment.define(param.clone(), value);
+                }
+
+                // Execute function body
+                let result = match self.exec_stmt_internal(&body)? {
+                    ControlFlow::Return(val) => val,
+                    _ => Value::Null,
+                };
+
+                // Restore environment
+                self.environment = saved_env;
+
+                Ok(result)
+            }
+            _ => Err(RuntimeError::TypeError {
+                expected: "function".to_string(),
+                got: func_val.type_name().to_string(),
+            }),
+        }
     }
 }
 

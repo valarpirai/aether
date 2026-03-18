@@ -3,7 +3,7 @@
 use std::fmt;
 
 /// Runtime value type
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum Value {
     /// Integer value
     Int(i64),
@@ -17,10 +17,11 @@ pub enum Value {
     Null,
     /// Array of values
     Array(Vec<Value>),
-    /// Function (parameters, body will be added later)
+    /// Function with closure
     Function {
         params: Vec<String>,
-        // body and closure will be added when we implement function execution
+        body: Box<crate::parser::ast::Stmt>,
+        closure: Box<super::environment::Environment>,
     },
 }
 
@@ -52,6 +53,21 @@ impl Value {
     }
 }
 
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Value::Int(a), Value::Int(b)) => a == b,
+            (Value::Float(a), Value::Float(b)) => a == b,
+            (Value::String(a), Value::String(b)) => a == b,
+            (Value::Bool(a), Value::Bool(b)) => a == b,
+            (Value::Null, Value::Null) => true,
+            (Value::Array(a), Value::Array(b)) => a == b,
+            (Value::Function { .. }, Value::Function { .. }) => false, // Functions never equal
+            _ => false,
+        }
+    }
+}
+
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -71,7 +87,7 @@ impl fmt::Display for Value {
                 write!(f, "]")
             }
             Value::Function { params, .. } => {
-                write!(f, "<function({})>", params.len())
+                write!(f, "<fn({})>", params.len())
             }
         }
     }
