@@ -437,3 +437,119 @@ fn test_parse_nested_function_calls() {
         _ => panic!("Expected function call"),
     }
 }
+
+// Array literal tests
+#[test]
+fn test_parse_array_empty() {
+    let mut scanner = Scanner::new("[]");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Expr(Expr::Array(elements)) => {
+            assert_eq!(elements.len(), 0);
+        }
+        _ => panic!("Expected array literal"),
+    }
+}
+
+#[test]
+fn test_parse_array_single() {
+    let mut scanner = Scanner::new("[42]");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Expr(Expr::Array(elements)) => {
+            assert_eq!(elements.len(), 1);
+            assert!(matches!(elements[0], Expr::Integer(42)));
+        }
+        _ => panic!("Expected array literal"),
+    }
+}
+
+#[test]
+fn test_parse_array_multiple() {
+    let mut scanner = Scanner::new("[1, 2, 3]");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Expr(Expr::Array(elements)) => {
+            assert_eq!(elements.len(), 3);
+            assert!(matches!(elements[0], Expr::Integer(1)));
+            assert!(matches!(elements[1], Expr::Integer(2)));
+            assert!(matches!(elements[2], Expr::Integer(3)));
+        }
+        _ => panic!("Expected array literal"),
+    }
+}
+
+// Array indexing tests
+#[test]
+fn test_parse_array_indexing() {
+    let mut scanner = Scanner::new("arr[0]");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Expr(Expr::Index(array, index)) => {
+            assert!(matches!(**array, Expr::Identifier(_)));
+            assert!(matches!(**index, Expr::Integer(0)));
+        }
+        _ => panic!("Expected index expression"),
+    }
+}
+
+#[test]
+fn test_parse_chained_indexing() {
+    let mut scanner = Scanner::new("matrix[1][2]");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Expr(Expr::Index(array, index)) => {
+            assert!(matches!(**array, Expr::Index(_, _)));
+            assert!(matches!(**index, Expr::Integer(2)));
+        }
+        _ => panic!("Expected chained index expression"),
+    }
+}
+
+// Member access tests
+#[test]
+fn test_parse_member_access() {
+    let mut scanner = Scanner::new("obj.property");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Expr(Expr::Member(object, member)) => {
+            assert!(matches!(**object, Expr::Identifier(_)));
+            assert_eq!(member, "property");
+        }
+        _ => panic!("Expected member access"),
+    }
+}
+
+#[test]
+fn test_parse_chained_member_access() {
+    let mut scanner = Scanner::new("obj.prop.nested");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Expr(Expr::Member(object, member)) => {
+            assert!(matches!(**object, Expr::Member(_, _)));
+            assert_eq!(member, "nested");
+        }
+        _ => panic!("Expected chained member access"),
+    }
+}

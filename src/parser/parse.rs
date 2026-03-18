@@ -391,13 +391,31 @@ impl Parser {
         self.call()
     }
 
-    // Parse function calls: expr(args)
+    // Parse postfix operations: function calls, indexing, member access
     fn call(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.primary()?;
 
         loop {
             if self.match_token(&[TokenKind::LeftParen]) {
+                // Function call
                 expr = self.finish_call(expr)?;
+            } else if self.match_token(&[TokenKind::LeftBracket]) {
+                // Array indexing
+                let index = self.expression()?;
+                self.consume(TokenKind::RightBracket, "]")?;
+                expr = Expr::Index(Box::new(expr), Box::new(index));
+            } else if self.match_token(&[TokenKind::Dot]) {
+                // Member access
+                let member = if let TokenKind::Identifier(name) = &self.peek().kind {
+                    name.clone()
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        expected: "property name".to_string(),
+                        found: self.peek().clone(),
+                    });
+                };
+                self.advance();
+                expr = Expr::Member(Box::new(expr), member);
             } else {
                 break;
             }
@@ -424,7 +442,7 @@ impl Parser {
         Ok(Expr::Call(Box::new(callee), arguments))
     }
 
-    // Parse primary expressions: literals, identifiers, grouped expressions
+    // Parse primary expressions: literals, identifiers, grouped expressions, arrays
     fn primary(&mut self) -> Result<Expr, ParseError> {
         let token = self.advance().clone();
 
@@ -440,6 +458,22 @@ impl Parser {
                 let expr = self.expression()?;
                 self.consume(TokenKind::RightParen, ")")?;
                 Ok(expr)
+            }
+            TokenKind::LeftBracket => {
+                // Array literal
+                let mut elements = Vec::new();
+
+                if !self.check(&TokenKind::RightBracket) {
+                    loop {
+                        elements.push(self.expression()?);
+                        if !self.match_token(&[TokenKind::Comma]) {
+                            break;
+                        }
+                    }
+                }
+
+                self.consume(TokenKind::RightBracket, "]")?;
+                Ok(Expr::Array(elements))
             }
             _ => Err(ParseError::UnexpectedToken {
                 expected: "expression".to_string(),
