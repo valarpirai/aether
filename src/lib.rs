@@ -18,4 +18,4 @@ pub mod lexer;
 pub mod parser;
 
 /// Module for interpreting and executing the AST
-pub mod interpreter {}
+pub mod interpreter;
