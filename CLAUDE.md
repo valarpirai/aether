@@ -25,28 +25,16 @@ Aether is a general-purpose programming language implementation written in Rust.
 
 ## Documentation Index
 
-### Language & Project Documentation
-- **[DESIGN.md](docs/DESIGN.md)** - Complete language specification (types, syntax, features)
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture and roadmap
-- **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Development guidelines and best practices
-
-### Component Documentation
-- **[LEXER.md](docs/LEXER.md)** - Lexer implementation details
-  - Token types and scanning process
-  - Error handling and position tracking
-  - 14 tests, all passing ✅
-
-- **[PARSER.md](docs/PARSER.md)** - Parser implementation details
-  - Recursive descent parsing
-  - AST node definitions
-  - Operator precedence
-  - 53 tests, all passing ✅
-
-- **[INTERPRETER.md](docs/INTERPRETER.md)** - Interpreter implementation details
-  - Value types and runtime representation
-  - Environment and variable scoping
-  - Expression evaluation and statement execution
-  - 80 tests passing, 2 loop tests need debugging 🚧
+| Document | Description | Status |
+|----------|-------------|--------|
+| **Language & Project** | | |
+| [DESIGN.md](docs/DESIGN.md) | Complete language specification (types, syntax, features) | ✅ Complete |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, roadmap, and feature checklist | ✅ Complete |
+| [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guidelines and best practices | ✅ Complete |
+| **Components** | | |
+| [LEXER.md](docs/LEXER.md) | Lexer implementation (tokenization, 14 tests) | ✅ Complete |
+| [PARSER.md](docs/PARSER.md) | Parser implementation (recursive descent, 53 tests) | ✅ Complete |
+| [INTERPRETER.md](docs/INTERPRETER.md) | Interpreter implementation (82 tests, 2 ignored) | 🚧 In Progress |
 
 ## Development Commands
 
