@@ -97,10 +97,13 @@ impl Parser {
         }
     }
 
-    // Parse declarations (let statements)
+    // Parse declarations (let statements, function declarations)
     fn declaration(&mut self) -> Result<Stmt, ParseError> {
         if self.match_token(&[TokenKind::Let]) {
             return self.let_declaration();
+        }
+        if self.match_token(&[TokenKind::Fn]) {
+            return self.function_declaration();
         }
         self.statement()
     }
@@ -121,6 +124,50 @@ impl Parser {
         let initializer = self.expression()?;
 
         Ok(Stmt::Let(name, initializer))
+    }
+
+    // Parse function declaration: fn name(params) { body }
+    fn function_declaration(&mut self) -> Result<Stmt, ParseError> {
+        // Parse function name
+        let name = if let TokenKind::Identifier(n) = &self.peek().kind {
+            n.clone()
+        } else {
+            return Err(ParseError::UnexpectedToken {
+                expected: "function name".to_string(),
+                found: self.peek().clone(),
+            });
+        };
+        self.advance();
+
+        // Parse parameter list
+        self.consume(TokenKind::LeftParen, "(")?;
+        let mut params = Vec::new();
+
+        if !self.check(&TokenKind::RightParen) {
+            loop {
+                if let TokenKind::Identifier(param) = &self.peek().kind {
+                    params.push(param.clone());
+                    self.advance();
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        expected: "parameter name".to_string(),
+                        found: self.peek().clone(),
+                    });
+                }
+
+                if !self.match_token(&[TokenKind::Comma]) {
+                    break;
+                }
+            }
+        }
+
+        self.consume(TokenKind::RightParen, ")")?;
+
+        // Parse function body (must be a block)
+        self.consume(TokenKind::LeftBrace, "{")?;
+        let body = self.block_statement()?;
+
+        Ok(Stmt::Function(name, params, Box::new(body)))
     }
 
     // Parse statements
@@ -341,7 +388,40 @@ impl Parser {
             return Ok(Expr::Unary(op, Box::new(expr)));
         }
 
-        self.primary()
+        self.call()
+    }
+
+    // Parse function calls: expr(args)
+    fn call(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.primary()?;
+
+        loop {
+            if self.match_token(&[TokenKind::LeftParen]) {
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
+    }
+
+    // Parse argument list and create Call expression
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr, ParseError> {
+        let mut arguments = Vec::new();
+
+        if !self.check(&TokenKind::RightParen) {
+            loop {
+                arguments.push(self.expression()?);
+                if !self.match_token(&[TokenKind::Comma]) {
+                    break;
+                }
+            }
+        }
+
+        self.consume(TokenKind::RightParen, ")")?;
+
+        Ok(Expr::Call(Box::new(callee), arguments))
     }
 
     // Parse primary expressions: literals, identifiers, grouped expressions

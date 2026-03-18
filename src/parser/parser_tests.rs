@@ -349,3 +349,91 @@ fn test_parse_for_loop() {
         _ => panic!("Expected for statement"),
     }
 }
+
+// Function declaration tests
+#[test]
+fn test_parse_function_declaration() {
+    let mut scanner = Scanner::new("fn add(a, b) { return a + b }");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Function(name, params, body) => {
+            assert_eq!(name, "add");
+            assert_eq!(params.len(), 2);
+            assert_eq!(params[0], "a");
+            assert_eq!(params[1], "b");
+            assert!(matches!(**body, Stmt::Block(_)));
+        }
+        _ => panic!("Expected function declaration"),
+    }
+}
+
+#[test]
+fn test_parse_function_no_params() {
+    let mut scanner = Scanner::new("fn greet() { return 42 }");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Function(name, params, _) => {
+            assert_eq!(name, "greet");
+            assert_eq!(params.len(), 0);
+        }
+        _ => panic!("Expected function declaration"),
+    }
+}
+
+// Function call tests
+#[test]
+fn test_parse_function_call_no_args() {
+    let mut scanner = Scanner::new("foo()");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Expr(Expr::Call(func, args)) => {
+            assert!(matches!(**func, Expr::Identifier(_)));
+            assert_eq!(args.len(), 0);
+        }
+        _ => panic!("Expected function call"),
+    }
+}
+
+#[test]
+fn test_parse_function_call_with_args() {
+    let mut scanner = Scanner::new("add(1, 2)");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Expr(Expr::Call(func, args)) => {
+            assert!(matches!(**func, Expr::Identifier(_)));
+            assert_eq!(args.len(), 2);
+            assert!(matches!(args[0], Expr::Integer(1)));
+            assert!(matches!(args[1], Expr::Integer(2)));
+        }
+        _ => panic!("Expected function call"),
+    }
+}
+
+#[test]
+fn test_parse_nested_function_calls() {
+    let mut scanner = Scanner::new("outer(inner(42))");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Expr(Expr::Call(func, args)) => {
+            assert!(matches!(**func, Expr::Identifier(_)));
+            assert_eq!(args.len(), 1);
+            assert!(matches!(args[0], Expr::Call(_, _)));
+        }
+        _ => panic!("Expected function call"),
+    }
+}
