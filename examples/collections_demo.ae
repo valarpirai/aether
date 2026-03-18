@@ -1,0 +1,99 @@
+// Demonstrate Aether collections stdlib functions
+
+println("=== Collections Stdlib Demo ===")
+println()
+
+// Sample data
+let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+println("Numbers:", numbers)
+println()
+
+// Map - transform each element
+fn double(x) { return x * 2 }
+let doubled = map(numbers, double)
+println("Doubled:", doubled)
+
+fn square(x) { return x * x }
+let squared = map(numbers, square)
+println("Squared:", squared)
+println()
+
+// Filter - keep elements matching condition
+fn is_even(x) { return x % 2 == 0 }
+let evens = filter(numbers, is_even)
+println("Evens:", evens)
+
+fn gt_five(x) { return x > 5 }
+let above_five = filter(numbers, gt_five)
+println("Above 5:", above_five)
+println()
+
+// Reduce - combine all elements into one value
+fn add(acc, x) { return acc + x }
+let sum = reduce(numbers, add, 0)
+println("Sum:", sum)
+
+fn multiply(acc, x) { return acc * x }
+let product = reduce(range(1, 6), multiply, 1)
+println("5! (factorial):", product)
+println()
+
+// Find - get first matching element
+fn gt_seven(x) { return x > 7 }
+let first_above_seven = find(numbers, gt_seven)
+println("First > 7:", first_above_seven)
+println()
+
+// Every - check if all match
+fn is_positive(x) { return x > 0 }
+let all_positive = every(numbers, is_positive)
+println("All positive?:", all_positive)
+
+let all_even = every(numbers, is_even)
+println("All even?:", all_even)
+println()
+
+// Some - check if any match
+let has_even = some(numbers, is_even)
+println("Has even?:", has_even)
+
+fn gt_hundred(x) { return x > 100 }
+let has_large = some(numbers, gt_hundred)
+println("Has > 100?:", has_large)
+println()
+
+// Composition - chain operations
+println("=== Function Composition ===")
+
+// Map -> Filter -> Reduce pipeline
+let result = reduce(
+    filter(
+        map(range(1, 11), square),
+        is_even
+    ),
+    add,
+    0
+)
+println("Sum of squares of evens (1-10):", result)
+
+// Real-world example: process text
+let words = ["hello", "WORLD", "Aether", "STDLIB"]
+println()
+println("Words:", words)
+
+fn to_lower(s) { return s.lower() }
+let lowercase = map(words, to_lower)
+println("Lowercase:", lowercase)
+
+fn has_e(s) {
+    // Check if string contains 'e' (simple check)
+    let i = 0
+    while (i < len(s)) {
+        // Note: No string indexing yet, so this is simplified
+        i = i + 1
+    }
+    return true  // Simplified for demo
+}
+
+println()
+println("Done!")

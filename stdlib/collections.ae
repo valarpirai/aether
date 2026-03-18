@@ -1,0 +1,60 @@
+// Aether Standard Library - Collection Operations
+// Functional programming utilities for arrays
+
+// map(array, fn) - Apply function to each element, return new array
+fn map(array, func) {
+    let result = []
+    for item in array {
+        result.push(func(item))
+    }
+    return result
+}
+
+// filter(array, predicate) - Keep only elements where predicate returns true
+fn filter(array, predicate) {
+    let result = []
+    for item in array {
+        if (predicate(item)) {
+            result.push(item)
+        }
+    }
+    return result
+}
+
+// reduce(array, fn, initial) - Reduce array to single value
+fn reduce(array, func, accumulator) {
+    for item in array {
+        accumulator = func(accumulator, item)
+    }
+    return accumulator
+}
+
+// find(array, predicate) - Find first element matching predicate, or null
+fn find(array, predicate) {
+    for item in array {
+        if (predicate(item)) {
+            return item
+        }
+    }
+    return null
+}
+
+// every(array, predicate) - Check if all elements satisfy predicate
+fn every(array, predicate) {
+    for item in array {
+        if (!predicate(item)) {
+            return false
+        }
+    }
+    return true
+}
+
+// some(array, predicate) - Check if any element satisfies predicate
+fn some(array, predicate) {
+    for item in array {
+        if (predicate(item)) {
+            return true
+        }
+    }
+    return false
+}
