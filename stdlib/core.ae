@@ -1,0 +1,35 @@
+// Aether Standard Library - Core Utilities
+// Provides fundamental helper functions for iteration and enumeration
+
+// range(n) - Create array [0, 1, 2, ..., n-1]
+// range(start, end) - Create array [start, start+1, ..., end-1]
+fn range(start, end) {
+    // Single argument: range(n) means range(0, n)
+    let actual_start = 0
+    let actual_end = start
+
+    // Two arguments: range(start, end)
+    if (type(end) != "null") {
+        actual_start = start
+        actual_end = end
+    }
+
+    let result = []
+    let i = actual_start
+    while (i < actual_end) {
+        result.push(i)
+        i = i + 1
+    }
+    return result
+}
+
+// enumerate(array) - Create array of [index, value] pairs
+fn enumerate(array) {
+    let result = []
+    let i = 0
+    while (i < len(array)) {
+        result.push([i, array[i]])
+        i = i + 1
+    }
+    return result
+}

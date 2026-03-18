@@ -26,6 +26,7 @@ impl Evaluator {
             environment: Environment::new(),
         };
         evaluator.register_builtins();
+        evaluator.load_stdlib();
         evaluator
     }
 
@@ -107,6 +108,42 @@ impl Evaluator {
                 func: builtins::builtin_bool,
             },
         );
+    }
+
+    /// Load standard library modules
+    fn load_stdlib(&mut self) {
+        use crate::lexer::Scanner;
+        use crate::parser::Parser;
+        use super::stdlib;
+
+        for (name, source) in stdlib::stdlib_modules() {
+            // Parse the module
+            let mut scanner = Scanner::new(source);
+            let tokens = match scanner.scan_tokens() {
+                Ok(t) => t,
+                Err(e) => {
+                    eprintln!("Warning: Failed to tokenize stdlib module '{}': {}", name, e);
+                    continue;
+                }
+            };
+
+            let mut parser = Parser::new(tokens);
+            let program = match parser.parse() {
+                Ok(p) => p,
+                Err(e) => {
+                    eprintln!("Warning: Failed to parse stdlib module '{}': {}", name, e);
+                    continue;
+                }
+            };
+
+            // Execute all statements in the module
+            for stmt in &program.statements {
+                if let Err(e) = self.exec_stmt(stmt) {
+                    eprintln!("Warning: Failed to execute stdlib module '{}': {}", name, e);
+                    break;
+                }
+            }
+        }
     }
 
     /// Evaluate an expression
@@ -671,8 +708,8 @@ impl Evaluator {
 
         match func_val {
             Value::Function { params, body, closure } => {
-                // Check arity
-                if params.len() != args.len() {
+                // Check arity - allow fewer arguments (optional parameters)
+                if args.len() > params.len() {
                     return Err(RuntimeError::ArityMismatch {
                         expected: params.len(),
                         got: args.len(),
@@ -683,6 +720,11 @@ impl Evaluator {
                 let mut arg_values = Vec::new();
                 for arg in args {
                     arg_values.push(self.eval_expr(arg)?);
+                }
+
+                // Pad with null for missing optional parameters
+                while arg_values.len() < params.len() {
+                    arg_values.push(Value::Null);
                 }
 
                 // Save current environment
