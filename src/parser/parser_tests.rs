@@ -553,3 +553,69 @@ fn test_parse_chained_member_access() {
         _ => panic!("Expected chained member access"),
     }
 }
+
+// Assignment tests
+#[test]
+fn test_parse_simple_assignment() {
+    let mut scanner = Scanner::new("x = 10");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Assign(target, value) => {
+            assert!(matches!(target, Expr::Identifier(_)));
+            assert!(matches!(value, Expr::Integer(10)));
+        }
+        _ => panic!("Expected assignment statement"),
+    }
+}
+
+#[test]
+fn test_parse_compound_assignment() {
+    let mut scanner = Scanner::new("x += 5");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::CompoundAssign(target, op, value) => {
+            assert!(matches!(target, Expr::Identifier(_)));
+            assert_eq!(*op, BinaryOp::Add);
+            assert!(matches!(value, Expr::Integer(5)));
+        }
+        _ => panic!("Expected compound assignment statement"),
+    }
+}
+
+#[test]
+fn test_parse_array_element_assignment() {
+    let mut scanner = Scanner::new("arr[0] = 42");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Assign(target, value) => {
+            assert!(matches!(target, Expr::Index(_, _)));
+            assert!(matches!(value, Expr::Integer(42)));
+        }
+        _ => panic!("Expected assignment statement"),
+    }
+}
+
+#[test]
+fn test_parse_member_assignment() {
+    let mut scanner = Scanner::new("obj.prop = 100");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Assign(target, value) => {
+            assert!(matches!(target, Expr::Member(_, _)));
+            assert!(matches!(value, Expr::Integer(100)));
+        }
+        _ => panic!("Expected assignment statement"),
+    }
+}

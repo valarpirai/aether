@@ -269,7 +269,41 @@ impl Parser {
 
     fn expression_statement(&mut self) -> Result<Stmt, ParseError> {
         let expr = self.expression()?;
+
+        // Check if this is actually an assignment
+        if self.match_token(&[TokenKind::Equal]) {
+            // Simple assignment: target = value
+            self.validate_assignment_target(&expr)?;
+            let value = self.expression()?;
+            return Ok(Stmt::Assign(expr, value));
+        } else if self.match_token(&[
+            TokenKind::PlusEqual,
+            TokenKind::MinusEqual,
+            TokenKind::StarEqual,
+            TokenKind::SlashEqual,
+        ]) {
+            // Compound assignment: target += value, etc.
+            self.validate_assignment_target(&expr)?;
+            let op = match self.previous().kind {
+                TokenKind::PlusEqual => BinaryOp::Add,
+                TokenKind::MinusEqual => BinaryOp::Subtract,
+                TokenKind::StarEqual => BinaryOp::Multiply,
+                TokenKind::SlashEqual => BinaryOp::Divide,
+                _ => unreachable!(),
+            };
+            let value = self.expression()?;
+            return Ok(Stmt::CompoundAssign(expr, op, value));
+        }
+
         Ok(Stmt::Expr(expr))
+    }
+
+    // Validate that the expression can be used as an assignment target
+    fn validate_assignment_target(&self, expr: &Expr) -> Result<(), ParseError> {
+        match expr {
+            Expr::Identifier(_) | Expr::Index(_, _) | Expr::Member(_, _) => Ok(()),
+            _ => Err(ParseError::InvalidAssignmentTarget),
+        }
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {
