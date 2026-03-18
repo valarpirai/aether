@@ -1,8 +1,17 @@
-//! Expression evaluation for the Aether interpreter
+//! Expression evaluation and statement execution for the Aether interpreter
 
 use super::environment::{Environment, RuntimeError};
 use super::value::Value;
-use crate::parser::ast::{BinaryOp, Expr, UnaryOp};
+use crate::parser::ast::{BinaryOp, Expr, Stmt, UnaryOp};
+
+/// Control flow signals
+#[derive(Debug, Clone, PartialEq)]
+enum ControlFlow {
+    None,
+    Return(Value),
+    Break,
+    Continue,
+}
 
 /// Interpreter for evaluating expressions
 pub struct Evaluator {
@@ -268,6 +277,187 @@ impl Evaluator {
                 got: format!("{} and {}", array.type_name(), index.type_name()),
             }),
         }
+    }
+
+    /// Execute a statement (public interface)
+    pub fn exec_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
+        self.exec_stmt_internal(stmt)?;
+        Ok(())
+    }
+
+    /// Execute a statement (internal with control flow)
+    fn exec_stmt_internal(&mut self, stmt: &Stmt) -> Result<ControlFlow, RuntimeError> {
+        match stmt {
+            Stmt::Expr(expr) => {
+                self.eval_expr(expr)?;
+                Ok(ControlFlow::None)
+            }
+            Stmt::Let(name, initializer) => {
+                let value = self.eval_expr(initializer)?;
+                self.environment.define(name.clone(), value);
+                Ok(ControlFlow::None)
+            }
+            Stmt::Assign(target, value) => {
+                let val = self.eval_expr(value)?;
+                self.assign_target(target, val)?;
+                Ok(ControlFlow::None)
+            }
+            Stmt::CompoundAssign(target, op, value) => {
+                let current = self.eval_expr(target)?;
+                let rhs = self.eval_expr(value)?;
+                let result = self.eval_binary_values(current, *op, rhs)?;
+                self.assign_target(target, result)?;
+                Ok(ControlFlow::None)
+            }
+            Stmt::Block(statements) => {
+                // Execute statements in block (no new scope for now - will add proper scoping with functions)
+                for statement in statements {
+                    let flow = self.exec_stmt_internal(statement)?;
+                    if flow != ControlFlow::None {
+                        return Ok(flow);
+                    }
+                }
+                Ok(ControlFlow::None)
+            }
+            Stmt::If(condition, then_branch, else_branch) => {
+                let cond_val = self.eval_expr(condition)?;
+                if cond_val.is_truthy() {
+                    self.exec_stmt_internal(then_branch)
+                } else if let Some(else_stmt) = else_branch {
+                    self.exec_stmt_internal(else_stmt)
+                } else {
+                    Ok(ControlFlow::None)
+                }
+            }
+            Stmt::While(condition, body) => {
+                loop {
+                    let cond_val = self.eval_expr(condition)?;
+                    if !cond_val.is_truthy() {
+                        break;
+                    }
+
+                    let flow = self.exec_stmt_internal(body)?;
+                    match flow {
+                        ControlFlow::Break => break,
+                        ControlFlow::Continue => continue,
+                        ControlFlow::Return(val) => return Ok(ControlFlow::Return(val)),
+                        ControlFlow::None => {}
+                    }
+                }
+                Ok(ControlFlow::None)
+            }
+            Stmt::For(var, iterable, body) => {
+                let iter_val = self.eval_expr(iterable)?;
+
+                match iter_val {
+                    Value::Array(elements) => {
+                        for element in elements {
+                            self.environment.define(var.clone(), element);
+
+                            let flow = self.exec_stmt_internal(body)?;
+                            match flow {
+                                ControlFlow::Break => break,
+                                ControlFlow::Continue => continue,
+                                ControlFlow::Return(val) => return Ok(ControlFlow::Return(val)),
+                                ControlFlow::None => {}
+                            }
+                        }
+                        Ok(ControlFlow::None)
+                    }
+                    _ => Err(RuntimeError::TypeError {
+                        expected: "iterable (array)".to_string(),
+                        got: iter_val.type_name().to_string(),
+                    }),
+                }
+            }
+            Stmt::Return(expr) => {
+                let value = if let Some(e) = expr {
+                    self.eval_expr(e)?
+                } else {
+                    Value::Null
+                };
+                Ok(ControlFlow::Return(value))
+            }
+            Stmt::Break => Ok(ControlFlow::Break),
+            Stmt::Continue => Ok(ControlFlow::Continue),
+            Stmt::Function(_name, _params, _body) => {
+                // Function declarations will be implemented in Phase 7
+                Err(RuntimeError::InvalidOperation(
+                    "Function declarations not yet implemented".to_string(),
+                ))
+            }
+        }
+    }
+
+    /// Helper to evaluate binary operation on values (for compound assignment)
+    fn eval_binary_values(
+        &mut self,
+        left: Value,
+        op: BinaryOp,
+        right: Value,
+    ) -> Result<Value, RuntimeError> {
+        match op {
+            BinaryOp::Add => self.eval_add(left, right),
+            BinaryOp::Subtract => self.eval_arithmetic(left, right, |a, b| a - b, |a, b| a - b),
+            BinaryOp::Multiply => self.eval_arithmetic(left, right, |a, b| a * b, |a, b| a * b),
+            BinaryOp::Divide => self.eval_divide(left, right),
+            _ => Err(RuntimeError::InvalidOperation(
+                "Invalid compound assignment operator".to_string(),
+            )),
+        }
+    }
+
+    /// Assign a value to a target (identifier, index, or member)
+    fn assign_target(&mut self, target: &Expr, value: Value) -> Result<(), RuntimeError> {
+        match target {
+            Expr::Identifier(name) => {
+                self.environment.set(name, value)?;
+                Ok(())
+            }
+            Expr::Index(array, index) => {
+                // Get the array
+                let array_val = self.eval_expr(array)?;
+                let index_val = self.eval_expr(index)?;
+
+                match (array_val, index_val) {
+                    (Value::Array(mut elements), Value::Int(idx)) => {
+                        if idx < 0 || idx as usize >= elements.len() {
+                            return Err(RuntimeError::IndexOutOfBounds {
+                                index: idx,
+                                length: elements.len(),
+                            });
+                        }
+                        elements[idx as usize] = value;
+
+                        // Update the array in environment (only works for simple identifiers)
+                        if let Expr::Identifier(name) = &**array {
+                            self.environment.set(name, Value::Array(elements))?;
+                        }
+                        Ok(())
+                    }
+                    _ => Err(RuntimeError::TypeError {
+                        expected: "array".to_string(),
+                        got: "non-array".to_string(),
+                    }),
+                }
+            }
+            Expr::Member(_obj, _member) => {
+                Err(RuntimeError::InvalidOperation(
+                    "Member assignment not yet implemented".to_string(),
+                ))
+            }
+            _ => Err(RuntimeError::InvalidOperation(
+                "Invalid assignment target".to_string(),
+            )),
+        }
+    }
+
+    /// Execute a program (multiple statements)
+    pub fn execute_program(&mut self, statements: &[Stmt]) -> Result<(), RuntimeError> {
+        for stmt in statements {
+            self.exec_stmt_internal(stmt)?;
+        }
+        Ok(())
     }
 }
 
