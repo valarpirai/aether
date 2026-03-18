@@ -128,12 +128,7 @@ impl Evaluator {
             Expr::Unary(op, operand) => self.eval_unary(*op, operand),
             Expr::Binary(left, op, right) => self.eval_binary(left, *op, right),
             Expr::Index(array, index) => self.eval_index(array, index),
-            Expr::Member(_object, _member) => {
-                // Member access not yet implemented
-                Err(RuntimeError::InvalidOperation(
-                    "Member access not yet implemented".to_string(),
-                ))
-            }
+            Expr::Member(object, member) => self.eval_member(object, member),
             Expr::Call(callee, args) => self.eval_call(callee, args),
             Expr::Dict(_) => {
                 // Dictionaries not yet implemented
@@ -353,6 +348,24 @@ impl Evaluator {
                 expected: "array and integer index".to_string(),
                 got: format!("{} and {}", array.type_name(), index.type_name()),
             }),
+        }
+    }
+
+    /// Evaluate member access (obj.member)
+    fn eval_member(&mut self, object: &Expr, member: &str) -> Result<Value, RuntimeError> {
+        let obj_val = self.eval_expr(object)?;
+
+        match (&obj_val, member) {
+            // Array properties
+            (Value::Array(elements), "length") => Ok(Value::Int(elements.len() as i64)),
+
+            // String properties
+            (Value::String(s), "length") => Ok(Value::Int(s.len() as i64)),
+
+            // Undefined property
+            (obj, prop) => Err(RuntimeError::InvalidOperation(
+                format!("Property '{}' does not exist on type '{}'", prop, obj.type_name()),
+            )),
         }
     }
 

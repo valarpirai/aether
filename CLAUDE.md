@@ -39,7 +39,7 @@ Aether is a general-purpose programming language implementation written in Rust.
 
 ## Development Commands
 
-Once the Rust project is initialized, use these commands:
+Once the Rust project is initialized, refer [DEVELOPMENT.md](docs/DEVELOPMENT.md) and use these commands:
 
 ### Build
 ```bash
