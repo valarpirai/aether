@@ -51,6 +51,62 @@ impl Evaluator {
                 func: builtins::builtin_println,
             },
         );
+
+        // Type introspection
+        self.environment.define(
+            "type".to_string(),
+            Value::BuiltinFn {
+                name: "type".to_string(),
+                arity: 1,
+                func: builtins::builtin_type,
+            },
+        );
+
+        self.environment.define(
+            "len".to_string(),
+            Value::BuiltinFn {
+                name: "len".to_string(),
+                arity: 1,
+                func: builtins::builtin_len,
+            },
+        );
+
+        // Type conversions
+        self.environment.define(
+            "int".to_string(),
+            Value::BuiltinFn {
+                name: "int".to_string(),
+                arity: 1,
+                func: builtins::builtin_int,
+            },
+        );
+
+        self.environment.define(
+            "float".to_string(),
+            Value::BuiltinFn {
+                name: "float".to_string(),
+                arity: 1,
+                func: builtins::builtin_float,
+            },
+        );
+
+        self.environment.define(
+            "str".to_string(),
+            Value::BuiltinFn {
+                name: "str".to_string(),
+                arity: 1,
+                func: builtins::builtin_str,
+            },
+        );
+
+        self.environment.define(
+            "bool".to_string(),
+            Value::BuiltinFn {
+                name: "bool".to_string(),
+                arity: 1,
+                func: builtins::builtin_bool,
+            },
+        );
     }
 
     /// Evaluate an expression

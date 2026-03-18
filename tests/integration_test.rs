@@ -235,3 +235,43 @@ fn test_builtin_print_multiple_args() {
     let result = eval_expr(code);
     assert!(result.is_ok());
 }
+
+#[test]
+fn test_builtin_len() {
+    assert_eq!(eval_expr(r#"len("hello")"#).unwrap(), "5");
+    assert_eq!(eval_expr(r#"len([1, 2, 3, 4])"#).unwrap(), "4");
+}
+
+#[test]
+fn test_builtin_type() {
+    assert_eq!(eval_expr(r#"type(42)"#).unwrap(), "int");
+    assert_eq!(eval_expr(r#"type(3.14)"#).unwrap(), "float");
+    assert_eq!(eval_expr(r#"type("hello")"#).unwrap(), "string");
+    assert_eq!(eval_expr(r#"type(true)"#).unwrap(), "bool");
+}
+
+#[test]
+fn test_builtin_int() {
+    assert_eq!(eval_expr(r#"int(3.9)"#).unwrap(), "3");
+    assert_eq!(eval_expr(r#"int("123")"#).unwrap(), "123");
+    assert_eq!(eval_expr(r#"int(true)"#).unwrap(), "1");
+}
+
+#[test]
+fn test_builtin_float() {
+    assert_eq!(eval_expr(r#"float(42)"#).unwrap(), "42");
+    assert_eq!(eval_expr(r#"float("3.14")"#).unwrap(), "3.14");
+}
+
+#[test]
+fn test_builtin_str() {
+    assert_eq!(eval_expr(r#"str(42)"#).unwrap(), "42");
+    assert_eq!(eval_expr(r#"str(true)"#).unwrap(), "true");
+}
+
+#[test]
+fn test_builtin_bool() {
+    assert_eq!(eval_expr(r#"bool(0)"#).unwrap(), "false");
+    assert_eq!(eval_expr(r#"bool(42)"#).unwrap(), "true");
+    assert_eq!(eval_expr(r#"bool("")"#).unwrap(), "false");
+}
