@@ -369,6 +369,111 @@ impl Evaluator {
         }
     }
 
+    /// Evaluate method call (obj.method(args))
+    fn eval_method_call(&mut self, object: &Expr, method: &str, args: &[Expr]) -> Result<Value, RuntimeError> {
+        let obj_val = self.eval_expr(object)?;
+
+        match (&obj_val, method) {
+            // Array methods
+            (Value::Array(elements), "push") => {
+                // Evaluate argument
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let item = self.eval_expr(&args[0])?;
+
+                // Mutate the array
+                let mut new_elements = elements.clone();
+                new_elements.push(item);
+
+                // Update in environment (only works for identifiers)
+                if let Expr::Identifier(name) = object {
+                    self.environment.set(name, Value::Array(new_elements))?;
+                }
+
+                Ok(Value::Null)
+            }
+            (Value::Array(elements), "pop") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
+                }
+
+                // Pop from array
+                let mut new_elements = elements.clone();
+                let popped = new_elements.pop();
+
+                // Update in environment (only works for identifiers)
+                if let Expr::Identifier(name) = object {
+                    self.environment.set(name, Value::Array(new_elements))?;
+                }
+
+                Ok(popped.unwrap_or(Value::Null))
+            }
+
+            // String methods
+            (Value::String(s), "upper") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
+                }
+                Ok(Value::String(s.to_uppercase()))
+            }
+            (Value::String(s), "lower") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
+                }
+                Ok(Value::String(s.to_lowercase()))
+            }
+            (Value::String(s), "trim") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
+                }
+                Ok(Value::String(s.trim().to_string()))
+            }
+            (Value::String(s), "split") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let delimiter = self.eval_expr(&args[0])?;
+                if let Value::String(delim) = delimiter {
+                    let parts: Vec<Value> = if s.is_empty() {
+                        vec![]
+                    } else {
+                        s.split(&delim).map(|part| Value::String(part.to_string())).collect()
+                    };
+                    Ok(Value::Array(parts))
+                } else {
+                    Err(RuntimeError::TypeError {
+                        expected: "string".to_string(),
+                        got: delimiter.type_name().to_string(),
+                    })
+                }
+            }
+
+            // Undefined method
+            (obj, meth) => Err(RuntimeError::InvalidOperation(
+                format!("Method '{}' does not exist on type '{}'", meth, obj.type_name()),
+            )),
+        }
+    }
+
     /// Execute a statement (public interface)
     pub fn exec_stmt(&mut self, stmt: &Stmt) -> Result<(), RuntimeError> {
         self.exec_stmt_internal(stmt)?;
@@ -556,6 +661,12 @@ impl Evaluator {
 
     /// Evaluate function call
     fn eval_call(&mut self, callee: &Expr, args: &[Expr]) -> Result<Value, RuntimeError> {
+        // Check if this is a method call (e.g., arr.push(1))
+        if let Expr::Member(object, method) = callee {
+            return self.eval_method_call(object, method, args);
+        }
+
+        // Regular function call
         let func_val = self.eval_expr(callee)?;
 
         match func_val {
