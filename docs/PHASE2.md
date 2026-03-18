@@ -17,52 +17,47 @@ Phase 2 builds on the complete Phase 1 interpreter by adding essential built-in 
 
 ## Phase 2 Goals
 
-### 1. Fix Critical Bugs ⚠️
-**Priority**: HIGH - These prevent basic loops from working
+### 1. Fix Critical Bugs ✅
+**Status**: COMPLETE - Loops were already working correctly
 
-- [ ] **Fix while loop infinite loop bug** (interpreter_tests.rs:711 ignored)
-  - Test: `test_while_loop` currently ignored
-  - Issue: While loops don't terminate properly
-  - Impact: Breaks all while-based iteration
+- [x] **Fix while loop** - Un-ignored test, passes successfully
+- [x] **Fix for-in loop** - Un-ignored test, passes successfully
+- Note: The "bugs" were actually non-existent; tests were ignored during development
 
-- [ ] **Fix for-in loop infinite loop bug** (interpreter_tests.rs:733 ignored)
-  - Test: `test_for_loop` currently ignored
-  - Issue: For loops don't terminate properly
-  - Impact: Breaks all for-in iteration
-
-### 2. Built-in Functions 🔧
-**Priority**: HIGH - Essential for any real program
+### 2. Built-in Functions ✅
+**Status**: COMPLETE - Core functions implemented
 
 #### Core I/O
-- [ ] `print(...values)` - Print values without newline
-- [ ] `println(...values)` - Print values with newline
-- [ ] `input(prompt)` - Read user input from stdin
+- [x] `print(...values)` - Print values without newline
+- [x] `println(...values)` - Print values with newline
+- [ ] `input(prompt)` - Read user input from stdin (deferred)
 
 #### Type Introspection
-- [ ] `type(value)` - Return type name as string
-- [ ] `len(collection)` - Return length of array/string/dict
+- [x] `type(value)` - Return type name as string
+- [x] `len(collection)` - Return length of array/string
 
 #### Type Conversions
-- [ ] `int(value)` - Convert to integer
-- [ ] `float(value)` - Convert to float
-- [ ] `str(value)` - Convert to string
-- [ ] `bool(value)` - Convert to boolean
+- [x] `int(value)` - Convert to integer
+- [x] `float(value)` - Convert to float
+- [x] `str(value)` - Convert to string
+- [x] `bool(value)` - Convert to boolean
 
 #### Utility Functions
-- [ ] `range(start, end)` or `range(end)` - Create integer range
-- [ ] `exit(code)` - Exit program with status code
+- [ ] `range(start, end)` or `range(end)` - Create integer range (deferred)
+- [ ] `exit(code)` - Exit program with status code (deferred)
 
-**Testing**: Add ~15-20 tests for built-in functions
+**Testing**: ✅ 17 new tests (10 unit + 7 integration)
 
-### 3. Member Access Implementation 🎯
-**Priority**: MEDIUM - Needed for collection methods
+### 3. Member Access Implementation ✅
+**Status**: COMPLETE - Following TDD approach
 
-- [ ] Parser: Add member access expressions (`obj.property`)
-- [ ] Interpreter: Implement member access evaluation
-- [ ] Support for built-in properties/methods
-- [ ] Error handling for missing properties
+- [x] TDD: Wrote 8 failing tests first (RED phase)
+- [x] Implemented eval_member() method (GREEN phase)
+- [x] Support for read-only properties (array.length, string.length)
+- [x] Error handling for undefined properties
+- Parser already had member access AST nodes
 
-**Testing**: Add ~8-10 tests for member access
+**Testing**: ✅ 8 new integration tests using TDD
 
 ### 4. Collection Methods 📚
 **Priority**: MEDIUM - Makes collections actually usable
@@ -101,41 +96,45 @@ Phase 2 builds on the complete Phase 1 interpreter by adding essential built-in 
 
 ## Implementation Order
 
-### Sprint 1: Critical Fixes + Core I/O (Current)
-1. Fix while loop bug
-2. Fix for-in loop bug
-3. Implement `print()` and `println()`
-4. Implement `input()`
-5. Un-ignore loop tests and verify fixes
+### Sprint 1: Critical Fixes + Core I/O ✅
+1. ✅ Un-ignored while loop test - passes
+2. ✅ Un-ignored for loop test - passes
+3. ✅ Implemented `print()` and `println()`
+4. ⏭️ Deferred `input()` to later
 
-**Estimated Time**: 1-2 hours
-**Tests**: 2 un-ignored + 5-8 new = ~10 tests
+**Actual Time**: 1 hour
+**Tests**: 2 un-ignored + 6 new = 8 tests
 
-### Sprint 2: Type System Built-ins
-1. Implement `type()`
-2. Implement `len()`
-3. Implement type conversion functions (`int`, `float`, `str`, `bool`)
-4. Implement `range()`
+### Sprint 2: Type System Built-ins ✅
+1. ✅ Implemented `type()`
+2. ✅ Implemented `len()`
+3. ✅ Implemented type conversions (`int`, `float`, `str`, `bool`)
+4. ⏭️ Deferred `range()` to later
 
-**Estimated Time**: 1-2 hours
-**Tests**: ~10-12 new tests
+**Actual Time**: 1 hour
+**Tests**: 10 unit + 7 integration = 17 tests
 
-### Sprint 3: Member Access
-1. Add member access to parser AST
-2. Implement member access evaluation
-3. Add error handling for missing members
-4. Test with simple property access
+### Sprint 3: Member Access ✅ (TDD)
+1. ✅ Wrote 8 failing tests (RED phase)
+2. ✅ Implemented eval_member() (GREEN phase)
+3. ✅ Added error handling for undefined properties
+4. ✅ Tested with literals, variables, expressions
 
-**Estimated Time**: 1 hour
-**Tests**: ~8-10 new tests
+**Actual Time**: 30 minutes
+**Tests**: 8 integration tests
 
-### Sprint 4: Collection Methods
-1. Implement array methods (push, pop, length, etc.)
-2. Implement string methods (upper, lower, split, etc.)
-3. Add comprehensive collection tests
+**Current Status**: 131 tests passing (94 unit + 29 integration + 8 member)
+
+### Sprint 4: Collection Methods 🚧 (Current - TDD)
+1. Write failing tests for array methods (RED)
+2. Implement array.push(), pop() (GREEN)
+3. Write failing tests for string methods (RED)
+4. Implement string.upper(), lower(), split(), trim() (GREEN)
+5. Refactor if needed
 
 **Estimated Time**: 2-3 hours
 **Tests**: ~15-20 new tests
+**Approach**: Following TDD red-green-refactor cycle
 
 ### Sprint 5: Polish (Optional)
 1. String interpolation evaluation
