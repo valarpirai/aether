@@ -48,6 +48,50 @@ src/
 - **Interpreter**: Evaluates the AST and executes code
 - Each module should be independently testable
 
+## Feature Implementation Decision Tree
+
+### Should this be a Built-in (Rust) or Stdlib (Aether)?
+
+When adding new functionality to Aether, use this decision tree:
+
+**Built-in (Rust)** if it:
+- Requires access to interpreter internals (e.g., `type()`, `len()`)
+- Is performance-critical (e.g., operators, indexing, loops)
+- Needs unsafe code or FFI (e.g., file I/O, system calls)
+- Is a core I/O operation (e.g., `print()`, `println()`)
+- Implements primitive operations that can't be expressed in Aether
+
+**Standard Library (Aether)** if it:
+- Can be built using existing primitives
+- Contains user-modifiable logic
+- Benefits from being readable by users
+- Is a higher-level utility (e.g., `map()`, `filter()`, `range()`)
+- Could be implemented by a user in their own code
+
+**Examples**:
+- ✅ Built-in: `print()`, `len()`, `type()`, `array.push()`, arithmetic operators
+- ✅ Stdlib: `map()`, `filter()`, `range()`, `abs()`, `join()`, `reverse()`
+
+**Rule of thumb**: If you can write it in Aether without accessing interpreter internals, put it in the standard library!
+
+### Decision Process
+
+```
+Does it need interpreter internals? ──Yes──> Built-in (Rust)
+           │
+           No
+           │
+Is it performance-critical (10x+ difference)? ──Yes──> Built-in (Rust)
+           │
+           No
+           │
+Can users understand/modify it? ──Yes──> Stdlib (Aether)
+           │
+           No
+           │
+        Built-in (Rust)
+```
+
 ## Testing Strategy
 
 ### Test-Driven Development
@@ -305,6 +349,162 @@ When setting up CI, include:
 - Run clippy (`cargo clippy -- -D warnings`)
 - Build documentation (`cargo doc --no-deps`)
 
+## Common Pitfalls When Extending Aether
+
+### 1. Forgetting Rc Wrappers
+
+**Problem**: Creating values without using helper methods.
+
+❌ **Wrong**:
+```rust
+Value::String("hello".to_string())  // Compilation error - expects Rc<String>
+Value::Array(vec![Value::Int(1)])   // Compilation error - expects Rc<Vec<Value>>
+```
+
+✅ **Right**:
+```rust
+Value::string("hello".to_string())  // Uses helper method
+Value::array(vec![Value::Int(1)])   // Uses helper method
+```
+
+**Why**: Strings and Arrays are wrapped in `Rc<T>` for garbage collection. Always use the helper methods `Value::string()` and `Value::array()`.
+
+### 2. Not Using --test-threads=1
+
+**Problem**: Running tests without limiting thread count causes memory pressure.
+
+❌ **Wrong**:
+```bash
+cargo test  # May cause OOM on large test suites
+```
+
+✅ **Right**:
+```bash
+cargo test -- --test-threads=1  # Sequential execution, lower memory usage
+```
+
+**Why**: Parallel test execution can consume excessive memory (135 GB observed without GC). Sequential execution is safer.
+
+### 3. Adding Built-ins Instead of Stdlib
+
+**Problem**: Implementing features in Rust that could be written in Aether.
+
+❌ **Wrong**: Adding `max()` function to `src/interpreter/builtins.rs`
+
+✅ **Right**: Implementing `max()` in `stdlib/math.ae`
+
+**Why**: Stdlib functions are:
+- User-readable and modifiable
+- Easier to maintain and test
+- Prove the language is expressive enough
+
+**Rule**: If it can be written in Aether, it belongs in stdlib!
+
+### 4. Forgetting Optional Parameter Support
+
+**Problem**: Not handling `null` for optional parameters.
+
+❌ **Wrong**:
+```aether
+fn range(start, end) {
+    // Assumes both parameters are always provided
+    let i = start
+    while (i < end) { ... }
+}
+```
+
+✅ **Right**:
+```aether
+fn range(start, end) {
+    // Handle single argument: range(n) -> range(0, n)
+    if (end == null) {
+        end = start
+        start = 0
+    }
+    let i = start
+    while (i < end) { ... }
+}
+```
+
+**Why**: Aether supports optional parameters. Functions should handle `null` for missing arguments.
+
+### 5. Not Testing Edge Cases
+
+**Problem**: Only testing the happy path.
+
+❌ **Insufficient**:
+```rust
+#[test]
+fn test_division() {
+    assert_eq!(eval("10 / 2"), Value::Int(5));
+}
+```
+
+✅ **Comprehensive**:
+```rust
+#[test]
+fn test_division() {
+    assert_eq!(eval("10 / 2"), Value::Int(5));
+    assert_eq!(eval("10.0 / 3.0"), Value::Float(3.333...));
+    assert!(eval("10 / 0").is_err());  // Division by zero
+    assert!(eval("10 / null").is_err()); // Type error
+}
+```
+
+**Why**: Edge cases include:
+- Empty arrays/strings
+- Null values
+- Type mismatches
+- Division by zero
+- Out of bounds access
+- Negative numbers
+
+Always test error conditions, not just success cases!
+
+### 6. Mutating Rc-wrapped Values Incorrectly
+
+**Problem**: Trying to mutate shared data.
+
+❌ **Wrong**:
+```rust
+if let Value::Array(arr) = &mut value {
+    arr.push(Value::Int(42));  // Error: Rc is not mutable
+}
+```
+
+✅ **Right**:
+```rust
+if let Value::Array(arr) = &value {
+    let mut new_arr = arr.as_ref().clone();  // Clone the Vec
+    new_arr.push(Value::Int(42));
+    value = Value::array(new_arr);  // Create new Rc-wrapped array
+}
+```
+
+**Why**: `Rc<T>` provides shared ownership but not interior mutability. To modify, clone the data, modify it, and create a new `Rc`.
+
+### 7. Not Using TDD
+
+**Problem**: Writing implementation before tests.
+
+❌ **Wrong**:
+1. Write entire feature
+2. Write tests later
+3. Find bugs
+4. Fix and repeat
+
+✅ **Right** (TDD workflow):
+1. Write failing test
+2. Write minimal code to pass
+3. Refactor
+4. Repeat
+
+**Why**: TDD ensures:
+- Clear requirements before coding
+- All code is tested
+- Easier debugging (smaller changes)
+- Better design (testable code)
+
 ## Learning Resources
 
 ### Rust Interpreter Resources
@@ -313,3 +513,9 @@ When setting up CI, include:
 - "Writing An Interpreter In Go" by Thorsten Ball
 - Rust Book: https://doc.rust-lang.org/book/
 - Rust by Example: https://doc.rust-lang.org/rust-by-example/
+
+---
+
+**Last Updated**: March 22, 2026
+**Phase**: 3 Complete
+**Status**: Comprehensive development guidelines with TDD workflow and common pitfalls

@@ -6,7 +6,7 @@ The lexer (lexical analyzer) is the first phase of the Aether interpreter. It co
 
 **Location**: `src/lexer/`
 
-**Status**: ✅ Complete (14 tests passing)
+**Status**: ✅ Complete (14 unit tests passing)
 
 ## Architecture
 
@@ -435,9 +435,143 @@ let mut parser = Parser::new(tokens);
 let ast = parser.parse()?;
 ```
 
+## Common Tasks
+
+### How to Add a New Operator
+
+**Example**: Adding the `**` (exponentiation) operator
+
+**Step 1**: Add token to `token.rs`
+```rust
+pub enum TokenKind {
+    // ... existing tokens
+    StarStar,  // ** (exponentiation)
+}
+```
+
+**Step 2**: Update `scanner.rs` in `scan_token()`
+```rust
+'*' => {
+    if self.match_char('*') {
+        self.add_token(TokenKind::StarStar);  // **
+    } else {
+        self.add_token(TokenKind::Star);       // *
+    }
+}
+```
+
+**Step 3**: Write test in `lexer_tests.rs`
+```rust
+#[test]
+fn test_exponentiation_operator() {
+    let mut scanner = Scanner::new("2 ** 3");
+    let tokens = scanner.scan_tokens().unwrap();
+    assert_eq!(tokens[1].kind, TokenKind::StarStar);
+}
+```
+
+**Step 4**: Run test and verify
+```bash
+cargo test test_exponentiation_operator
+```
+
+### How to Add a New Keyword
+
+**Example**: Adding the `class` keyword
+
+**Step 1**: Add token to `token.rs`
+```rust
+pub enum TokenKind {
+    // ... existing keywords
+    Class,  // class keyword
+}
+```
+
+**Step 2**: Update keyword matching in `scanner.rs`
+```rust
+fn identifier(&mut self) {
+    // ... consume identifier
+    let text = self.source[self.start..self.current].iter().collect::<String>();
+
+    let kind = match text.as_str() {
+        "class" => TokenKind::Class,  // Add new keyword
+        "let" => TokenKind::Let,
+        // ... other keywords
+        _ => TokenKind::Identifier(text.clone()),
+    };
+}
+```
+
+**Step 3**: Write test
+```rust
+#[test]
+fn test_class_keyword() {
+    let mut scanner = Scanner::new("class MyClass");
+    let tokens = scanner.scan_tokens().unwrap();
+    assert_eq!(tokens[0].kind, TokenKind::Class);
+}
+```
+
+### How to Add a New Literal Type
+
+**Example**: Adding hexadecimal integers (0xFF)
+
+**Step 1**: Update `TokenKind` if needed (or reuse `Integer`)
+
+**Step 2**: Add recognition in `scanner.rs`
+```rust
+'0' => {
+    if self.match_char('x') || self.match_char('X') {
+        self.hex_number();  // New method for hex
+    } else {
+        self.number();       // Regular decimal
+    }
+}
+
+fn hex_number(&mut self) {
+    while self.peek().is_ascii_hexdigit() {
+        self.advance();
+    }
+
+    let hex_str = &self.source[self.start + 2..self.current]
+        .iter().collect::<String>();
+    let value = i64::from_str_radix(hex_str, 16).unwrap();
+    self.add_token(TokenKind::Integer(value));
+}
+```
+
+**Step 3**: Write comprehensive tests
+```rust
+#[test]
+fn test_hex_literals() {
+    assert_eq!(scan("0xFF"), vec![TokenKind::Integer(255)]);
+    assert_eq!(scan("0x10"), vec![TokenKind::Integer(16)]);
+}
+```
+
+### Debugging Tips
+
+**Problem**: Token not recognized
+- **Check**: Is the character handled in `scan_token()`?
+- **Check**: Are you calling `advance()` before checking the character?
+
+**Problem**: Position tracking incorrect
+- **Check**: Are you incrementing `line` and resetting `column` on `\n`?
+- **Check**: Is `column` incremented for every non-newline character?
+
+**Problem**: Unexpected string/number parsing
+- **Check**: Escape sequences handled in `string()` method?
+- **Check**: Decimal point logic correct in `number()` method?
+
 ## References
 
 - **Source**: `src/lexer/`
 - **Tests**: `src/lexer/lexer_tests.rs`
 - **Design**: `docs/DESIGN.md` - Token types and syntax
 - **Development**: `docs/DEVELOPMENT.md` - Testing guidelines
+
+---
+
+**Last Updated**: March 22, 2026
+**Phase**: 3 Complete
+**Status**: 14 unit tests passing

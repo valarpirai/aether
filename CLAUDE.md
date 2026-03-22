@@ -31,11 +31,51 @@ Aether is a general-purpose programming language implementation written in Rust.
 | [DESIGN.md](docs/DESIGN.md) | Complete language specification (types, syntax, features) | ✅ Complete |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, roadmap, and feature checklist | ✅ Complete |
 | [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guidelines and best practices | ✅ Complete |
+| [TESTING.md](docs/TESTING.md) | Testing guide: TDD workflow, running tests, debugging | ✅ Complete |
 | **Components** | | |
 | [LEXER.md](docs/LEXER.md) | Lexer implementation (tokenization, 14 tests) | ✅ Complete |
 | [PARSER.md](docs/PARSER.md) | Parser implementation (recursive descent, 53 tests) | ✅ Complete |
 | [INTERPRETER.md](docs/INTERPRETER.md) | Interpreter implementation (82 tests, 2 ignored) | ✅ Complete |
 | [REPL.md](docs/REPL.md) | REPL and file execution | ✅ Complete |
+
+## Quick Reference for Claude Code
+
+### Where to Add New Features
+
+| Task | Primary File | Test File |
+|------|-------------|-----------|
+| Add token type | `src/lexer/token.rs` | `src/lexer/lexer_tests.rs` |
+| Add syntax/AST node | `src/parser/ast.rs` | `src/parser/parser_tests.rs` |
+| Add built-in function | `src/interpreter/builtins.rs` | `tests/integration_tests.rs` |
+| Add stdlib function | `stdlib/*.ae` | `tests/stdlib_tests.rs` |
+| Add GC-managed type | `src/interpreter/value.rs` (use Rc) | - |
+| Add member method | `src/interpreter/evaluator.rs` (eval_member_access) | - |
+
+### Key Helper Functions
+- `Value::string(s)` - Create Rc-wrapped string
+- `Value::array(vec)` - Create Rc-wrapped array
+- `Value::is_truthy()` - Boolean coercion for conditionals
+- `Environment::with_parent()` - Create nested scope
+
+### Stdlib Module Locations
+- **Core**: `stdlib/core.ae` (range, enumerate)
+- **Collections**: `stdlib/collections.ae` (map, filter, reduce, find, every, some)
+- **Math**: `stdlib/math.ae` (abs, min, max, sum, clamp, sign)
+- **String**: `stdlib/string.ae` (join, repeat, reverse, starts_with, ends_with)
+
+### Built-in vs Stdlib Decision Tree
+
+**Built-in (Rust)** if:
+- Requires interpreter internals (type(), len())
+- Performance critical (operators, indexing)
+- Core I/O operations (print, println)
+
+**Stdlib (Aether)** if:
+- Can be written in Aether
+- Built on existing primitives
+- User-modifiable logic (map, filter, range)
+
+**Rule of thumb**: If you can write it in Aether, put it in stdlib!
 
 ## Development Commands
 
@@ -50,7 +90,9 @@ cargo build --release # Release build
 ### Test
 ```bash
 cargo test           # Run all tests
+cargo test -- --test-threads=1  # IMPORTANT: Reduces memory pressure (recommended)
 cargo test -- --nocapture # Show println! output during tests
+cargo test -- --nocapture --test-threads=1 # With output, sequential execution
 ```
 
 ### Run
@@ -67,7 +109,7 @@ cargo clippy         # Run linter
 
 ## Project Status
 
-**Current Phase**: Phase 1 - Core Interpreter (In Progress)
+**Current Phase**: Phase 4 - Advanced Language Features
 
 ### Completed
 - ✅ Language design specification (see `docs/DESIGN.md`)
@@ -183,22 +225,33 @@ All planned features for Phase 1 have been implemented and tested.
 5. ⏳ String indexing (direct character access)
 6. ⏳ Stdlib expansion (io, json, http, time, testing framework)
 
-### Test Coverage
-- **Total Tests**: 230 passing ✅
-  - Unit Tests: 94 ✅
-  - Integration Tests: 136 ✅
-  - Success Rate: 100%
+### Test Coverage (Last Updated: 2026-03-22)
+
+- **Total**: 230 tests passing ✅ (100% success rate)
 - **Code Quality**: 0 clippy warnings
-  - **Unit Tests**: 82 passing (2 ignored for loop debugging)
-    - Lexer: 14 tests
-    - Parser: 53 tests
-    - Interpreter: 10 value/env tests + 8 statement tests
-  - **Integration Tests**: 20 passing
-- **Code Quality**: 0 clippy warnings
+
+**Breakdown by Category:**
+
+**Unit Tests (94):**
+- Lexer: 14 tests
+- Parser: 53 tests
+- Interpreter: 17 tests
+- Built-ins: 10 tests
+
+**Integration Tests (136):**
+- Core features: 29 tests
+- Member access: 8 tests
+- Array methods: 8 tests
+- String methods: 8 tests
+- Stdlib core: 9 tests
+- Stdlib collections: 24 tests
+- Stdlib math: 26 tests
+- Stdlib string: 24 tests
 
 ## Development Resources
 
 For contributing or extending Aether, see:
 - **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Guidelines, TDD workflow, code organization
+- **[TESTING.md](docs/TESTING.md)** - Comprehensive testing guide with examples
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design and roadmap
-- Component docs: LEXER.md, PARSER.md, INTERPRETER.md, REPL.md
+- Component docs: LEXER.md, PARSER.md, INTERPRETER.md, REPL.md, STDLIB.md, GC_DESIGN.md

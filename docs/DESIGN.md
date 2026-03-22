@@ -330,3 +330,9 @@ fn main() {
 | Numbers | Separate int/float | Better precision control |
 | Loops | Range-based and for-each | Modern and readable |
 | Functions | Rust-like with fn keyword | Clear function declarations |
+
+---
+
+**Last Updated**: March 22, 2026
+**Phase**: 3 Complete
+**Status**: Language specification stable

@@ -5,7 +5,7 @@
 Tree-walking interpreter that executes AST nodes.
 
 **Location**: `src/interpreter/`
-**Status**: ✅ Complete (82 unit tests, 20 integration tests passing)
+**Status**: ✅ Complete (94 unit tests, 136 integration tests passing)
 
 ## Components
 
@@ -31,6 +31,25 @@ pub enum Value {
 ### Methods
 - `is_truthy()` - For conditionals
 - `type_name()` - For error messages
+
+### GC Implementation Notes
+
+Strings and Arrays use `Rc<T>` (Reference Counted pointers) for automatic memory management:
+
+- **Creating Values**: Use helper methods
+  - `Value::string(s)` - Create Rc-wrapped string
+  - `Value::array(vec)` - Create Rc-wrapped array
+- **Accessing Values**: Dereference with `.as_ref()` or pattern matching
+  ```rust
+  match &value {
+      Value::String(s) => { let str_ref: &str = s.as_ref(); }
+      Value::Array(arr) => { let vec_ref: &Vec<Value> = arr.as_ref(); }
+  }
+  ```
+- **Cloning**: Cheap operation (only clones Rc pointer, not the actual data)
+- **Memory Reclaim**: Automatic when reference count reaches zero
+
+**See**: [GC_DESIGN.md](GC_DESIGN.md) for detailed implementation
 
 ## Environment
 
@@ -78,16 +97,13 @@ pub struct Evaluator {
 - Assignments (simple & compound)
 - Blocks
 - If/else
+- While loops
+- For loops
+- Break and continue
 - Expression statements
 - Function declarations
 - Function calls with closures
 - Return statements
-
-### 🚧 Partially Working
-- While loops (infinite loop bug - 1 test ignored)
-- For loops (needs debugging - 1 test ignored)
-
-### ⏳ Not Implemented
 - Member access (obj.property)
 
 ## Runtime Errors
@@ -130,12 +146,6 @@ eval.exec_stmt(&stmt)?;
 assert_eq!(eval.environment.get("x")?, Value::Int(42));
 ```
 
-## Known Issues
-
-1. **Loop bugs**: While and for loops have infinite loop issues (tests ignored)
-2. **Function support**: Not yet implemented
-3. **Member access**: Not yet implemented
-
 ## Usage
 
 ```rust
@@ -144,3 +154,9 @@ use aether::interpreter::Evaluator;
 let mut eval = Evaluator::new();
 eval.execute_program(&program.statements)?;
 ```
+
+---
+
+**Last Updated**: March 22, 2026
+**Phase**: 3 Complete
+**Status**: 94 unit tests, 136 integration tests passing

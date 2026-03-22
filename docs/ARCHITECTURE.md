@@ -9,6 +9,16 @@ This document provides a high-level overview of Aether's architecture, current s
 - [Design Principles](#design-principles)
 - [Resources](#resources)
 
+---
+
+> **📖 For Practical Development**: This document focuses on high-level architecture and long-term roadmap.
+>
+> For day-to-day development guidance, see:
+> - **[CLAUDE.md](../CLAUDE.md)** - Quick reference, project status, where to add features
+> - **[DEVELOPMENT.md](DEVELOPMENT.md)** - TDD workflow, testing strategy, code style, common pitfalls
+
+---
+
 ## Architecture Overview
 
 Aether is a **tree-walking interpreter** written in Rust following a classic three-stage pipeline:
@@ -294,6 +304,6 @@ Integration Tests (136):
 
 ---
 
-**Last Updated**: March 18, 2026
+**Last Updated**: March 22, 2026
 **Current Phase**: Phase 3 Complete ✅
 **Next Phase**: Phase 4 - Advanced Language Features
