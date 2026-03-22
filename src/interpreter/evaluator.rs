@@ -19,16 +19,38 @@ enum ControlFlow {
 pub struct Evaluator {
     /// Current environment
     pub environment: Environment,
+    /// Current call depth (for recursion limit)
+    call_depth: usize,
+    /// Maximum allowed call depth
+    max_call_depth: usize,
 }
 
 impl Evaluator {
-    /// Create a new evaluator with a fresh environment
+    /// Create a new evaluator with a fresh environment (includes stdlib)
     pub fn new() -> Self {
+        Self::new_with_stdlib()
+    }
+
+    /// Create a new evaluator with stdlib loaded
+    pub fn new_with_stdlib() -> Self {
         let mut evaluator = Self {
             environment: Environment::new(),
+            call_depth: 0,
+            max_call_depth: 1000,
         };
         evaluator.register_builtins();
         evaluator.load_stdlib();
+        evaluator
+    }
+
+    /// Create a new evaluator without stdlib (faster for tests)
+    pub fn new_without_stdlib() -> Self {
+        let mut evaluator = Self {
+            environment: Environment::new(),
+            call_depth: 0,
+            max_call_depth: 1000,
+        };
+        evaluator.register_builtins();
         evaluator
     }
 
@@ -623,13 +645,25 @@ impl Evaluator {
             Stmt::Break => Ok(ControlFlow::Break),
             Stmt::Continue => Ok(ControlFlow::Continue),
             Stmt::Function(name, params, body) => {
-                // Create function value with current environment as closure
+                // Create function with temporary closure
+                let temp_func = Value::Function {
+                    params: params.clone(),
+                    body: body.clone(),
+                    closure: Box::new(self.environment.clone()),
+                };
+
+                // Define function in environment
+                self.environment.define(name.clone(), temp_func);
+
+                // Now re-create the function with updated closure that includes itself
                 let func = Value::Function {
                     params: params.clone(),
                     body: body.clone(),
                     closure: Box::new(self.environment.clone()),
                 };
-                self.environment.define(name.clone(), func);
+
+                // Update with final version
+                self.environment.set(&name, func)?;
                 Ok(ControlFlow::None)
             }
         }
@@ -720,8 +754,19 @@ impl Evaluator {
 
         match func_val {
             Value::Function { params, body, closure } => {
+                // Check recursion depth
+                self.call_depth += 1;
+                if self.call_depth > self.max_call_depth {
+                    self.call_depth -= 1;
+                    return Err(RuntimeError::StackOverflow {
+                        depth: self.call_depth + 1,
+                        limit: self.max_call_depth,
+                    });
+                }
+
                 // Check arity - allow fewer arguments (optional parameters)
                 if args.len() > params.len() {
+                    self.call_depth -= 1;
                     return Err(RuntimeError::ArityMismatch {
                         expected: params.len(),
                         got: args.len(),
@@ -731,7 +776,13 @@ impl Evaluator {
                 // Evaluate arguments
                 let mut arg_values = Vec::new();
                 for arg in args {
-                    arg_values.push(self.eval_expr(arg)?);
+                    match self.eval_expr(arg) {
+                        Ok(val) => arg_values.push(val),
+                        Err(e) => {
+                            self.call_depth -= 1;
+                            return Err(e);
+                        }
+                    }
                 }
 
                 // Pad with null for missing optional parameters
@@ -751,15 +802,22 @@ impl Evaluator {
                 }
 
                 // Execute function body
-                let result = match self.exec_stmt_internal(&body)? {
-                    ControlFlow::Return(val) => val,
-                    _ => Value::Null,
+                let result = match self.exec_stmt_internal(&body) {
+                    Ok(ControlFlow::Return(val)) => Ok(val),
+                    Ok(_) => Ok(Value::Null),
+                    Err(e) => {
+                        // Restore environment before returning error
+                        self.environment = saved_env;
+                        self.call_depth -= 1;
+                        return Err(e);
+                    }
                 };
 
                 // Restore environment
                 self.environment = saved_env;
+                self.call_depth -= 1;
 
-                Ok(result)
+                result
             }
             Value::BuiltinFn { name: _, arity, func } => {
                 // Check arity (unless variadic - represented by usize::MAX)

@@ -18,6 +18,8 @@ pub enum RuntimeError {
     InvalidOperation(String),
     /// Arity mismatch in function call
     ArityMismatch { expected: usize, got: usize },
+    /// Recursion depth exceeded
+    StackOverflow { depth: usize, limit: usize },
 }
 
 impl std::fmt::Display for RuntimeError {
@@ -34,6 +36,9 @@ impl std::fmt::Display for RuntimeError {
             RuntimeError::InvalidOperation(msg) => write!(f, "Invalid operation: {}", msg),
             RuntimeError::ArityMismatch { expected, got } => {
                 write!(f, "Expected {} arguments, got {}", expected, got)
+            }
+            RuntimeError::StackOverflow { depth, limit } => {
+                write!(f, "Maximum recursion depth exceeded: {} (limit: {})", depth, limit)
             }
         }
     }

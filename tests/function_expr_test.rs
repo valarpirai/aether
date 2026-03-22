@@ -13,7 +13,7 @@ fn eval(source: &str) -> Result<String, String> {
     let mut parser = Parser::new(tokens);
     let program = parser.parse().map_err(|e| e.to_string())?;
 
-    let mut eval = Evaluator::new();
+    let mut eval = Evaluator::new_without_stdlib();
 
     // Execute all but last statement
     for stmt in &program.statements[..program.statements.len().saturating_sub(1)] {
