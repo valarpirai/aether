@@ -36,7 +36,7 @@ impl Evaluator {
         let mut evaluator = Self {
             environment: Environment::new(),
             call_depth: 0,
-            max_call_depth: 1000,
+            max_call_depth: 100, // Reduced to prevent Rust stack overflow
         };
         evaluator.register_builtins();
         evaluator.load_stdlib();
@@ -48,7 +48,7 @@ impl Evaluator {
         let mut evaluator = Self {
             environment: Environment::new(),
             call_depth: 0,
-            max_call_depth: 1000,
+            max_call_depth: 100, // Reduced to prevent Rust stack overflow
         };
         evaluator.register_builtins();
         evaluator
@@ -749,8 +749,16 @@ impl Evaluator {
             return self.eval_method_call(object, method, args);
         }
 
+        // Remember the function name for recursion support
+        let func_name = if let Expr::Identifier(name) = callee {
+            Some(name.clone())
+        } else {
+            None
+        };
+
         // Regular function call
         let func_val = self.eval_expr(callee)?;
+        let func_val_clone = func_val.clone(); // Clone for recursion support
 
         match func_val {
             Value::Function { params, body, closure } => {
@@ -795,6 +803,11 @@ impl Evaluator {
 
                 // Create new environment with closure as parent
                 self.environment = Environment::with_parent((*closure).clone());
+
+                // If this is a named function, define it in the new environment for recursion
+                if let Some(name) = func_name {
+                    self.environment.define(name, func_val_clone);
+                }
 
                 // Bind parameters
                 for (param, value) in params.iter().zip(arg_values) {
