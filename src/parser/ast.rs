@@ -29,6 +29,8 @@ pub enum Expr {
     Index(Box<Expr>, Box<Expr>),
     /// Member access (object, member)
     Member(Box<Expr>, String),
+    /// Function expression (parameters, body)
+    FunctionExpr(Vec<String>, Box<Stmt>),
 }
 
 /// Binary operators

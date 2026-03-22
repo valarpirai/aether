@@ -102,8 +102,18 @@ impl Parser {
         if self.match_token(&[TokenKind::Let]) {
             return self.let_declaration();
         }
-        if self.match_token(&[TokenKind::Fn]) {
-            return self.function_declaration();
+        // Check if this is a function declaration (fn identifier) or function expression (fn()
+        if self.check(&TokenKind::Fn) {
+            // Peek ahead to see what follows 'fn'
+            if self.current + 1 < self.tokens.len() {
+                let next_token = &self.tokens[self.current + 1];
+                if matches!(next_token.kind, TokenKind::Identifier(_)) {
+                    // It's a function declaration: fn name(...)
+                    self.advance(); // consume 'fn'
+                    return self.function_declaration();
+                }
+            }
+            // Otherwise, it's a function expression, fall through to statement parsing
         }
         self.statement()
     }
@@ -476,7 +486,7 @@ impl Parser {
         Ok(Expr::Call(Box::new(callee), arguments))
     }
 
-    // Parse primary expressions: literals, identifiers, grouped expressions, arrays
+    // Parse primary expressions: literals, identifiers, grouped expressions, arrays, function expressions
     fn primary(&mut self) -> Result<Expr, ParseError> {
         let token = self.advance().clone();
 
@@ -488,6 +498,7 @@ impl Parser {
             TokenKind::False => Ok(Expr::Bool(false)),
             TokenKind::Null => Ok(Expr::Null),
             TokenKind::Identifier(name) => Ok(Expr::Identifier(name.clone())),
+            TokenKind::Fn => self.function_expression(),
             TokenKind::LeftParen => {
                 let expr = self.expression()?;
                 self.consume(TokenKind::RightParen, ")")?;
@@ -514,5 +525,38 @@ impl Parser {
                 found: token,
             }),
         }
+    }
+
+    // Parse function expression: fn(params) { body }
+    fn function_expression(&mut self) -> Result<Expr, ParseError> {
+        // Parse parameter list
+        self.consume(TokenKind::LeftParen, "(")?;
+        let mut params = Vec::new();
+
+        if !self.check(&TokenKind::RightParen) {
+            loop {
+                if let TokenKind::Identifier(param) = &self.peek().kind {
+                    params.push(param.clone());
+                    self.advance();
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        expected: "parameter name".to_string(),
+                        found: self.peek().clone(),
+                    });
+                }
+
+                if !self.match_token(&[TokenKind::Comma]) {
+                    break;
+                }
+            }
+        }
+
+        self.consume(TokenKind::RightParen, ")")?;
+
+        // Parse function body (must be a block)
+        self.consume(TokenKind::LeftBrace, "{")?;
+        let body = self.block_statement()?;
+
+        Ok(Expr::FunctionExpr(params, Box::new(body)))
     }
 }

@@ -164,6 +164,14 @@ impl Evaluator {
                 }
                 Ok(Value::Array(Rc::new(values)))
             }
+            Expr::FunctionExpr(params, body) => {
+                // Create function value with current environment as closure
+                Ok(Value::Function {
+                    params: params.clone(),
+                    body: body.clone(),
+                    closure: Box::new(self.environment.clone()),
+                })
+            }
             Expr::Unary(op, operand) => self.eval_unary(*op, operand),
             Expr::Binary(left, op, right) => self.eval_binary(left, *op, right),
             Expr::Index(array, index) => self.eval_index(array, index),

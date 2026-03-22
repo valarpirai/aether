@@ -619,3 +619,103 @@ fn test_parse_member_assignment() {
         _ => panic!("Expected assignment statement"),
     }
 }
+
+// Function expression tests
+#[test]
+fn test_parse_function_expression_no_params() {
+    let mut scanner = Scanner::new("fn() { return 42 }");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Expr(Expr::FunctionExpr(params, body)) => {
+            assert_eq!(params.len(), 0);
+            assert!(matches!(**body, Stmt::Block(_)));
+        }
+        _ => panic!("Expected function expression"),
+    }
+}
+
+#[test]
+fn test_parse_function_expression_with_params() {
+    let mut scanner = Scanner::new("fn(x, y) { return x + y }");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Expr(Expr::FunctionExpr(params, body)) => {
+            assert_eq!(params.len(), 2);
+            assert_eq!(params[0], "x");
+            assert_eq!(params[1], "y");
+            assert!(matches!(**body, Stmt::Block(_)));
+        }
+        _ => panic!("Expected function expression"),
+    }
+}
+
+#[test]
+fn test_parse_function_expression_in_assignment() {
+    let mut scanner = Scanner::new("let add = fn(a, b) { return a + b }");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Let(name, Expr::FunctionExpr(params, _)) => {
+            assert_eq!(name, "add");
+            assert_eq!(params.len(), 2);
+            assert_eq!(params[0], "a");
+            assert_eq!(params[1], "b");
+        }
+        _ => panic!("Expected let with function expression"),
+    }
+}
+
+#[test]
+fn test_parse_function_expression_as_argument() {
+    let mut scanner = Scanner::new("map(arr, fn(x) { return x * 2 })");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Expr(Expr::Call(_, args)) => {
+            assert_eq!(args.len(), 2);
+            match &args[1] {
+                Expr::FunctionExpr(params, _) => {
+                    assert_eq!(params.len(), 1);
+                    assert_eq!(params[0], "x");
+                }
+                _ => panic!("Expected function expression as second argument"),
+            }
+        }
+        _ => panic!("Expected call expression"),
+    }
+}
+
+#[test]
+fn test_parse_nested_function_expressions() {
+    let mut scanner = Scanner::new("fn(x) { return fn(y) { return x + y } }");
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().unwrap();
+
+    match &program.statements[0] {
+        Stmt::Expr(Expr::FunctionExpr(params, body)) => {
+            assert_eq!(params.len(), 1);
+            assert_eq!(params[0], "x");
+            // Check that body contains a return with a function expression
+            if let Stmt::Block(stmts) = &**body {
+                if let Stmt::Return(Some(Expr::FunctionExpr(inner_params, _))) = &stmts[0] {
+                    assert_eq!(inner_params.len(), 1);
+                    assert_eq!(inner_params[0], "y");
+                } else {
+                    panic!("Expected return with function expression");
+                }
+            }
+        }
+        _ => panic!("Expected function expression"),
+    }
+}
