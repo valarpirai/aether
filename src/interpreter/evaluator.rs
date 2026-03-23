@@ -397,7 +397,7 @@ impl Evaluator {
         }
     }
 
-    /// Evaluate array indexing
+    /// Evaluate array/string indexing
     fn eval_index(&mut self, array: &Expr, index: &Expr) -> Result<Value, RuntimeError> {
         let array_val = self.eval_expr(array)?;
         let index_val = self.eval_expr(index)?;
@@ -413,9 +413,22 @@ impl Evaluator {
                     Ok(elements[idx as usize].clone())
                 }
             }
-            (array, index) => Err(RuntimeError::TypeError {
-                expected: "array and integer index".to_string(),
-                got: format!("{} and {}", array.type_name(), index.type_name()),
+            (Value::String(s), Value::Int(idx)) => {
+                // Get character at index (UTF-8 aware)
+                let chars: Vec<char> = s.chars().collect();
+                if idx < 0 || idx as usize >= chars.len() {
+                    Err(RuntimeError::IndexOutOfBounds {
+                        index: idx,
+                        length: chars.len(),
+                    })
+                } else {
+                    // Return single character as string
+                    Ok(Value::string(chars[idx as usize].to_string()))
+                }
+            }
+            (collection, index) => Err(RuntimeError::TypeError {
+                expected: "array or string with integer index".to_string(),
+                got: format!("{} and {}", collection.type_name(), index.type_name()),
             }),
         }
     }
