@@ -97,10 +97,16 @@ impl Parser {
         }
     }
 
-    // Parse declarations (let statements, function declarations)
+    // Parse declarations (let statements, function declarations, import statements)
     fn declaration(&mut self) -> Result<Stmt, ParseError> {
         if self.match_token(&[TokenKind::Let]) {
             return self.let_declaration();
+        }
+        if self.match_token(&[TokenKind::Import]) {
+            return self.import_statement();
+        }
+        if self.match_token(&[TokenKind::From]) {
+            return self.from_import_statement();
         }
         // Check if this is a function declaration (fn identifier) or function expression (fn()
         if self.check(&TokenKind::Fn) {
@@ -558,5 +564,69 @@ impl Parser {
         let body = self.block_statement()?;
 
         Ok(Expr::FunctionExpr(params, Box::new(body)))
+    }
+
+    // Parse import statement: import module [as alias]
+    fn import_statement(&mut self) -> Result<Stmt, ParseError> {
+        let module_name = if let TokenKind::Identifier(name) = &self.peek().kind {
+            name.clone()
+        } else {
+            return Err(ParseError::UnexpectedToken {
+                expected: "module name".to_string(),
+                found: self.peek().clone(),
+            });
+        };
+        self.advance();
+
+        // Check for 'as alias'
+        if self.match_token(&[TokenKind::As]) {
+            let alias = if let TokenKind::Identifier(name) = &self.peek().kind {
+                name.clone()
+            } else {
+                return Err(ParseError::UnexpectedToken {
+                    expected: "alias name".to_string(),
+                    found: self.peek().clone(),
+                });
+            };
+            self.advance();
+            Ok(Stmt::ImportAs(module_name, alias))
+        } else {
+            Ok(Stmt::Import(module_name))
+        }
+    }
+
+    // Parse from import statement: from module import item1, item2, ...
+    fn from_import_statement(&mut self) -> Result<Stmt, ParseError> {
+        let module_name = if let TokenKind::Identifier(name) = &self.peek().kind {
+            name.clone()
+        } else {
+            return Err(ParseError::UnexpectedToken {
+                expected: "module name".to_string(),
+                found: self.peek().clone(),
+            });
+        };
+        self.advance();
+
+        self.consume(TokenKind::Import, "import")?;
+
+        // Parse list of items to import
+        let mut items = Vec::new();
+        loop {
+            if let TokenKind::Identifier(name) = &self.peek().kind {
+                items.push(name.clone());
+                self.advance();
+            } else {
+                return Err(ParseError::UnexpectedToken {
+                    expected: "item name".to_string(),
+                    found: self.peek().clone(),
+                });
+            }
+
+            if !self.match_token(&[TokenKind::Comma]) {
+                break;
+            }
+        }
+
+        Ok(Stmt::FromImport(module_name, items))
     }
 }

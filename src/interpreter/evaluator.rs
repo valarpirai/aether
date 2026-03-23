@@ -1,5 +1,7 @@
 //! Expression evaluation and statement execution for the Aether interpreter
 
+use std::collections::HashMap;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use super::environment::{Environment, RuntimeError};
@@ -23,6 +25,10 @@ pub struct Evaluator {
     call_depth: usize,
     /// Maximum allowed call depth
     max_call_depth: usize,
+    /// Module cache to prevent circular dependencies
+    module_cache: HashMap<String, Environment>,
+    /// Current file being executed (for relative imports)
+    current_file: Option<PathBuf>,
 }
 
 impl Evaluator {
@@ -37,6 +43,8 @@ impl Evaluator {
             environment: Environment::new(),
             call_depth: 0,
             max_call_depth: 100, // Reduced to prevent Rust stack overflow
+            module_cache: HashMap::new(),
+            current_file: None,
         };
         evaluator.register_builtins();
         evaluator.load_stdlib();
@@ -49,6 +57,8 @@ impl Evaluator {
             environment: Environment::new(),
             call_depth: 0,
             max_call_depth: 100, // Reduced to prevent Rust stack overflow
+            module_cache: HashMap::new(),
+            current_file: None,
         };
         evaluator.register_builtins();
         evaluator
@@ -679,6 +689,21 @@ impl Evaluator {
                 self.environment.set(&name, func)?;
                 Ok(ControlFlow::None)
             }
+            Stmt::Import(module_name) => {
+                // Load module and add to environment
+                self.load_module(&module_name)?;
+                Ok(ControlFlow::None)
+            }
+            Stmt::ImportAs(module_name, alias) => {
+                // Load module and add with alias
+                self.load_module_as(&module_name, &alias)?;
+                Ok(ControlFlow::None)
+            }
+            Stmt::FromImport(module_name, items) => {
+                // Load specific items from module
+                self.from_import(&module_name, &items)?;
+                Ok(ControlFlow::None)
+            }
         }
     }
 
@@ -868,6 +893,159 @@ impl Evaluator {
                 got: func_val.type_name().to_string(),
             }),
         }
+    }
+
+    // Module loading methods
+
+    /// Load a module and add it to the environment
+    fn load_module(&mut self, module_name: &str) -> Result<(), RuntimeError> {
+        // Check if already loaded
+        if self.module_cache.contains_key(module_name) {
+            let module_env = self.module_cache[module_name].clone();
+            // Add module as a namespace (not implemented yet - for now just import all)
+            self.import_all_from_env(&module_env);
+            return Ok(());
+        }
+
+        // Resolve module path
+        let module_path = self.resolve_module_path(module_name)?;
+
+        // Load and execute module
+        let module_env = self.execute_module_file(&module_path)?;
+
+        // Cache the module
+        self.module_cache.insert(module_name.to_string(), module_env.clone());
+
+        // Import all definitions from module
+        self.import_all_from_env(&module_env);
+
+        Ok(())
+    }
+
+    /// Load a module with an alias
+    fn load_module_as(&mut self, module_name: &str, _alias: &str) -> Result<(), RuntimeError> {
+        // For now, just load normally (namespace support would go here)
+        self.load_module(module_name)?;
+        // TODO: Wrap in namespace object
+        Ok(())
+    }
+
+    /// Import specific items from a module
+    fn from_import(&mut self, module_name: &str, items: &[String]) -> Result<(), RuntimeError> {
+        // Check if already loaded
+        if !self.module_cache.contains_key(module_name) {
+            // Resolve and load module
+            let module_path = self.resolve_module_path(module_name)?;
+            let module_env = self.execute_module_file(&module_path)?;
+            self.module_cache.insert(module_name.to_string(), module_env);
+        }
+
+        let module_env = &self.module_cache[module_name];
+
+        // Import only specified items
+        for item in items {
+            match module_env.get(item) {
+                Ok(value) => {
+                    self.environment.define(item.clone(), value);
+                }
+                Err(_) => {
+                    return Err(RuntimeError::InvalidOperation(
+                        format!("Module '{}' has no function '{}'", module_name, item),
+                    ));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Resolve module name to file path
+    fn resolve_module_path(&self, module_name: &str) -> Result<PathBuf, RuntimeError> {
+        use std::fs;
+
+        // Try current directory first
+        let mut path = PathBuf::from(format!("{}.ae", module_name));
+        if path.exists() {
+            return Ok(path);
+        }
+
+        // Try relative to current file
+        if let Some(ref current) = self.current_file {
+            if let Some(parent) = current.parent() {
+                path = parent.join(format!("{}.ae", module_name));
+                if path.exists() {
+                    return Ok(path);
+                }
+            }
+        }
+
+        // Try modules subdirectory
+        path = PathBuf::from(format!("modules/{}.ae", module_name));
+        if path.exists() {
+            return Ok(path);
+        }
+
+        Err(RuntimeError::InvalidOperation(
+            format!("Module not found: '{}'", module_name),
+        ))
+    }
+
+    /// Execute a module file and return its environment
+    fn execute_module_file(&mut self, path: &PathBuf) -> Result<Environment, RuntimeError> {
+        use std::fs;
+        use crate::lexer::Scanner;
+        use crate::parser::Parser;
+
+        // Read module file
+        let source = fs::read_to_string(path).map_err(|e| {
+            RuntimeError::InvalidOperation(format!("Failed to read module: {}", e))
+        })?;
+
+        // Parse module
+        let mut scanner = Scanner::new(&source);
+        let tokens = scanner.scan_tokens().map_err(|e| {
+            RuntimeError::InvalidOperation(format!("Failed to tokenize module: {}", e))
+        })?;
+
+        let mut parser = Parser::new(tokens);
+        let program = parser.parse().map_err(|e| {
+            RuntimeError::InvalidOperation(format!("Failed to parse module: {}", e))
+        })?;
+
+        // Save current environment and file
+        let saved_env = self.environment.clone();
+        let saved_file = self.current_file.clone();
+
+        // Create fresh environment for module
+        self.environment = Environment::new();
+        self.current_file = Some(path.clone());
+
+        // Execute module
+        for stmt in &program.statements {
+            if let Err(e) = self.exec_stmt(stmt) {
+                // Restore and return error
+                self.environment = saved_env;
+                self.current_file = saved_file;
+                return Err(e);
+            }
+        }
+
+        // Get module environment
+        let module_env = self.environment.clone();
+
+        // Restore original environment and file
+        self.environment = saved_env;
+        self.current_file = saved_file;
+
+        Ok(module_env)
+    }
+
+    /// Import all definitions from an environment
+    fn import_all_from_env(&mut self, _env: &Environment) {
+        // This is a simplified implementation
+        // In a real implementation, we'd iterate over env's bindings
+        // For now, we'll just merge environments (not ideal but works)
+        // TODO: Implement proper environment merging
     }
 }
 

@@ -90,6 +90,12 @@ pub enum Stmt {
     Continue,
     /// Function declaration (name, parameters, body)
     Function(String, Vec<String>, Box<Stmt>),
+    /// Import statement (module_name)
+    Import(String),
+    /// Import with alias (module_name, alias)
+    ImportAs(String, String),
+    /// From import (module_name, items)
+    FromImport(String, Vec<String>),
 }
 
 /// Program (top-level statements)

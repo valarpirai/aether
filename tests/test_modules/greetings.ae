@@ -1,0 +1,9 @@
+fn hello() {
+    return "Hello!"
+}
+
+fn goodbye() {
+    return "Goodbye!"
+}
+
+let greeting = "Welcome"
