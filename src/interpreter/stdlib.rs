@@ -13,6 +13,9 @@ pub const STDLIB_MATH: &str = include_str!("../../stdlib/math.ae");
 /// String utilities (join, repeat, reverse, starts_with, ends_with)
 pub const STDLIB_STRING: &str = include_str!("../../stdlib/string.ae");
 
+/// Testing framework (assert_eq, assert_true, test, test_summary)
+pub const STDLIB_TESTING: &str = include_str!("../../stdlib/testing.ae");
+
 /// Get all stdlib modules to load
 pub fn stdlib_modules() -> Vec<(&'static str, &'static str)> {
     vec![
@@ -20,5 +23,6 @@ pub fn stdlib_modules() -> Vec<(&'static str, &'static str)> {
         ("collections", STDLIB_COLLECTIONS),
         ("math", STDLIB_MATH),
         ("string", STDLIB_STRING),
+        ("testing", STDLIB_TESTING),
     ]
 }
