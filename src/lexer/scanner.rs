@@ -210,14 +210,46 @@ impl Scanner {
     }
 
     fn scan_string(&mut self, start_column: usize) -> Result<(), LexerError> {
-        let mut value = String::new();
+        let mut current_literal = String::new();
+        let mut parts: Vec<crate::lexer::token::StringPart> = Vec::new();
+        let mut has_interpolation = false;
 
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
                 self.line += 1;
                 self.column = 0;
             }
-            if self.peek() == '\\' {
+            // Detect ${ interpolation
+            if self.peek() == '$' && self.peek_next() == '{' {
+                has_interpolation = true;
+                self.advance(); // consume '$'
+                self.advance(); // consume '{'
+
+                // Save literal so far
+                parts.push(crate::lexer::token::StringPart::Literal(
+                    current_literal.clone(),
+                ));
+                current_literal.clear();
+
+                // Collect expression source until matching '}'
+                let mut expr_src = String::new();
+                let mut depth = 1;
+                while !self.is_at_end() && depth > 0 {
+                    let c = self.advance();
+                    if c == '{' {
+                        depth += 1;
+                        expr_src.push(c);
+                    } else if c == '}' {
+                        depth -= 1;
+                        if depth > 0 {
+                            expr_src.push(c);
+                        }
+                    } else {
+                        expr_src.push(c);
+                    }
+                }
+                parts.push(crate::lexer::token::StringPart::Placeholder(expr_src));
+            } else if self.peek() == '\\' {
                 self.advance();
                 if self.is_at_end() {
                     return Err(LexerError::UnterminatedString(self.line, start_column));
@@ -229,10 +261,10 @@ impl Scanner {
                     '"' => '"',
                     _ => self.peek(),
                 };
-                value.push(escaped);
+                current_literal.push(escaped);
                 self.advance();
             } else {
-                value.push(self.advance());
+                current_literal.push(self.advance());
             }
         }
 
@@ -242,7 +274,13 @@ impl Scanner {
 
         self.advance(); // closing "
 
-        self.add_token(TokenKind::String(value), start_column);
+        if has_interpolation {
+            // Push the trailing literal (may be empty)
+            parts.push(crate::lexer::token::StringPart::Literal(current_literal));
+            self.add_token(TokenKind::StringInterp(parts), start_column);
+        } else {
+            self.add_token(TokenKind::String(current_literal), start_column);
+        }
         Ok(())
     }
 

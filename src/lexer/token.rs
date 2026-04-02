@@ -1,3 +1,12 @@
+/// A part of an interpolated string
+#[derive(Debug, Clone, PartialEq)]
+pub enum StringPart {
+    /// A literal string segment
+    Literal(String),
+    /// A placeholder expression (raw source text between ${ and })
+    Placeholder(String),
+}
+
 /// Token types in the Aether language
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
@@ -5,6 +14,8 @@ pub enum TokenKind {
     Integer(i64),
     Float(f64),
     String(String),
+    /// String with interpolation: "Hello ${name}"
+    StringInterp(Vec<StringPart>),
     True,
     False,
     Null,

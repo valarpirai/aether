@@ -31,6 +31,8 @@ pub enum Expr {
     Member(Box<Expr>, String),
     /// Function expression (parameters, body)
     FunctionExpr(Vec<String>, Box<Stmt>),
+    /// String interpolation: parts are alternating literals and expressions
+    StringInterp(Vec<Expr>),
 }
 
 /// Binary operators

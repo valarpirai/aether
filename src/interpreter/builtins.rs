@@ -136,3 +136,71 @@ pub fn builtin_bool(args: &[Value]) -> Result<Value, RuntimeError> {
 
     Ok(Value::Bool(args[0].is_truthy()))
 }
+
+/// Built-in function: read_file(path)
+/// Reads a file and returns its contents as a string
+pub fn builtin_read_file(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    let path = match &args[0] {
+        Value::String(s) => s.as_ref().clone(),
+        other => {
+            return Err(RuntimeError::TypeError {
+                expected: "string".to_string(),
+                got: other.type_name().to_string(),
+            })
+        }
+    };
+    std::fs::read_to_string(&path).map(Value::string).map_err(|e| {
+        RuntimeError::InvalidOperation(format!("read_file failed: {}", e))
+    })
+}
+
+/// Built-in function: write_file(path, content)
+/// Writes a string to a file, creating or overwriting it
+pub fn builtin_write_file(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 2 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 2,
+            got: args.len(),
+        });
+    }
+    let path = match &args[0] {
+        Value::String(s) => s.as_ref().clone(),
+        other => {
+            return Err(RuntimeError::TypeError {
+                expected: "string".to_string(),
+                got: other.type_name().to_string(),
+            })
+        }
+    };
+    let content = format!("{}", args[1]);
+    std::fs::write(&path, content)
+        .map(|_| Value::Null)
+        .map_err(|e| RuntimeError::InvalidOperation(format!("write_file failed: {}", e)))
+}
+
+/// Built-in function: input(prompt)
+/// Reads a line from stdin, printing an optional prompt first
+pub fn builtin_input(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() > 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    if let Some(prompt) = args.first() {
+        print!("{}", prompt);
+        use std::io::Write;
+        std::io::stdout().flush().ok();
+    }
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .map_err(|e| RuntimeError::InvalidOperation(format!("input failed: {}", e)))?;
+    Ok(Value::string(line.trim_end_matches('\n').trim_end_matches('\r').to_string()))
+}

@@ -41,6 +41,8 @@ pub enum Value {
         name: String,
         members: Rc<HashMap<String, Value>>,
     },
+    /// Dictionary (ordered by insertion, key must be string/int/bool)
+    Dict(Rc<Vec<(Value, Value)>>),
 }
 
 impl Value {
@@ -79,6 +81,7 @@ impl Value {
             Value::Function { .. } => "function",
             Value::BuiltinFn { .. } => "builtin_function",
             Value::Module { .. } => "module",
+            Value::Dict(_) => "dict",
         }
     }
 }
@@ -95,6 +98,7 @@ impl PartialEq for Value {
             (Value::Function { .. }, Value::Function { .. }) => false,
             (Value::BuiltinFn { .. }, Value::BuiltinFn { .. }) => false,
             (Value::Module { name: a, .. }, Value::Module { name: b, .. }) => a == b,
+            (Value::Dict(a), Value::Dict(b)) => a == b,
             _ => false,
         }
     }
@@ -126,6 +130,16 @@ impl fmt::Display for Value {
             }
             Value::Module { name, .. } => {
                 write!(f, "<module {}>", name)
+            }
+            Value::Dict(pairs) => {
+                write!(f, "{{")?;
+                for (i, (k, v)) in pairs.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}: {}", k, v)?;
+                }
+                write!(f, "}}")
             }
         }
     }

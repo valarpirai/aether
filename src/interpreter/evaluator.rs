@@ -146,6 +146,34 @@ impl Evaluator {
                 func: builtins::builtin_bool,
             },
         );
+
+        // I/O functions
+        self.environment.define(
+            "read_file".to_string(),
+            Value::BuiltinFn {
+                name: "read_file".to_string(),
+                arity: 1,
+                func: builtins::builtin_read_file,
+            },
+        );
+
+        self.environment.define(
+            "write_file".to_string(),
+            Value::BuiltinFn {
+                name: "write_file".to_string(),
+                arity: 2,
+                func: builtins::builtin_write_file,
+            },
+        );
+
+        self.environment.define(
+            "input".to_string(),
+            Value::BuiltinFn {
+                name: "input".to_string(),
+                arity: usize::MAX, // variadic: 0 or 1 args
+                func: builtins::builtin_input,
+            },
+        );
     }
 
     /// Load standard library modules
@@ -226,16 +254,25 @@ impl Evaluator {
                     closure: Box::new(self.environment.clone()),
                 })
             }
+            Expr::StringInterp(parts) => {
+                let mut result = String::new();
+                for part in parts {
+                    let val = self.eval_expr(part)?;
+                    result.push_str(&format!("{}", val));
+                }
+                Ok(Value::string(result))
+            }
             Expr::Unary(op, operand) => self.eval_unary(*op, operand),
             Expr::Binary(left, op, right) => self.eval_binary(left, *op, right),
             Expr::Index(array, index) => self.eval_index(array, index),
             Expr::Member(object, member) => self.eval_member(object, member),
             Expr::Call(callee, args) => self.eval_call(callee, args),
-            Expr::Dict(_) => {
-                // Dictionaries not yet implemented
-                Err(RuntimeError::InvalidOperation(
-                    "Dictionaries not yet implemented".to_string(),
-                ))
+            Expr::Dict(pairs) => {
+                let mut evaluated = Vec::new();
+                for (k, v) in pairs {
+                    evaluated.push((self.eval_expr(k)?, self.eval_expr(v)?));
+                }
+                Ok(Value::Dict(Rc::new(evaluated)))
             }
         }
     }
@@ -470,6 +507,18 @@ impl Evaluator {
                     Ok(Value::string(chars[idx as usize].to_string()))
                 }
             }
+            // Dict index access: d["key"] or d[0]
+            (Value::Dict(pairs), key) => {
+                for (k, v) in pairs.iter() {
+                    if k == &key {
+                        return Ok(v.clone());
+                    }
+                }
+                Err(RuntimeError::InvalidOperation(format!(
+                    "Key {} not found in dict",
+                    key
+                )))
+            }
             (collection, index) => Err(RuntimeError::TypeError {
                 expected: "array or string with integer index".to_string(),
                 got: format!("{} and {}", collection.type_name(), index.type_name()),
@@ -487,6 +536,23 @@ impl Evaluator {
 
             // String properties
             (Value::String(s), "length") => Ok(Value::Int(s.len() as i64)),
+
+            // Dict member access: d.key (sugar for d["key"]), d.length returns count
+            (Value::Dict(pairs), key) => {
+                if key == "length" {
+                    return Ok(Value::Int(pairs.len() as i64));
+                }
+                let key_val = Value::string(key.to_string());
+                for (k, v) in pairs.iter() {
+                    if k == &key_val {
+                        return Ok(v.clone());
+                    }
+                }
+                Err(RuntimeError::InvalidOperation(format!(
+                    "Key '{}' not found in dict",
+                    key
+                )))
+            }
 
             // Module member access
             (Value::Module { name, members }, prop) => {

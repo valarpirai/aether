@@ -510,6 +510,29 @@ impl Parser {
             TokenKind::Integer(n) => Ok(Expr::Integer(*n)),
             TokenKind::Float(f) => Ok(Expr::Float(*f)),
             TokenKind::String(s) => Ok(Expr::String(s.clone())),
+            TokenKind::StringInterp(parts) => {
+                use crate::lexer::token::StringPart;
+                let parts = parts.clone();
+                let mut exprs: Vec<Expr> = Vec::new();
+                for part in parts {
+                    match part {
+                        StringPart::Literal(s) => exprs.push(Expr::String(s)),
+                        StringPart::Placeholder(src) => {
+                            // Re-lex and re-parse the placeholder expression
+                            let mut scanner = crate::lexer::Scanner::new(&src);
+                            let tokens = scanner.scan_tokens().map_err(|_e| {
+                                ParseError::UnexpectedToken {
+                                    expected: "valid expression in interpolation".to_string(),
+                                    found: token.clone(),
+                                }
+                            })?;
+                            let mut inner_parser = crate::parser::Parser::new(tokens);
+                            exprs.push(inner_parser.expression()?);
+                        }
+                    }
+                }
+                Ok(Expr::StringInterp(exprs))
+            }
             TokenKind::True => Ok(Expr::Bool(true)),
             TokenKind::False => Ok(Expr::Bool(false)),
             TokenKind::Null => Ok(Expr::Null),
@@ -535,6 +558,25 @@ impl Parser {
 
                 self.consume(TokenKind::RightBracket, "]")?;
                 Ok(Expr::Array(elements))
+            }
+            TokenKind::LeftBrace => {
+                // Dict literal: { key: value, ... }
+                let mut pairs = Vec::new();
+
+                if !self.check(&TokenKind::RightBrace) {
+                    loop {
+                        let key = self.expression()?;
+                        self.consume(TokenKind::Colon, ":")?;
+                        let value = self.expression()?;
+                        pairs.push((key, value));
+                        if !self.match_token(&[TokenKind::Comma]) {
+                            break;
+                        }
+                    }
+                }
+
+                self.consume(TokenKind::RightBrace, "}")?;
+                Ok(Expr::Dict(pairs))
             }
             _ => Err(ParseError::UnexpectedToken {
                 expected: "expression".to_string(),
