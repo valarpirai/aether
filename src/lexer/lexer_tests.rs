@@ -47,7 +47,10 @@ fn test_tokenize_string() {
 fn test_string_escapes() {
     let mut scanner = Scanner::new(r#""hello\nworld""#);
     let tokens = scanner.scan_tokens().unwrap();
-    assert_eq!(tokens[0].kind, TokenKind::String("hello\nworld".to_string()));
+    assert_eq!(
+        tokens[0].kind,
+        TokenKind::String("hello\nworld".to_string())
+    );
 }
 
 #[test]

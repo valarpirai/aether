@@ -30,82 +30,98 @@ fn eval(source: &str) -> Result<String, String> {
 
 #[test]
 fn test_array_push() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let arr = [1, 2, 3]
         arr.push(4)
         arr
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "[1, 2, 3, 4]");
 }
 
 #[test]
 fn test_array_push_returns_null() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let arr = [1, 2]
         arr.push(3)
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "null");
 }
 
 #[test]
 fn test_array_push_multiple() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let arr = []
         arr.push(1)
         arr.push(2)
         arr.push(3)
         arr
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "[1, 2, 3]");
 }
 
 #[test]
 fn test_array_pop() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let arr = [1, 2, 3]
         arr.pop()
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "3");
 }
 
 #[test]
 fn test_array_pop_modifies_array() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let arr = [1, 2, 3]
         arr.pop()
         arr
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "[1, 2]");
 }
 
 #[test]
 fn test_array_pop_empty_array() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let arr = []
         arr.pop()
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "null");
 }
 
 #[test]
 fn test_array_push_pop_combo() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let arr = [1, 2]
         arr.push(3)
         arr.push(4)
         arr.pop()
         arr
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "[1, 2, 3]");
 }
 
 #[test]
 fn test_array_method_chaining() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let arr = [1, 2, 3]
         let last = arr.pop()
         arr.push(last + 10)
         arr
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "[1, 2, 13]");
 }

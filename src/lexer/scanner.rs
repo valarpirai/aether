@@ -15,7 +15,11 @@ impl fmt::Display for LexerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             LexerError::UnexpectedCharacter(ch, line, col) => {
-                write!(f, "Unexpected character '{}' at line {}, column {}", ch, line, col)
+                write!(
+                    f,
+                    "Unexpected character '{}' at line {}, column {}",
+                    ch, line, col
+                )
             }
             LexerError::UnterminatedString(line, col) => {
                 write!(f, "Unterminated string at line {}, column {}", line, col)

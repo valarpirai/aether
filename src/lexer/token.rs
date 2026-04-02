@@ -28,11 +28,11 @@ pub enum TokenKind {
     As,
 
     // Operators
-    Plus,       // +
-    Minus,      // -
-    Star,       // *
-    Slash,      // /
-    Percent,    // %
+    Plus,    // +
+    Minus,   // -
+    Star,    // *
+    Slash,   // /
+    Percent, // %
 
     Equal,      // =
     PlusEqual,  // +=
@@ -40,16 +40,16 @@ pub enum TokenKind {
     StarEqual,  // *=
     SlashEqual, // /=
 
-    EqualEqual, // ==
-    NotEqual,   // !=
-    Less,       // <
-    Greater,    // >
-    LessEqual,  // <=
+    EqualEqual,   // ==
+    NotEqual,     // !=
+    Less,         // <
+    Greater,      // >
+    LessEqual,    // <=
     GreaterEqual, // >=
 
-    And,        // &&
-    Or,         // ||
-    Not,        // !
+    And, // &&
+    Or,  // ||
+    Not, // !
 
     // Delimiters
     LeftParen,    // (

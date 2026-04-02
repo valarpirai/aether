@@ -33,37 +33,45 @@ fn eval(source: &str) -> Result<String, String> {
 
 #[test]
 fn test_array_length_property() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let arr = [1, 2, 3, 4, 5]
         arr.length
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "5");
 }
 
 #[test]
 fn test_string_length_property() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let text = "hello"
         text.length
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "5");
 }
 
 #[test]
 fn test_empty_array_length() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let arr = []
         arr.length
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "0");
 }
 
 #[test]
 fn test_empty_string_length() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let text = ""
         text.length
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "0");
 }
 
@@ -75,19 +83,23 @@ fn test_direct_literal_member_access() {
 
 #[test]
 fn test_member_access_in_expression() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let arr = [10, 20, 30]
         arr.length + 5
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "8");
 }
 
 #[test]
 fn test_undefined_property_error() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let arr = [1, 2, 3]
         arr.notexist
-    "#);
+    "#,
+    );
     assert!(result.is_err());
     let err = result.unwrap_err();
     eprintln!("Error message: {}", err);
@@ -96,9 +108,11 @@ fn test_undefined_property_error() {
 
 #[test]
 fn test_member_access_on_non_object() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let num = 42
         num.length
-    "#);
+    "#,
+    );
     assert!(result.is_err());
 }

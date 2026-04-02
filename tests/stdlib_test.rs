@@ -51,22 +51,26 @@ fn test_range_empty() {
 
 #[test]
 fn test_range_in_loop() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let sum = 0
         for i in range(5) {
             sum = sum + i
         }
         sum
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "10"); // 0 + 1 + 2 + 3 + 4
 }
 
 #[test]
 fn test_enumerate() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let arr = ["a", "b", "c"]
         enumerate(arr)
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "[[0, a], [1, b], [2, c]]");
 }
 
@@ -77,22 +81,26 @@ fn test_enumerate_empty() {
 
 #[test]
 fn test_enumerate_with_numbers() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let nums = [10, 20, 30]
         enumerate(nums)
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "[[0, 10], [1, 20], [2, 30]]");
 }
 
 #[test]
 fn test_range_and_map_pattern() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let doubled = []
         for i in range(3) {
             doubled.push(i * 2)
         }
         doubled
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "[0, 2, 4]");
 }
 

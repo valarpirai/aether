@@ -6,5 +6,5 @@ pub mod parse;
 #[cfg(test)]
 mod parser_tests;
 
-pub use ast::{Expr, Stmt, Program, BinaryOp, UnaryOp};
-pub use parse::{Parser, ParseError};
+pub use ast::{BinaryOp, Expr, Program, Stmt, UnaryOp};
+pub use parse::{ParseError, Parser};

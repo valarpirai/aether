@@ -129,12 +129,18 @@ fn test_eval_literals() {
     let mut eval = Evaluator::new();
 
     assert_eq!(eval.eval_expr(&Expr::Integer(42)).unwrap(), Value::Int(42));
-    assert_eq!(eval.eval_expr(&Expr::Float(3.14)).unwrap(), Value::Float(3.14));
+    assert_eq!(
+        eval.eval_expr(&Expr::Float(3.14)).unwrap(),
+        Value::Float(3.14)
+    );
     assert_eq!(
         eval.eval_expr(&Expr::String("hello".to_string())).unwrap(),
         Value::string("hello")
     );
-    assert_eq!(eval.eval_expr(&Expr::Bool(true)).unwrap(), Value::Bool(true));
+    assert_eq!(
+        eval.eval_expr(&Expr::Bool(true)).unwrap(),
+        Value::Bool(true)
+    );
     assert_eq!(eval.eval_expr(&Expr::Null).unwrap(), Value::Null);
 }
 
@@ -257,11 +263,7 @@ fn test_eval_string_concat() {
 fn test_eval_array_literal() {
     let mut eval = Evaluator::new();
 
-    let expr = Expr::Array(vec![
-        Expr::Integer(1),
-        Expr::Integer(2),
-        Expr::Integer(3),
-    ]);
+    let expr = Expr::Array(vec![Expr::Integer(1), Expr::Integer(2), Expr::Integer(3)]);
     assert_eq!(
         eval.eval_expr(&expr).unwrap(),
         Value::array(vec![Value::Int(1), Value::Int(2), Value::Int(3)])
@@ -301,10 +303,8 @@ fn test_eval_division_by_zero() {
 #[test]
 fn test_eval_index_out_of_bounds() {
     let mut eval = Evaluator::new();
-    eval.environment.define(
-        "arr".to_string(),
-        Value::array(vec![Value::Int(10)]),
-    );
+    eval.environment
+        .define("arr".to_string(), Value::array(vec![Value::Int(10)]));
 
     let expr = Expr::Index(
         Box::new(Expr::Identifier("arr".to_string())),

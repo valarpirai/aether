@@ -57,10 +57,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Execute a line of code
-fn execute_line(
-    source: &str,
-    evaluator: &mut Evaluator,
-) -> Result<Option<String>, String> {
+fn execute_line(source: &str, evaluator: &mut Evaluator) -> Result<Option<String>, String> {
     // Tokenize
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens().map_err(|e| e.to_string())?;

@@ -78,9 +78,7 @@ pub fn builtin_int(args: &[Value]) -> Result<Value, RuntimeError> {
         Value::String(s) => s
             .parse::<i64>()
             .map(Value::Int)
-            .map_err(|_| RuntimeError::InvalidOperation(
-                format!("Cannot convert '{}' to int", s)
-            )),
+            .map_err(|_| RuntimeError::InvalidOperation(format!("Cannot convert '{}' to int", s))),
         Value::Bool(b) => Ok(Value::Int(if *b { 1 } else { 0 })),
         other => Err(RuntimeError::TypeError {
             expected: "number, string, or bool".to_string(),
@@ -102,12 +100,9 @@ pub fn builtin_float(args: &[Value]) -> Result<Value, RuntimeError> {
     match &args[0] {
         Value::Int(n) => Ok(Value::Float(*n as f64)),
         Value::Float(f) => Ok(Value::Float(*f)),
-        Value::String(s) => s
-            .parse::<f64>()
-            .map(Value::Float)
-            .map_err(|_| RuntimeError::InvalidOperation(
-                format!("Cannot convert '{}' to float", s)
-            )),
+        Value::String(s) => s.parse::<f64>().map(Value::Float).map_err(|_| {
+            RuntimeError::InvalidOperation(format!("Cannot convert '{}' to float", s))
+        }),
         Value::Bool(b) => Ok(Value::Float(if *b { 1.0 } else { 0.0 })),
         other => Err(RuntimeError::TypeError {
             expected: "number, string, or bool".to_string(),

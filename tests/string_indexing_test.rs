@@ -31,22 +31,31 @@ fn eval(source: &str) -> Result<String, String> {
 // Basic string indexing
 #[test]
 fn test_string_index_first_char() {
-    let result = eval(r#"let s = "hello"
-s[0]"#).unwrap();
+    let result = eval(
+        r#"let s = "hello"
+s[0]"#,
+    )
+    .unwrap();
     assert_eq!(result, "h");
 }
 
 #[test]
 fn test_string_index_middle_char() {
-    let result = eval(r#"let s = "hello"
-s[2]"#).unwrap();
+    let result = eval(
+        r#"let s = "hello"
+s[2]"#,
+    )
+    .unwrap();
     assert_eq!(result, "l");
 }
 
 #[test]
 fn test_string_index_last_char() {
-    let result = eval(r#"let s = "hello"
-s[4]"#).unwrap();
+    let result = eval(
+        r#"let s = "hello"
+s[4]"#,
+    )
+    .unwrap();
     assert_eq!(result, "o");
 }
 
@@ -59,23 +68,31 @@ fn test_string_index_literal() {
 // UTF-8 support
 #[test]
 fn test_string_index_utf8() {
-    let result = eval(r#"let s = "世界"
-s[0]"#).unwrap();
+    let result = eval(
+        r#"let s = "世界"
+s[0]"#,
+    )
+    .unwrap();
     assert_eq!(result, "世");
 }
 
 #[test]
 fn test_string_index_emoji() {
-    let result = eval(r#"let s = "🎉🎊🎈"
-s[1]"#).unwrap();
+    let result = eval(
+        r#"let s = "🎉🎊🎈"
+s[1]"#,
+    )
+    .unwrap();
     assert_eq!(result, "🎊");
 }
 
 // Error cases
 #[test]
 fn test_string_index_negative() {
-    let result = eval(r#"let s = "hello"
-s[-1]"#);
+    let result = eval(
+        r#"let s = "hello"
+s[-1]"#,
+    );
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(err.contains("out of bounds") || err.contains("Index"));
@@ -83,8 +100,10 @@ s[-1]"#);
 
 #[test]
 fn test_string_index_out_of_bounds() {
-    let result = eval(r#"let s = "hello"
-s[10]"#);
+    let result = eval(
+        r#"let s = "hello"
+s[10]"#,
+    );
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(err.contains("out of bounds") || err.contains("Index"));
@@ -93,77 +112,100 @@ s[10]"#);
 // Use cases
 #[test]
 fn test_string_index_multiple_access() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let s = "abc"
 s[0] + s[1] + s[2]
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     assert_eq!(result, "abc");
 }
 
 #[test]
 fn test_string_index_comparison() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let s = "hello"
 s[0] == "h"
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     assert_eq!(result, "true");
 }
 
 #[test]
 fn test_string_index_concatenation() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let s = "world"
 let first = s[0]
 let last = s[4]
 first + last
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     assert_eq!(result, "wd");
 }
 
 // Edge cases
 #[test]
 fn test_empty_string_index() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let s = ""
 s[0]
-"#);
+"#,
+    );
     assert!(result.is_err());
 }
 
 #[test]
 fn test_single_char_string_index() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let s = "x"
 s[0]
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     assert_eq!(result, "x");
 }
 
 // Integration with other features
 #[test]
 fn test_string_index_with_variables() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let s = "testing"
 let idx = 2
 s[idx]
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     assert_eq!(result, "s");
 }
 
 #[test]
 fn test_string_index_with_expression() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let s = "example"
 s[1 + 1]
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     assert_eq!(result, "a");
 }
 
 #[test]
 fn test_multiple_string_indexes() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
 let s = "code"
 s[0] + s[1] + s[2] + s[3]
-"#).unwrap();
+"#,
+    )
+    .unwrap();
     assert_eq!(result, "code");
 }

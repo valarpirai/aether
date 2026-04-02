@@ -31,7 +31,10 @@ fn eval(source: &str) -> Result<String, String> {
 // join() tests
 #[test]
 fn test_join_with_space() {
-    assert_eq!(eval(r#"join(["hello", "world"], " ")"#).unwrap(), "hello world");
+    assert_eq!(
+        eval(r#"join(["hello", "world"], " ")"#).unwrap(),
+        "hello world"
+    );
 }
 
 #[test]
@@ -41,7 +44,10 @@ fn test_join_with_comma() {
 
 #[test]
 fn test_join_empty_separator() {
-    assert_eq!(eval(r#"join(["hello", "world"], "")"#).unwrap(), "helloworld");
+    assert_eq!(
+        eval(r#"join(["hello", "world"], "")"#).unwrap(),
+        "helloworld"
+    );
 }
 
 #[test]
@@ -101,7 +107,10 @@ fn test_reverse_palindrome() {
 // starts_with() tests
 #[test]
 fn test_starts_with_true() {
-    assert_eq!(eval(r#"starts_with("hello world", "hello")"#).unwrap(), "true");
+    assert_eq!(
+        eval(r#"starts_with("hello world", "hello")"#).unwrap(),
+        "true"
+    );
     assert_eq!(eval(r#"starts_with("test", "te")"#).unwrap(), "true");
 }
 
@@ -124,7 +133,10 @@ fn test_starts_with_same_string() {
 // ends_with() tests
 #[test]
 fn test_ends_with_true() {
-    assert_eq!(eval(r#"ends_with("hello world", "world")"#).unwrap(), "true");
+    assert_eq!(
+        eval(r#"ends_with("hello world", "world")"#).unwrap(),
+        "true"
+    );
     assert_eq!(eval(r#"ends_with("test", "st")"#).unwrap(), "true");
 }
 
@@ -147,26 +159,32 @@ fn test_ends_with_same_string() {
 // Composition tests
 #[test]
 fn test_join_split_roundtrip() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let words = ["hello", "world"]
         let sentence = join(words, " ")
         sentence
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "hello world");
 }
 
 #[test]
 fn test_repeat_join() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         join([repeat("*", 3), repeat("-", 3)], " ")
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "*** ---");
 }
 
 #[test]
 fn test_reverse_uppercase() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         reverse("hello".upper())
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "OLLEH");
 }

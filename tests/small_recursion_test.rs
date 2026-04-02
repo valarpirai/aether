@@ -56,12 +56,20 @@ countdown(150)
         if let Err(e) = evaluator.exec_stmt(stmt) {
             let err_msg = e.to_string();
             println!("Got error: {}", err_msg);
-            assert!(err_msg.contains("recursion") || err_msg.contains("stack") || err_msg.contains("overflow"),
-                   "Expected recursion/stack error, got: {}", err_msg);
+            assert!(
+                err_msg.contains("recursion")
+                    || err_msg.contains("stack")
+                    || err_msg.contains("overflow"),
+                "Expected recursion/stack error, got: {}",
+                err_msg
+            );
             got_error = true;
             break;
         }
     }
 
-    assert!(got_error, "Expected recursion limit error but none was raised");
+    assert!(
+        got_error,
+        "Expected recursion limit error but none was raised"
+    );
 }

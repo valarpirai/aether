@@ -177,9 +177,11 @@ fn test_sum_range() {
 
 #[test]
 fn test_clamp_calculation() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let score = 150
         clamp(score, 0, 100)
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "100");
 }

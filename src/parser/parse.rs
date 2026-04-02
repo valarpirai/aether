@@ -1,7 +1,7 @@
 //! Recursive descent parser for Aether
 
-use crate::lexer::{Token, TokenKind};
 use super::ast::*;
+use crate::lexer::{Token, TokenKind};
 use std::fmt;
 
 /// Parse error types
@@ -16,7 +16,11 @@ impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ParseError::UnexpectedToken { expected, found } => {
-                write!(f, "Expected {}, found '{}' at line {}", expected, found.lexeme, found.line)
+                write!(
+                    f,
+                    "Expected {}, found '{}' at line {}",
+                    expected, found.lexeme, found.line
+                )
             }
             ParseError::UnexpectedEof => write!(f, "Unexpected end of file"),
             ParseError::InvalidAssignmentTarget => write!(f, "Invalid assignment target"),

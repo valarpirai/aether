@@ -50,7 +50,10 @@ fn test_string_trim() {
 #[test]
 fn test_string_split() {
     assert_eq!(eval(r#""a,b,c".split(",")"#).unwrap(), "[a, b, c]");
-    assert_eq!(eval(r#""hello world".split(" ")"#).unwrap(), "[hello, world]");
+    assert_eq!(
+        eval(r#""hello world".split(" ")"#).unwrap(),
+        "[hello, world]"
+    );
 }
 
 #[test]
@@ -60,27 +63,33 @@ fn test_string_split_empty() {
 
 #[test]
 fn test_string_method_chaining() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let text = "  Hello World  "
         text.trim().lower()
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "hello world");
 }
 
 #[test]
 fn test_string_methods_with_variables() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let text = "hello"
         text.upper()
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "HELLO");
 }
 
 #[test]
 fn test_string_split_result_is_array() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let parts = "a,b,c".split(",")
         parts.length
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "3");
 }

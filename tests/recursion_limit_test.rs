@@ -31,8 +31,11 @@ infinite()
     let result = eval(source);
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert!(err.contains("recursion") || err.contains("stack") || err.contains("overflow"),
-            "Expected recursion error, got: {}", err);
+    assert!(
+        err.contains("recursion") || err.contains("stack") || err.contains("overflow"),
+        "Expected recursion error, got: {}",
+        err
+    );
     assert!(err.contains("100"), "Expected limit 100 in error: {}", err);
 }
 
@@ -49,7 +52,11 @@ fn countdown(n) {
 countdown(50)
 "#;
     let result = eval(source);
-    assert!(result.is_ok(), "Expected success for depth 50, got: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "Expected success for depth 50, got: {:?}",
+        result
+    );
 }
 
 // Note: Mutual recursion test removed - function lookup across definitions needs more work
