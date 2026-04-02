@@ -26,6 +26,9 @@ pub enum TokenKind {
     Import,
     From,
     As,
+    Try,
+    Catch,
+    Throw,
 
     // Operators
     Plus,    // +

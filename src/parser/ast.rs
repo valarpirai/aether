@@ -98,6 +98,10 @@ pub enum Stmt {
     FromImport(String, Vec<String>),
     /// From import with aliases (module_name, [(item, alias)])
     FromImportAs(String, Vec<(String, String)>),
+    /// Try/catch statement (try_body, error_var, catch_body)
+    TryCatch(Box<Stmt>, String, Box<Stmt>),
+    /// Throw statement (value to throw)
+    Throw(Expr),
 }
 
 /// Program (top-level statements)

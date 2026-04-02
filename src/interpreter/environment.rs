@@ -20,6 +20,8 @@ pub enum RuntimeError {
     ArityMismatch { expected: usize, got: usize },
     /// Recursion depth exceeded
     StackOverflow { depth: usize, limit: usize },
+    /// User-thrown error (via throw statement)
+    Thrown(String),
 }
 
 impl std::fmt::Display for RuntimeError {
@@ -48,6 +50,7 @@ impl std::fmt::Display for RuntimeError {
                     depth, limit
                 )
             }
+            RuntimeError::Thrown(msg) => write!(f, "{}", msg),
         }
     }
 }

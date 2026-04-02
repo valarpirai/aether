@@ -837,6 +837,22 @@ impl Evaluator {
                 self.from_import_as(&module_name, &aliased_items)?;
                 Ok(ControlFlow::None)
             }
+            Stmt::Throw(expr) => {
+                let value = self.eval_expr(expr)?;
+                let msg = format!("{}", value);
+                Err(RuntimeError::Thrown(msg))
+            }
+            Stmt::TryCatch(try_body, error_var, catch_body) => {
+                match self.exec_stmt_internal(try_body) {
+                    Ok(flow) => Ok(flow),
+                    Err(e) => {
+                        // Bind the error message into the current scope and run catch body
+                        self.environment
+                            .define(error_var.clone(), Value::string(e.to_string()));
+                        self.exec_stmt_internal(catch_body)
+                    }
+                }
+            }
         }
     }
 

@@ -213,6 +213,12 @@ impl Parser {
         if self.match_token(&[TokenKind::LeftBrace]) {
             return self.block_statement();
         }
+        if self.match_token(&[TokenKind::Try]) {
+            return self.try_catch_statement();
+        }
+        if self.match_token(&[TokenKind::Throw]) {
+            return self.throw_statement();
+        }
         self.expression_statement()
     }
 
@@ -658,5 +664,36 @@ impl Parser {
         } else {
             Ok(Stmt::FromImport(module_name, items))
         }
+    }
+
+    // Parse try/catch: try { ... } catch(e) { ... }
+    fn try_catch_statement(&mut self) -> Result<Stmt, ParseError> {
+        self.consume(TokenKind::LeftBrace, "{")?;
+        let try_body = self.block_statement()?;
+
+        self.consume(TokenKind::Catch, "catch")?;
+        self.consume(TokenKind::LeftParen, "(")?;
+
+        let error_var = if let TokenKind::Identifier(name) = &self.peek().kind {
+            name.clone()
+        } else {
+            return Err(ParseError::UnexpectedToken {
+                expected: "error variable name".to_string(),
+                found: self.peek().clone(),
+            });
+        };
+        self.advance();
+
+        self.consume(TokenKind::RightParen, ")")?;
+        self.consume(TokenKind::LeftBrace, "{")?;
+        let catch_body = self.block_statement()?;
+
+        Ok(Stmt::TryCatch(Box::new(try_body), error_var, Box::new(catch_body)))
+    }
+
+    // Parse throw: throw expr
+    fn throw_statement(&mut self) -> Result<Stmt, ParseError> {
+        let value = self.expression()?;
+        Ok(Stmt::Throw(value))
     }
 }

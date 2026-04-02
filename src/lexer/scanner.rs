@@ -304,6 +304,9 @@ impl Scanner {
             "import" => TokenKind::Import,
             "from" => TokenKind::From,
             "as" => TokenKind::As,
+            "try" => TokenKind::Try,
+            "catch" => TokenKind::Catch,
+            "throw" => TokenKind::Throw,
             _ => TokenKind::Identifier(text.clone()),
         };
 
