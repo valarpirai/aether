@@ -31,14 +31,22 @@ impl std::fmt::Display for RuntimeError {
             }
             RuntimeError::DivisionByZero => write!(f, "Division by zero"),
             RuntimeError::IndexOutOfBounds { index, length } => {
-                write!(f, "Index {} out of bounds for array of length {}", index, length)
+                write!(
+                    f,
+                    "Index {} out of bounds for array of length {}",
+                    index, length
+                )
             }
             RuntimeError::InvalidOperation(msg) => write!(f, "Invalid operation: {}", msg),
             RuntimeError::ArityMismatch { expected, got } => {
                 write!(f, "Expected {} arguments, got {}", expected, got)
             }
             RuntimeError::StackOverflow { depth, limit } => {
-                write!(f, "Maximum recursion depth exceeded: {} (limit: {})", depth, limit)
+                write!(
+                    f,
+                    "Maximum recursion depth exceeded: {} (limit: {})",
+                    depth, limit
+                )
             }
         }
     }
@@ -86,6 +94,11 @@ impl Environment {
         } else {
             Err(RuntimeError::UndefinedVariable(name.to_string()))
         }
+    }
+
+    /// Return all bindings defined directly in this (top-level) scope
+    pub fn bindings(&self) -> &HashMap<String, Value> {
+        &self.values
     }
 
     /// Set an existing variable's value (searches parent scopes)

@@ -146,9 +146,9 @@ impl Evaluator {
 
     /// Load standard library modules
     fn load_stdlib(&mut self) {
+        use super::stdlib;
         use crate::lexer::Scanner;
         use crate::parser::Parser;
-        use super::stdlib;
 
         for (name, source) in stdlib::stdlib_modules() {
             // Parse the module
@@ -156,7 +156,10 @@ impl Evaluator {
             let tokens = match scanner.scan_tokens() {
                 Ok(t) => t,
                 Err(e) => {
-                    eprintln!("Warning: Failed to tokenize stdlib module '{}': {}", name, e);
+                    eprintln!(
+                        "Warning: Failed to tokenize stdlib module '{}': {}",
+                        name, e
+                    );
                     continue;
                 }
             };
@@ -170,12 +173,27 @@ impl Evaluator {
                 }
             };
 
-            // Execute all statements in the module
+            // Execute each module in an isolated evaluator so that closures only
+            // capture a small bootstrap environment, not the ever-growing main env.
+            let mut module_eval = Evaluator::new_without_stdlib();
             for stmt in &program.statements {
-                if let Err(e) = self.exec_stmt(stmt) {
+                if let Err(e) = module_eval.exec_stmt(stmt) {
                     eprintln!("Warning: Failed to execute stdlib module '{}': {}", name, e);
                     break;
                 }
+            }
+
+            // Copy only the newly defined names into the main environment
+            let bindings: Vec<(String, Value)> = module_eval
+                .environment
+                .bindings()
+                .iter()
+                .filter(|(k, _)| !k.starts_with("__builtin"))
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect();
+
+            for (fname, fval) in bindings {
+                self.environment.define(fname, fval);
             }
         }
     }
@@ -247,16 +265,26 @@ impl Evaluator {
 
         match op {
             BinaryOp::Add => self.eval_add(left_val, right_val),
-            BinaryOp::Subtract => self.eval_arithmetic(left_val, right_val, |a, b| a - b, |a, b| a - b),
-            BinaryOp::Multiply => self.eval_arithmetic(left_val, right_val, |a, b| a * b, |a, b| a * b),
+            BinaryOp::Subtract => {
+                self.eval_arithmetic(left_val, right_val, |a, b| a - b, |a, b| a - b)
+            }
+            BinaryOp::Multiply => {
+                self.eval_arithmetic(left_val, right_val, |a, b| a * b, |a, b| a * b)
+            }
             BinaryOp::Divide => self.eval_divide(left_val, right_val),
             BinaryOp::Modulo => self.eval_modulo(left_val, right_val),
             BinaryOp::Equal => Ok(Value::Bool(self.values_equal(&left_val, &right_val))),
             BinaryOp::NotEqual => Ok(Value::Bool(!self.values_equal(&left_val, &right_val))),
             BinaryOp::Less => self.eval_comparison(left_val, right_val, |a, b| a < b, |a, b| a < b),
-            BinaryOp::Greater => self.eval_comparison(left_val, right_val, |a, b| a > b, |a, b| a > b),
-            BinaryOp::LessEqual => self.eval_comparison(left_val, right_val, |a, b| a <= b, |a, b| a <= b),
-            BinaryOp::GreaterEqual => self.eval_comparison(left_val, right_val, |a, b| a >= b, |a, b| a >= b),
+            BinaryOp::Greater => {
+                self.eval_comparison(left_val, right_val, |a, b| a > b, |a, b| a > b)
+            }
+            BinaryOp::LessEqual => {
+                self.eval_comparison(left_val, right_val, |a, b| a <= b, |a, b| a <= b)
+            }
+            BinaryOp::GreaterEqual => {
+                self.eval_comparison(left_val, right_val, |a, b| a >= b, |a, b| a >= b)
+            }
             BinaryOp::And => {
                 if !left_val.is_truthy() {
                     Ok(left_val)
@@ -281,7 +309,9 @@ impl Evaluator {
             (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a + b)),
             (Value::Int(a), Value::Float(b)) => Ok(Value::Float(a as f64 + b)),
             (Value::Float(a), Value::Int(b)) => Ok(Value::Float(a + b as f64)),
-            (Value::String(a), Value::String(b)) => Ok(Value::String(Rc::new(format!("{}{}", a, b)))),
+            (Value::String(a), Value::String(b)) => {
+                Ok(Value::String(Rc::new(format!("{}{}", a, b))))
+            }
             (left, right) => Err(RuntimeError::TypeError {
                 expected: "number or string".to_string(),
                 got: format!("{} and {}", left.type_name(), right.type_name()),
@@ -455,14 +485,21 @@ impl Evaluator {
             (Value::String(s), "length") => Ok(Value::Int(s.len() as i64)),
 
             // Undefined property
-            (obj, prop) => Err(RuntimeError::InvalidOperation(
-                format!("Property '{}' does not exist on type '{}'", prop, obj.type_name()),
-            )),
+            (obj, prop) => Err(RuntimeError::InvalidOperation(format!(
+                "Property '{}' does not exist on type '{}'",
+                prop,
+                obj.type_name()
+            ))),
         }
     }
 
     /// Evaluate method call (obj.method(args))
-    fn eval_method_call(&mut self, object: &Expr, method: &str, args: &[Expr]) -> Result<Value, RuntimeError> {
+    fn eval_method_call(
+        &mut self,
+        object: &Expr,
+        method: &str,
+        args: &[Expr],
+    ) -> Result<Value, RuntimeError> {
         let obj_val = self.eval_expr(object)?;
 
         match (&obj_val, method) {
@@ -483,7 +520,8 @@ impl Evaluator {
 
                 // Update in environment (only works for identifiers)
                 if let Expr::Identifier(name) = object {
-                    self.environment.set(name, Value::Array(Rc::new(new_elements)))?;
+                    self.environment
+                        .set(name, Value::Array(Rc::new(new_elements)))?;
                 }
 
                 Ok(Value::Null)
@@ -502,7 +540,8 @@ impl Evaluator {
 
                 // Update in environment (only works for identifiers)
                 if let Expr::Identifier(name) = object {
-                    self.environment.set(name, Value::Array(Rc::new(new_elements)))?;
+                    self.environment
+                        .set(name, Value::Array(Rc::new(new_elements)))?;
                 }
 
                 Ok(popped.unwrap_or(Value::Null))
@@ -548,7 +587,9 @@ impl Evaluator {
                     let parts: Vec<Value> = if s.is_empty() {
                         vec![]
                     } else {
-                        s.split(delim.as_str()).map(|part| Value::String(Rc::new(part.to_string()))).collect()
+                        s.split(delim.as_str())
+                            .map(|part| Value::String(Rc::new(part.to_string())))
+                            .collect()
                     };
                     Ok(Value::Array(Rc::new(parts)))
                 } else {
@@ -560,9 +601,11 @@ impl Evaluator {
             }
 
             // Undefined method
-            (obj, meth) => Err(RuntimeError::InvalidOperation(
-                format!("Method '{}' does not exist on type '{}'", meth, obj.type_name()),
-            )),
+            (obj, meth) => Err(RuntimeError::InvalidOperation(format!(
+                "Method '{}' does not exist on type '{}'",
+                meth,
+                obj.type_name()
+            ))),
         }
     }
 
@@ -751,7 +794,8 @@ impl Evaluator {
 
                         // Update the array in environment (only works for simple identifiers)
                         if let Expr::Identifier(name) = &**array {
-                            self.environment.set(name, Value::Array(Rc::new(new_elements)))?;
+                            self.environment
+                                .set(name, Value::Array(Rc::new(new_elements)))?;
                         }
                         Ok(())
                     }
@@ -761,11 +805,9 @@ impl Evaluator {
                     }),
                 }
             }
-            Expr::Member(_obj, _member) => {
-                Err(RuntimeError::InvalidOperation(
-                    "Member assignment not yet implemented".to_string(),
-                ))
-            }
+            Expr::Member(_obj, _member) => Err(RuntimeError::InvalidOperation(
+                "Member assignment not yet implemented".to_string(),
+            )),
             _ => Err(RuntimeError::InvalidOperation(
                 "Invalid assignment target".to_string(),
             )),
@@ -778,6 +820,39 @@ impl Evaluator {
             self.exec_stmt_internal(stmt)?;
         }
         Ok(())
+    }
+
+    /// Call the top-level main() function. Returns error if main is not defined or not a function.
+    pub fn call_main(&mut self) -> Result<(), RuntimeError> {
+        let main_val = self.environment.get("main").map_err(|_| {
+            RuntimeError::InvalidOperation(
+                "No main() function defined. Every Aether program must have a main() function."
+                    .to_string(),
+            )
+        })?;
+
+        match main_val {
+            Value::Function { params, body, closure } => {
+                if !params.is_empty() {
+                    return Err(RuntimeError::InvalidOperation(
+                        "main() must take no arguments".to_string(),
+                    ));
+                }
+                self.call_depth += 1;
+                let saved_env = self.environment.clone();
+                self.environment = Environment::with_parent((*closure).clone());
+                let result = match self.exec_stmt_internal(&body) {
+                    Ok(ControlFlow::Return(_)) | Ok(_) => Ok(()),
+                    Err(e) => Err(e),
+                };
+                self.environment = saved_env;
+                self.call_depth -= 1;
+                result
+            }
+            _ => Err(RuntimeError::InvalidOperation(
+                "main is not a function".to_string(),
+            )),
+        }
     }
 
     /// Evaluate function call
@@ -799,7 +874,11 @@ impl Evaluator {
         let func_val_clone = func_val.clone(); // Clone for recursion support
 
         match func_val {
-            Value::Function { params, body, closure } => {
+            Value::Function {
+                params,
+                body,
+                closure,
+            } => {
                 // Check recursion depth
                 self.call_depth += 1;
                 if self.call_depth > self.max_call_depth {
@@ -870,7 +949,11 @@ impl Evaluator {
 
                 result
             }
-            Value::BuiltinFn { name: _, arity, func } => {
+            Value::BuiltinFn {
+                name: _,
+                arity,
+                func,
+            } => {
                 // Check arity (unless variadic - represented by usize::MAX)
                 if arity != usize::MAX && arity != args.len() {
                     return Err(RuntimeError::ArityMismatch {
@@ -914,7 +997,8 @@ impl Evaluator {
         let module_env = self.execute_module_file(&module_path)?;
 
         // Cache the module
-        self.module_cache.insert(module_name.to_string(), module_env.clone());
+        self.module_cache
+            .insert(module_name.to_string(), module_env.clone());
 
         // Import all definitions from module
         self.import_all_from_env(&module_env);
@@ -937,7 +1021,8 @@ impl Evaluator {
             // Resolve and load module
             let module_path = self.resolve_module_path(module_name)?;
             let module_env = self.execute_module_file(&module_path)?;
-            self.module_cache.insert(module_name.to_string(), module_env);
+            self.module_cache
+                .insert(module_name.to_string(), module_env);
         }
 
         let module_env = &self.module_cache[module_name];
@@ -949,9 +1034,10 @@ impl Evaluator {
                     self.environment.define(item.clone(), value);
                 }
                 Err(_) => {
-                    return Err(RuntimeError::InvalidOperation(
-                        format!("Module '{}' has no function '{}'", module_name, item),
-                    ));
+                    return Err(RuntimeError::InvalidOperation(format!(
+                        "Module '{}' has no function '{}'",
+                        module_name, item
+                    )));
                 }
             }
         }
@@ -961,8 +1047,6 @@ impl Evaluator {
 
     /// Resolve module name to file path
     fn resolve_module_path(&self, module_name: &str) -> Result<PathBuf, RuntimeError> {
-        use std::fs;
-
         // Try current directory first
         let mut path = PathBuf::from(format!("{}.ae", module_name));
         if path.exists() {
@@ -985,21 +1069,21 @@ impl Evaluator {
             return Ok(path);
         }
 
-        Err(RuntimeError::InvalidOperation(
-            format!("Module not found: '{}'", module_name),
-        ))
+        Err(RuntimeError::InvalidOperation(format!(
+            "Module not found: '{}'",
+            module_name
+        )))
     }
 
     /// Execute a module file and return its environment
     fn execute_module_file(&mut self, path: &PathBuf) -> Result<Environment, RuntimeError> {
-        use std::fs;
         use crate::lexer::Scanner;
         use crate::parser::Parser;
+        use std::fs;
 
         // Read module file
-        let source = fs::read_to_string(path).map_err(|e| {
-            RuntimeError::InvalidOperation(format!("Failed to read module: {}", e))
-        })?;
+        let source = fs::read_to_string(path)
+            .map_err(|e| RuntimeError::InvalidOperation(format!("Failed to read module: {}", e)))?;
 
         // Parse module
         let mut scanner = Scanner::new(&source);

@@ -51,5 +51,8 @@ fn run_file(filename: &str) -> Result<(), String> {
         .execute_program(&program.statements)
         .map_err(|e| e.to_string())?;
 
+    // Auto-call main()
+    evaluator.call_main().map_err(|e| e.to_string())?;
+
     Ok(())
 }
