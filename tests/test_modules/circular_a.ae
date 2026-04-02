@@ -1,0 +1,5 @@
+import circular_b
+
+fn a_func() {
+    return "a"
+}

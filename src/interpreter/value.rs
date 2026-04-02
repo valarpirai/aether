@@ -1,5 +1,6 @@
 //! Runtime value types for the Aether interpreter
 
+use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
 
@@ -34,6 +35,11 @@ pub enum Value {
         name: String,
         arity: usize, // Number of parameters (or usize::MAX for variadic)
         func: BuiltinFn,
+    },
+    /// Module namespace (name -> value map)
+    Module {
+        name: String,
+        members: Rc<HashMap<String, Value>>,
     },
 }
 
@@ -72,6 +78,7 @@ impl Value {
             Value::Array(_) => "array",
             Value::Function { .. } => "function",
             Value::BuiltinFn { .. } => "builtin_function",
+            Value::Module { .. } => "module",
         }
     }
 }
@@ -85,8 +92,9 @@ impl PartialEq for Value {
             (Value::Bool(a), Value::Bool(b)) => a == b,
             (Value::Null, Value::Null) => true,
             (Value::Array(a), Value::Array(b)) => a == b,
-            (Value::Function { .. }, Value::Function { .. }) => false, // Functions never equal
-            (Value::BuiltinFn { .. }, Value::BuiltinFn { .. }) => false, // Built-ins never equal
+            (Value::Function { .. }, Value::Function { .. }) => false,
+            (Value::BuiltinFn { .. }, Value::BuiltinFn { .. }) => false,
+            (Value::Module { name: a, .. }, Value::Module { name: b, .. }) => a == b,
             _ => false,
         }
     }
@@ -115,6 +123,9 @@ impl fmt::Display for Value {
             }
             Value::BuiltinFn { name, .. } => {
                 write!(f, "<builtin {}>", name)
+            }
+            Value::Module { name, .. } => {
+                write!(f, "<module {}>", name)
             }
         }
     }

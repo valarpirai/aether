@@ -96,6 +96,8 @@ pub enum Stmt {
     ImportAs(String, String),
     /// From import (module_name, items)
     FromImport(String, Vec<String>),
+    /// From import with aliases (module_name, [(item, alias)])
+    FromImportAs(String, Vec<(String, String)>),
 }
 
 /// Program (top-level statements)

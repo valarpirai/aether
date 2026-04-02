@@ -114,3 +114,94 @@ double(2) + triple(2)
     assert!(result.is_ok(), "Failed: {:?}", result);
     assert_eq!(result.unwrap(), "10");
 }
+
+// import module as namespace
+#[test]
+fn test_import_module_namespace() {
+    let source = r#"
+import math_utils
+
+math_utils.double(5)
+"#;
+    let result = eval_in_dir(source, "tests/test_modules");
+    assert!(result.is_ok(), "Failed: {:?}", result);
+    assert_eq!(result.unwrap(), "10");
+}
+
+#[test]
+fn test_import_module_namespace_multiple_members() {
+    let source = r#"
+import math_utils
+
+math_utils.double(3) + math_utils.triple(2)
+"#;
+    let result = eval_in_dir(source, "tests/test_modules");
+    assert!(result.is_ok(), "Failed: {:?}", result);
+    assert_eq!(result.unwrap(), "12");
+}
+
+#[test]
+fn test_import_module_as_alias() {
+    let source = r#"
+import math_utils as mu
+
+mu.square(4)
+"#;
+    let result = eval_in_dir(source, "tests/test_modules");
+    assert!(result.is_ok(), "Failed: {:?}", result);
+    assert_eq!(result.unwrap(), "16");
+}
+
+#[test]
+fn test_import_module_member_not_found() {
+    let source = r#"
+import math_utils
+
+math_utils.nonexistent
+"#;
+    let result = eval_in_dir(source, "tests/test_modules");
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(err.contains("nonexistent"), "Unexpected error: {}", err);
+}
+
+// from module import func as alias
+#[test]
+fn test_from_import_with_alias() {
+    let source = r#"
+from math_utils import double as twice
+
+twice(7)
+"#;
+    let result = eval_in_dir(source, "tests/test_modules");
+    assert!(result.is_ok(), "Failed: {:?}", result);
+    assert_eq!(result.unwrap(), "14");
+}
+
+#[test]
+fn test_from_import_multiple_with_aliases() {
+    let source = r#"
+from math_utils import double as twice, triple as thrice
+
+twice(3) + thrice(2)
+"#;
+    let result = eval_in_dir(source, "tests/test_modules");
+    assert!(result.is_ok(), "Failed: {:?}", result);
+    assert_eq!(result.unwrap(), "12");
+}
+
+// Circular dependency detection
+#[test]
+fn test_circular_dependency_detected() {
+    let source = r#"
+import circular_a
+"#;
+    let result = eval_in_dir(source, "tests/test_modules");
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.contains("Circular") || err.contains("circular"),
+        "Expected circular dependency error, got: {}",
+        err
+    );
+}

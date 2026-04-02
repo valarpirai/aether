@@ -613,24 +613,50 @@ impl Parser {
 
         self.consume(TokenKind::Import, "import")?;
 
-        // Parse list of items to import
-        let mut items = Vec::new();
+        // Parse list of items to import, each optionally followed by "as alias"
+        let mut items: Vec<String> = Vec::new();
+        let mut aliased: Vec<(String, String)> = Vec::new();
+        let mut has_alias = false;
+
         loop {
-            if let TokenKind::Identifier(name) = &self.peek().kind {
-                items.push(name.clone());
+            let item = if let TokenKind::Identifier(name) = &self.peek().kind {
+                let n = name.clone();
                 self.advance();
+                n
             } else {
                 return Err(ParseError::UnexpectedToken {
                     expected: "item name".to_string(),
                     found: self.peek().clone(),
                 });
+            };
+
+            if self.match_token(&[TokenKind::As]) {
+                has_alias = true;
+                let alias = if let TokenKind::Identifier(name) = &self.peek().kind {
+                    let n = name.clone();
+                    self.advance();
+                    n
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        expected: "alias name".to_string(),
+                        found: self.peek().clone(),
+                    });
+                };
+                aliased.push((item.clone(), alias));
+            } else {
+                aliased.push((item.clone(), item.clone()));
             }
+            items.push(item);
 
             if !self.match_token(&[TokenKind::Comma]) {
                 break;
             }
         }
 
-        Ok(Stmt::FromImport(module_name, items))
+        if has_alias {
+            Ok(Stmt::FromImportAs(module_name, aliased))
+        } else {
+            Ok(Stmt::FromImport(module_name, items))
+        }
     }
 }

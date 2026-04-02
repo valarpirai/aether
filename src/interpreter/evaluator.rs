@@ -27,6 +27,8 @@ pub struct Evaluator {
     max_call_depth: usize,
     /// Module cache to prevent circular dependencies
     module_cache: HashMap<String, Environment>,
+    /// Tracks modules currently being loaded (for circular dependency detection)
+    loading_stack: Vec<String>,
     /// Current file being executed (for relative imports)
     current_file: Option<PathBuf>,
 }
@@ -44,6 +46,7 @@ impl Evaluator {
             call_depth: 0,
             max_call_depth: 100, // Reduced to prevent Rust stack overflow
             module_cache: HashMap::new(),
+            loading_stack: Vec::new(),
             current_file: None,
         };
         evaluator.register_builtins();
@@ -58,6 +61,7 @@ impl Evaluator {
             call_depth: 0,
             max_call_depth: 100, // Reduced to prevent Rust stack overflow
             module_cache: HashMap::new(),
+            loading_stack: Vec::new(),
             current_file: None,
         };
         evaluator.register_builtins();
@@ -484,6 +488,16 @@ impl Evaluator {
             // String properties
             (Value::String(s), "length") => Ok(Value::Int(s.len() as i64)),
 
+            // Module member access
+            (Value::Module { name, members }, prop) => {
+                members.get(prop).cloned().ok_or_else(|| {
+                    RuntimeError::InvalidOperation(format!(
+                        "Module '{}' has no member '{}'",
+                        name, prop
+                    ))
+                })
+            }
+
             // Undefined property
             (obj, prop) => Err(RuntimeError::InvalidOperation(format!(
                 "Property '{}' does not exist on type '{}'",
@@ -494,6 +508,63 @@ impl Evaluator {
     }
 
     /// Evaluate method call (obj.method(args))
+    /// Call a Value::Function or Value::BuiltinFn with already-evaluated arguments.
+    fn call_value(&mut self, func: Value, arg_values: Vec<Value>) -> Result<Value, RuntimeError> {
+        match func {
+            Value::Function {
+                params,
+                body,
+                closure,
+            } => {
+                self.call_depth += 1;
+                if self.call_depth > self.max_call_depth {
+                    self.call_depth -= 1;
+                    return Err(RuntimeError::StackOverflow {
+                        depth: self.call_depth + 1,
+                        limit: self.max_call_depth,
+                    });
+                }
+                if arg_values.len() > params.len() {
+                    self.call_depth -= 1;
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: params.len(),
+                        got: arg_values.len(),
+                    });
+                }
+                let mut padded = arg_values;
+                while padded.len() < params.len() {
+                    padded.push(Value::Null);
+                }
+                let saved_env = self.environment.clone();
+                self.environment = Environment::with_parent((*closure).clone());
+                for (param, value) in params.iter().zip(padded) {
+                    self.environment.define(param.clone(), value);
+                }
+                let result = match self.exec_stmt_internal(&body) {
+                    Ok(ControlFlow::Return(val)) => Ok(val),
+                    Ok(_) => Ok(Value::Null),
+                    Err(e) => Err(e),
+                };
+                self.environment = saved_env;
+                self.call_depth -= 1;
+                result
+            }
+            Value::BuiltinFn { arity, func, .. } => {
+                if arity != usize::MAX && arity != arg_values.len() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: arity,
+                        got: arg_values.len(),
+                    });
+                }
+                func(&arg_values)
+            }
+            other => Err(RuntimeError::InvalidOperation(format!(
+                "Cannot call value of type '{}'",
+                other.type_name()
+            ))),
+        }
+    }
+
     fn eval_method_call(
         &mut self,
         object: &Expr,
@@ -598,6 +669,22 @@ impl Evaluator {
                         got: delimiter.type_name().to_string(),
                     })
                 }
+            }
+
+            // Module member call: module.func(args)
+            (Value::Module { name, members }, method) => {
+                let func = members.get(method).cloned().ok_or_else(|| {
+                    RuntimeError::InvalidOperation(format!(
+                        "Module '{}' has no member '{}'",
+                        name, method
+                    ))
+                })?;
+                // Evaluate arguments then call the function
+                let mut arg_values = Vec::new();
+                for arg in args {
+                    arg_values.push(self.eval_expr(arg)?);
+                }
+                self.call_value(func, arg_values)
             }
 
             // Undefined method
@@ -743,8 +830,11 @@ impl Evaluator {
                 Ok(ControlFlow::None)
             }
             Stmt::FromImport(module_name, items) => {
-                // Load specific items from module
                 self.from_import(&module_name, &items)?;
+                Ok(ControlFlow::None)
+            }
+            Stmt::FromImportAs(module_name, aliased_items) => {
+                self.from_import_as(&module_name, &aliased_items)?;
                 Ok(ControlFlow::None)
             }
         }
@@ -980,38 +1070,66 @@ impl Evaluator {
 
     // Module loading methods
 
-    /// Load a module and add it to the environment
+    /// Load a module and bind it as a namespace object in the environment.
     fn load_module(&mut self, module_name: &str) -> Result<(), RuntimeError> {
-        // Check if already loaded
-        if self.module_cache.contains_key(module_name) {
-            let module_env = self.module_cache[module_name].clone();
-            // Add module as a namespace (not implemented yet - for now just import all)
-            self.import_all_from_env(&module_env);
-            return Ok(());
-        }
-
-        // Resolve module path
-        let module_path = self.resolve_module_path(module_name)?;
-
-        // Load and execute module
-        let module_env = self.execute_module_file(&module_path)?;
-
-        // Cache the module
-        self.module_cache
-            .insert(module_name.to_string(), module_env.clone());
-
-        // Import all definitions from module
-        self.import_all_from_env(&module_env);
-
+        let module_val = self.load_module_as_value(module_name)?;
+        self.environment.define(module_name.to_string(), module_val);
         Ok(())
     }
 
-    /// Load a module with an alias
-    fn load_module_as(&mut self, module_name: &str, _alias: &str) -> Result<(), RuntimeError> {
-        // For now, just load normally (namespace support would go here)
-        self.load_module(module_name)?;
-        // TODO: Wrap in namespace object
+    /// Load a module and bind it under the given alias.
+    fn load_module_as(&mut self, module_name: &str, alias: &str) -> Result<(), RuntimeError> {
+        let module_val = self.load_module_as_value(module_name)?;
+        self.environment.define(alias.to_string(), module_val);
         Ok(())
+    }
+
+    /// Load a module and return it as a Value::Module, using cache when available.
+    fn load_module_as_value(&mut self, module_name: &str) -> Result<Value, RuntimeError> {
+        // Circular dependency check
+        if self.loading_stack.contains(&module_name.to_string()) {
+            let cycle = self.loading_stack.join(" -> ");
+            return Err(RuntimeError::InvalidOperation(format!(
+                "Circular dependency detected: {} -> {}",
+                cycle, module_name
+            )));
+        }
+
+        // Return cached module env and build Value::Module from it
+        if self.module_cache.contains_key(module_name) {
+            let env = self.module_cache[module_name].clone();
+            return Ok(Self::module_value_from_env(module_name, &env));
+        }
+
+        // Mark as loading
+        self.loading_stack.push(module_name.to_string());
+
+        // Resolve path and execute
+        let module_path = self.resolve_module_path(module_name)?;
+        let module_env = self.execute_module_file(&module_path)?;
+
+        // Unmark loading
+        self.loading_stack.retain(|m| m != module_name);
+
+        // Cache the environment
+        self.module_cache
+            .insert(module_name.to_string(), module_env.clone());
+
+        Ok(Self::module_value_from_env(module_name, &module_env))
+    }
+
+    /// Build a Value::Module from a module's environment.
+    fn module_value_from_env(name: &str, env: &Environment) -> Value {
+        use std::collections::HashMap;
+        let members: HashMap<String, Value> = env
+            .bindings()
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+        Value::Module {
+            name: name.to_string(),
+            members: Rc::new(members),
+        }
     }
 
     /// Import specific items from a module
@@ -1036,6 +1154,38 @@ impl Evaluator {
                 Err(_) => {
                     return Err(RuntimeError::InvalidOperation(format!(
                         "Module '{}' has no function '{}'",
+                        module_name, item
+                    )));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Import specific items from a module with optional aliases.
+    fn from_import_as(
+        &mut self,
+        module_name: &str,
+        items: &[(String, String)],
+    ) -> Result<(), RuntimeError> {
+        if !self.module_cache.contains_key(module_name) {
+            let module_path = self.resolve_module_path(module_name)?;
+            let module_env = self.execute_module_file(&module_path)?;
+            self.module_cache
+                .insert(module_name.to_string(), module_env);
+        }
+
+        let module_env = &self.module_cache[module_name];
+
+        for (item, alias) in items {
+            match module_env.get(item) {
+                Ok(value) => {
+                    self.environment.define(alias.clone(), value);
+                }
+                Err(_) => {
+                    return Err(RuntimeError::InvalidOperation(format!(
+                        "Module '{}' has no member '{}'",
                         module_name, item
                     )));
                 }
@@ -1122,14 +1272,6 @@ impl Evaluator {
         self.current_file = saved_file;
 
         Ok(module_env)
-    }
-
-    /// Import all definitions from an environment
-    fn import_all_from_env(&mut self, _env: &Environment) {
-        // This is a simplified implementation
-        // In a real implementation, we'd iterate over env's bindings
-        // For now, we'll just merge environments (not ideal but works)
-        // TODO: Implement proper environment merging
     }
 }
 
