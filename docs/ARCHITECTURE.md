@@ -51,31 +51,33 @@ aether/
 ├── docs/              # Comprehensive documentation
 ├── stdlib/            # Standard library (written in Aether!)
 ├── examples/          # Example programs
-├── tests/             # Integration tests (136 tests)
+├── tests/             # Integration tests (234 tests)
 └── src/
     ├── lexer/         # Tokenization (14 tests)
     ├── parser/        # Parsing (53 tests)
-    ├── interpreter/   # Execution (51 tests)
+    ├── interpreter/   # Execution (32 tests)
     └── repl/          # Interactive mode
 ```
 
 ## Current Status
 
-### Phase 3 Complete ✅
+### Phase 5 Complete ✅
 
-**Development Time**: ~10 hours across 3 phases
-**Test Coverage**: 230 tests passing (100% success rate)
+**Development Time**: ~15 hours across 5 phases
+**Test Coverage**: 333 tests passing (1 known recursion stack-overflow bug)
 **Code Quality**: 0 clippy warnings
 
 ### What's Implemented
 
 **Core Language** ✅
 - Dynamic typing with runtime type checking
-- First-class functions with closures
-- Arrays and indexing
+- First-class functions with closures and function expressions
+- Arrays, dicts, and indexing
 - Automatic memory management (Rc-based GC)
 - Member access syntax (obj.property)
 - C-like syntax (curly braces, no semicolons)
+- String interpolation: `"Hello ${name}"`
+- String indexing: `str[0]`
 
 **Control Flow** ✅
 - if/else conditionals
@@ -84,111 +86,92 @@ aether/
 - break/continue statements
 - return statements
 
+**Error Handling** ✅
+- `try { ... } catch(e) { ... }` - structured exception handling
+- `throw value` - throw any value as an error
+- Error propagation across function calls
+
+**Module System** ✅
+- `import module` - namespace import
+- `from module import fn1, fn2` - selective import
+- `import module as alias` - aliased import
+- User-defined `.ae` modules from filesystem
+
 **Built-in Functions** ✅
-- I/O: `print()`, `println()`
+- I/O: `print()`, `println()`, `input()`, `read_file()`, `write_file()`
 - Type introspection: `type()`, `len()`
 - Type conversions: `int()`, `float()`, `str()`, `bool()`
 
 **Collection Methods** ✅
 - Arrays: `push()`, `pop()`, `length`
+- Dicts: `keys()`, `values()`, `contains()`
 - Strings: `upper()`, `lower()`, `trim()`, `split()`, `length`
 
-**Standard Library** ✅ (28+ functions, written in Aether)
+**Standard Library** ✅ (35+ functions, written in Aether)
 - **Core**: `range()`, `enumerate()`
 - **Collections**: `map()`, `filter()`, `reduce()`, `find()`, `every()`, `some()`
 - **Math**: `abs()`, `min()`, `max()`, `sum()`, `clamp()`, `sign()`
 - **String**: `join()`, `repeat()`, `reverse()`, `starts_with()`, `ends_with()`
+- **Testing**: `assert_eq()`, `assert_true()`, `assert_false()`, `assert_null()`, `assert_not_null()`, `expect_error()`, `test()`, `test_summary()`
 
 **Development Tools** ✅
 - Interactive REPL with line editing and history
 - File execution mode
 - Comprehensive error messages
-- 230 automated tests
+- 333 automated tests
 
 ### Test Coverage
 
 ```
-Total: 230 tests passing ✅
+Total: 333 tests passing ✅ (1 known stack-overflow in recursion limit test)
 
-Unit Tests (94):
+Unit Tests (99):
 ├── Lexer: 14 tests
 ├── Parser: 53 tests
 ├── Interpreter: 17 tests
-└── Built-ins: 10 tests
+└── Built-ins: 15 tests
 
-Integration Tests (136):
+Integration Tests (234):
 ├── Core features: 29 tests
 ├── Member access: 8 tests
 ├── Array methods: 8 tests
 ├── String methods: 8 tests
+├── String indexing: 16 tests
+├── String interpolation: 9 tests
+├── Function expressions: 13 tests
+├── Closures: 3 tests
+├── Dict literals: 10 tests
+├── Error handling: 10 tests
+├── Module system: 13 tests
+├── IO builtins: 5 tests
 ├── Stdlib core: 9 tests
+├── Stdlib testing: 19 tests
 ├── Stdlib collections: 24 tests
 ├── Stdlib math: 26 tests
 └── Stdlib string: 24 tests
 ```
 
-### Recent Achievements
-
-**Garbage Collection** 🎉
-- Implemented reference-counted GC using `Rc<T>`
-- Fixed critical 135 GB memory leak
-- Memory reduction: 99%+ in tests
-- All 230 tests passing with GC enabled
-
-**Standard Library Bootstrapping** 🎉
-- Stdlib written in Aether, not Rust
-- Validates language expressiveness
-- Embedded in binary using `include_str!()`
-- Zero deployment complexity
-
 ## Roadmap
 
-### Phase 4: Advanced Language Features (Next)
+### Phase 4: Advanced Language Features ✅ Complete
 
-**Priority 1: Function Expressions** (High impact)
-- Inline anonymous functions: `fn(x) { return x * 2 }`
-- Lambda syntax (optional): `|x| x * 2`
-- Enables cleaner functional programming
-- **Estimated**: 3-4 hours, ~25 tests
+- ✅ Function expressions: `fn(x) { return x * 2 }`
+- ✅ String indexing: `text[0]`
+- ✅ String interpolation: `"Hello ${name}"`
+- ✅ Module system: `import`, `from ... import`, aliases
+- ✅ Error handling: `try/catch/throw`
+- ✅ Dict literals: `{"key": value}`
+- ✅ IO builtins: `input()`, `read_file()`, `write_file()`
 
-**Priority 2: String Indexing** (Quick win)
-- Direct character access: `text[0]`
-- Eliminates `split("")` workaround
-- Simplifies stdlib implementation
-- **Estimated**: 1-2 hours, ~10 tests
+### Phase 5: Stdlib Expansion ✅ Complete (Base)
 
-**Priority 3: Module System**
-- Import statements: `import module` or `from module import func`
-- User-defined modules (load .ae files)
-- Namespace management
-- **Estimated**: 6-8 hours, ~35 tests
-
-**Priority 4: Error Handling**
-- Try/catch or Result types
-- Error propagation
-- Custom error types
-- **Estimated**: 4-5 hours, ~20 tests
-
-### Phase 5: Ecosystem & Tooling
-
-**Standard Library Expansion**
-- I/O module (file operations)
-- JSON module (parsing, serialization)
-- HTTP module (requests, simple server)
-- Time module (dates, durations)
-- Testing framework (written in Aether!)
-
-**Development Tools**
-- VS Code extension (syntax highlighting, LSP)
-- Language server protocol (LSP) implementation
-- Debugger support
-- Performance profiling tools
-
-**Package Management**
-- Package manifest format
-- Dependency resolution
-- Central package registry
-- Version management
+- ✅ Testing framework stdlib module
+- ⏳ `json` module — json_parse(), json_stringify() (requires Rust builtins)
+- ⏳ `time` module — clock(), sleep() (requires Rust builtins)
+- ⏳ `http` module — http_get(), http_post() (requires reqwest dependency)
+- ⏳ User-defined types / structs
+- ⏳ Iterator protocol
+- ⏳ Async/await support
 
 ### Phase 6: Performance Optimization
 
@@ -304,6 +287,6 @@ Integration Tests (136):
 
 ---
 
-**Last Updated**: March 22, 2026
-**Current Phase**: Phase 3 Complete ✅
-**Next Phase**: Phase 4 - Advanced Language Features
+**Last Updated**: April 17, 2026
+**Current Phase**: Phase 5 Complete ✅ (base)
+**Next Phase**: Phase 5 continued - JSON, Time, HTTP modules

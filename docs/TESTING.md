@@ -16,30 +16,45 @@ This document provides comprehensive guidance on testing the Aether interpreter.
 
 ```
 tests/
-├── integration_tests.rs     # End-to-end program tests
-├── member_access_tests.rs   # Member access feature tests
-├── array_tests.rs           # Array method tests
-├── string_tests.rs          # String method tests
-└── stdlib_tests.rs          # Standard library tests
+├── integration_test.rs       # Core end-to-end program tests
+├── member_access_test.rs     # Member access feature tests
+├── array_methods_test.rs     # Array method tests
+├── string_methods_test.rs    # String method tests
+├── string_indexing_test.rs   # String indexing tests
+├── string_interp_test.rs     # String interpolation tests
+├── function_expr_test.rs     # Function expression tests
+├── closure_leak_test.rs      # Closure tests
+├── dict_test.rs              # Dict literal and method tests
+├── error_handling_test.rs    # try/catch/throw tests
+├── module_test.rs            # Module system tests
+├── io_test.rs                # IO builtin tests
+├── recursion_limit_test.rs   # Recursion depth tests
+├── small_recursion_test.rs   # Small recursion tests
+├── stdlib_test.rs            # Core stdlib tests
+├── stdlib_testing_test.rs    # Testing framework tests
+├── stdlib_collections_test.rs # Collections stdlib tests
+├── stdlib_math_test.rs       # Math stdlib tests
+└── stdlib_string_test.rs     # String stdlib tests
 
 src/
 ├── lexer/
-│   └── lexer_tests.rs       # Lexer unit tests
+│   └── lexer_tests.rs        # Lexer unit tests
 ├── parser/
-│   └── parser_tests.rs      # Parser unit tests
+│   └── parser_tests.rs       # Parser unit tests
 └── interpreter/
-    └── interpreter_tests.rs # Interpreter unit tests
+    ├── interpreter_tests.rs  # Interpreter unit tests
+    └── builtins_tests.rs     # Built-ins unit tests
 ```
 
 ### Test Categories
 
-**Unit Tests** (94 tests):
+**Unit Tests** (99 tests):
 - Test individual components in isolation
 - Located in module test files (`*_tests.rs`)
 - Fast execution (< 1 second)
 - No dependencies between tests
 
-**Integration Tests** (136 tests):
+**Integration Tests** (234 tests):
 - Test complete programs end-to-end
 - Located in `tests/` directory
 - Test feature interaction
@@ -359,10 +374,10 @@ match &value {
 
 ## Test Coverage Goals
 
-### Current Coverage (Phase 3)
+### Current Coverage (Phase 5)
 
-- **Total**: 230 tests ✅
-- **Success Rate**: 100%
+- **Total**: 333 tests ✅ (1 known stack-overflow in recursion limit test)
+- **Success Rate**: ~99.7%
 - **Lines Covered**: ~85% (estimated)
 
 ### Coverage by Component
@@ -372,11 +387,20 @@ match &value {
 | Lexer | 14 | - | ✅ Complete |
 | Parser | 53 | - | ✅ Complete |
 | Interpreter | 17 | 29 | ✅ Complete |
-| Built-ins | 10 | - | ✅ Complete |
+| Built-ins | 15 | - | ✅ Complete |
 | Member Access | - | 8 | ✅ Complete |
 | Array Methods | - | 8 | ✅ Complete |
 | String Methods | - | 8 | ✅ Complete |
+| String Indexing | - | 16 | ✅ Complete |
+| String Interpolation | - | 9 | ✅ Complete |
+| Function Expressions | - | 13 | ✅ Complete |
+| Closures | - | 3 | ✅ Complete |
+| Dict Literals | - | 10 | ✅ Complete |
+| Error Handling | - | 10 | ✅ Complete |
+| Module System | - | 13 | ✅ Complete |
+| IO Builtins | - | 5 | ✅ Complete |
 | Stdlib Core | - | 9 | ✅ Complete |
+| Stdlib Testing | - | 19 | ✅ Complete |
 | Stdlib Collections | - | 24 | ✅ Complete |
 | Stdlib Math | - | 26 | ✅ Complete |
 | Stdlib String | - | 24 | ✅ Complete |
@@ -499,6 +523,6 @@ jobs:
 
 ---
 
-**Last Updated**: March 22, 2026
-**Phase**: 3 Complete
-**Status**: 230 tests passing, comprehensive test coverage
+**Last Updated**: April 17, 2026
+**Phase**: 5 Complete (base)
+**Status**: 333 tests passing, comprehensive test coverage

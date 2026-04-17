@@ -36,17 +36,18 @@ project/
 
 ### Module Path
 - Relative to importing file's directory
-- No nested imports yet (e.g., `import utils.helper` not supported in Phase 1)
+- No nested imports (e.g., `import utils.helper` not supported)
 
-## Implementation Plan
+## Implemented Features
 
-### Phase 1: Basic Import (Current Sprint)
-- `import module` - loads `module.ae`
-- `from module import func` - imports specific functions
-- Module caching to prevent circular dependencies
-- Namespace isolation (modules don't pollute global scope)
+- ✅ `import module` - loads `module.ae`
+- ✅ `from module import func` - imports specific functions
+- ✅ `import module as alias` - aliased imports
+- ✅ Module caching to prevent circular dependencies
+- ✅ Namespace isolation (modules don't pollute global scope)
 
-### Phase 2: Advanced Features (Future)
+## Future Enhancements
+
 - Nested modules: `import utils.helper`
 - Directory modules with `__init__.ae`
 - Relative imports: `from . import sibling`
@@ -162,7 +163,7 @@ Error: Module 'math' has no function 'unknown_func'
 Error: Cannot import 'x' from module 'math'
 ```
 
-## Limitations (Phase 1)
+## Current Limitations
 
 1. No nested module paths (`utils.helper`)
 2. No directory modules
@@ -170,11 +171,3 @@ Error: Cannot import 'x' from module 'math'
 4. No export control (everything is exported)
 5. No dynamic imports (runtime string paths)
 6. File-based only (no in-memory modules except stdlib)
-
-## Future Enhancements
-
-1. Package system with `package.ae` manifest
-2. Version management
-3. Remote module fetching
-4. Module precompilation/caching
-5. Lazy loading (on first use)

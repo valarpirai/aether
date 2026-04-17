@@ -1,6 +1,6 @@
 # Aether Standard Library
 
-**Status**: 🚧 In Development (Phase 3)
+**Status**: ✅ Complete (Phase 5)
 
 ## Overview
 
@@ -33,7 +33,7 @@ stdlib/
 ├── collections.ae   # Collection operations (map, filter, reduce)
 ├── math.ae          # Mathematical functions
 ├── string.ae        # String utilities
-└── functional.ae    # Functional programming utilities
+└── testing.ae       # Testing framework (assert_eq, test, test_summary)
 ```
 
 ### Loading Mechanism
@@ -43,16 +43,15 @@ stdlib/
 3. **Lazy Loading**: Other modules loaded on first use
 4. **No File I/O**: Works everywhere, no deployment complexity
 
-### Import Syntax (Future)
+### Import Syntax
+
+All stdlib functions are globally available (auto-loaded at startup). The module system also supports explicit imports for user modules:
 
 ```aether
-// Explicit import (Phase 4+)
 import collections
 
 let doubled = collections.map([1, 2, 3], fn(x) { return x * 2 })
 ```
-
-For Phase 3, all stdlib functions are globally available (auto-imported).
 
 ## Standard Library Functions
 
@@ -204,28 +203,60 @@ Reverse a string.
 reverse("hello")  // "olleh"
 ```
 
-## Implementation Strategy
+#### `starts_with(string, prefix)`
+Check if string starts with prefix.
 
-### Phase 3.1: Foundation
-1. Create stdlib directory structure
-2. Implement module loader (embedded resources)
-3. Add stdlib prelude to evaluator
-4. Test core utilities (range, enumerate)
+```aether
+starts_with("hello", "he")  // true
+```
 
-### Phase 3.2: Collections
-1. Implement map, filter, reduce
-2. Add find, every, some
-3. Comprehensive test coverage
+#### `ends_with(string, suffix)`
+Check if string ends with suffix.
 
-### Phase 3.3: Math & String
-1. Implement math utilities
-2. Implement string utilities
-3. Integration tests
+```aether
+ends_with("hello", "lo")  // true
+```
 
-### Phase 3.4: Documentation & Examples
-1. Document all functions
-2. Create example programs
-3. Update user guide
+### Testing Framework (`stdlib/testing.ae`)
+
+#### `assert_eq(actual, expected)`
+Assert two values are equal. Throws on failure.
+
+```aether
+assert_eq(1 + 1, 2)
+assert_eq("hello".upper(), "HELLO")
+```
+
+#### `assert_true(value)`
+Assert value is truthy.
+
+#### `assert_false(value)`
+Assert value is falsy.
+
+#### `assert_null(value)`
+Assert value is null.
+
+#### `assert_not_null(value)`
+Assert value is not null.
+
+#### `expect_error(fn)`
+Assert that calling fn() throws an error.
+
+```aether
+expect_error(fn() { throw "boom" })
+```
+
+#### `test(name, fn)`
+Register and run a named test case.
+
+```aether
+test("addition works", fn() {
+    assert_eq(1 + 2, 3)
+})
+```
+
+#### `test_summary()`
+Print summary of all test results (pass/fail counts).
 
 ## Technical Implementation
 
@@ -340,27 +371,18 @@ Track performance of stdlib functions vs. Rust built-ins:
 - `map()` vs. manual loop
 - Function call overhead
 
-## Future Enhancements (Phase 4+)
+## Future Enhancements
 
-### Module System
-- Explicit imports: `import collections`
-- Selective imports: `from math import abs, max`
-- User modules: Load `.ae` files from filesystem
-- Module namespaces: Prevent naming conflicts
+### Standard Library Expansion (Planned)
+- **JSON**: `json_parse()`, `json_stringify()` (requires Rust builtins)
+- **Time**: `clock()`, `sleep()` (requires Rust builtins)
+- **HTTP**: `http_get()`, `http_post()` (requires reqwest dependency)
+- **RegEx**: Regular expression matching
 
 ### Advanced Features
 - **Lazy sequences**: Infinite ranges, generators
-- **Parallel operations**: `pmap()` for concurrent execution
 - **Memoization**: Cache function results
-- **Decorators**: Function wrapping and composition
-
-### Standard Library Expansion
-- **I/O**: File reading/writing (when file I/O built-in added)
-- **JSON**: Parsing and serialization
-- **HTTP**: Web requests (with async support)
-- **Time/Date**: Date manipulation
-- **RegEx**: Regular expressions
-- **Testing**: Unit testing framework
+- **Parallel operations**: `pmap()` for concurrent execution
 
 ## Contribution Guidelines
 
@@ -422,6 +444,6 @@ Aether follows the **small core, rich stdlib** philosophy.
 
 ---
 
-**Last Updated**: March 22, 2026
-**Phase**: 3 Complete
-**Status**: 28+ functions implemented, 83 tests passing
+**Last Updated**: April 17, 2026
+**Phase**: 5 Complete (base)
+**Status**: 35+ functions implemented, 333 tests passing
