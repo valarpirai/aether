@@ -27,6 +27,8 @@ pub enum Expr {
     Dict(Vec<(Expr, Expr)>),
     /// Index access (object, index)
     Index(Box<Expr>, Box<Expr>),
+    /// Slice access (object, start, end) — arr[start:end], arr[start:], arr[:end], arr[:]
+    Slice(Box<Expr>, Option<Box<Expr>>, Option<Box<Expr>>),
     /// Member access (object, member)
     Member(Box<Expr>, String),
     /// Function expression (parameters, body)

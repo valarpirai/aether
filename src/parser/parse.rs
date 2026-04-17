@@ -460,10 +460,33 @@ impl Parser {
                 // Function call
                 expr = self.finish_call(expr)?;
             } else if self.match_token(&[TokenKind::LeftBracket]) {
-                // Array indexing
-                let index = self.expression()?;
-                self.consume(TokenKind::RightBracket, "]")?;
-                expr = Expr::Index(Box::new(expr), Box::new(index));
+                // Array indexing or slice: arr[i], arr[start:end], arr[:end], arr[start:], arr[:]
+                if self.check(&TokenKind::Colon) {
+                    // [:end] or [:]
+                    self.advance(); // consume ':'
+                    let end = if self.check(&TokenKind::RightBracket) {
+                        None
+                    } else {
+                        Some(Box::new(self.expression()?))
+                    };
+                    self.consume(TokenKind::RightBracket, "]")?;
+                    expr = Expr::Slice(Box::new(expr), None, end);
+                } else {
+                    let first = self.expression()?;
+                    if self.match_token(&[TokenKind::Colon]) {
+                        // [start:end] or [start:]
+                        let end = if self.check(&TokenKind::RightBracket) {
+                            None
+                        } else {
+                            Some(Box::new(self.expression()?))
+                        };
+                        self.consume(TokenKind::RightBracket, "]")?;
+                        expr = Expr::Slice(Box::new(expr), Some(Box::new(first)), end);
+                    } else {
+                        self.consume(TokenKind::RightBracket, "]")?;
+                        expr = Expr::Index(Box::new(expr), Box::new(first));
+                    }
+                }
             } else if self.match_token(&[TokenKind::Dot]) {
                 // Member access
                 let member = if let TokenKind::Identifier(name) = &self.peek().kind {

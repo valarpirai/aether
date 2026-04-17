@@ -265,6 +265,9 @@ impl Evaluator {
             Expr::Unary(op, operand) => self.eval_unary(*op, operand),
             Expr::Binary(left, op, right) => self.eval_binary(left, *op, right),
             Expr::Index(array, index) => self.eval_index(array, index),
+            Expr::Slice(object, start, end) => {
+                self.eval_slice(object, start.as_deref(), end.as_deref())
+            }
             Expr::Member(object, member) => self.eval_member(object, member),
             Expr::Call(callee, args) => self.eval_call(callee, args),
             Expr::Dict(pairs) => {
@@ -523,6 +526,85 @@ impl Evaluator {
                 expected: "array or string with integer index".to_string(),
                 got: format!("{} and {}", collection.type_name(), index.type_name()),
             }),
+        }
+    }
+
+    /// Evaluate slice access: obj[start:end]
+    fn eval_slice(
+        &mut self,
+        object: &Expr,
+        start: Option<&Expr>,
+        end: Option<&Expr>,
+    ) -> Result<Value, RuntimeError> {
+        let obj_val = self.eval_expr(object)?;
+
+        let start_val = match start {
+            Some(s) => Some(self.eval_expr(s)?),
+            None => None,
+        };
+        let end_val = match end {
+            Some(e) => Some(self.eval_expr(e)?),
+            None => None,
+        };
+
+        fn resolve_index(n: i64, len: i64) -> usize {
+            if n < 0 {
+                (len + n).max(0) as usize
+            } else {
+                n.min(len) as usize
+            }
+        }
+
+        fn to_int(val: Value) -> Result<i64, RuntimeError> {
+            match val {
+                Value::Int(n) => Ok(n),
+                other => Err(RuntimeError::TypeError {
+                    expected: "int".to_string(),
+                    got: other.type_name().to_string(),
+                }),
+            }
+        }
+
+        match obj_val {
+            Value::Array(elements) => {
+                let len = elements.len() as i64;
+                let s = match start_val {
+                    Some(v) => resolve_index(to_int(v)?, len),
+                    None => 0,
+                };
+                let e = match end_val {
+                    Some(v) => resolve_index(to_int(v)?, len),
+                    None => len as usize,
+                };
+                let result = if s >= e {
+                    vec![]
+                } else {
+                    elements[s..e].to_vec()
+                };
+                Ok(Value::array(result))
+            }
+            Value::String(s) => {
+                let chars: Vec<char> = s.chars().collect();
+                let len = chars.len() as i64;
+                let start_i = match start_val {
+                    Some(v) => resolve_index(to_int(v)?, len),
+                    None => 0,
+                };
+                let end_i = match end_val {
+                    Some(v) => resolve_index(to_int(v)?, len),
+                    None => len as usize,
+                };
+                let result: String = if start_i >= end_i {
+                    String::new()
+                } else {
+                    chars[start_i..end_i].iter().collect()
+                };
+                Ok(Value::string(result))
+            }
+            other => Err(RuntimeError::InvalidOperation(format!(
+                "slice not supported on {}",
+                other.type_name()
+            ))),
         }
     }
 
