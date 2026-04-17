@@ -1,0 +1,65 @@
+// OOP with structs: geometric shapes
+
+struct Circle {
+    radius
+
+    fn area(self) {
+        return 3.14159 * self.radius * self.radius
+    }
+
+    fn perimeter(self) {
+        return 2.0 * 3.14159 * self.radius
+    }
+
+    fn describe(self) {
+        return "Circle(r=" + str(self.radius) + ")"
+    }
+}
+
+struct Rectangle {
+    width
+    height
+
+    fn area(self) {
+        return self.width * self.height
+    }
+
+    fn perimeter(self) {
+        return 2 * (self.width + self.height)
+    }
+
+    fn describe(self) {
+        return "Rectangle(" + str(self.width) + "x" + str(self.height) + ")"
+    }
+}
+
+struct Triangle {
+    a
+    b
+    c
+
+    fn perimeter(self) {
+        return self.a + self.b + self.c
+    }
+
+    fn describe(self) {
+        return "Triangle(" + str(self.a) + "," + str(self.b) + "," + str(self.c) + ")"
+    }
+}
+
+fn main() {
+    let c = Circle { radius: 5.0 }
+    let r = Rectangle { width: 4, height: 6 }
+    let t = Triangle { a: 3, b: 4, c: 5 }
+
+    println(c.describe())
+    println("  area:      " + str(c.area()))
+    println("  perimeter: " + str(c.perimeter()))
+
+    println(r.describe())
+    println("  area:      " + str(r.area()))
+    println("  perimeter: " + str(r.perimeter()))
+
+    println(t.describe())
+    println("  perimeter: " + str(t.perimeter()))
+}

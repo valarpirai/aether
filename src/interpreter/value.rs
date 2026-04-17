@@ -32,7 +32,7 @@ pub enum Value {
     Function {
         params: Vec<String>,
         body: Box<crate::parser::ast::Stmt>,
-        closure: Box<super::environment::Environment>,
+        closure: Rc<super::environment::Environment>,
     },
     /// Built-in function
     BuiltinFn {

@@ -1,0 +1,78 @@
+// Simple task manager using structs
+
+struct Task {
+    id
+    title
+    done
+
+    fn complete(self) {
+        self.done = true
+    }
+
+    fn display(self) {
+        let status = "[ ]"
+        if (self.done) {
+            status = "[x]"
+        }
+        return status + " #" + str(self.id) + " " + self.title
+    }
+}
+
+struct TaskList {
+    tasks
+    next_id
+
+    fn add(self, title) {
+        let t = Task { id: self.next_id, title: title, done: false }
+        self.tasks.push(t)
+        self.next_id = self.next_id + 1
+    }
+
+    fn complete(self, id) {
+        for task in self.tasks {
+            if (task.id == id) {
+                task.complete()
+                return true
+            }
+        }
+        return false
+    }
+
+    fn pending_count(self) {
+        let count = 0
+        for task in self.tasks {
+            if (!task.done) {
+                count += 1
+            }
+        }
+        return count
+    }
+
+    fn print_all(self) {
+        for task in self.tasks {
+            println(task.display())
+        }
+    }
+}
+
+fn main() {
+    let list = TaskList { tasks: [], next_id: 1 }
+
+    list.add("Buy groceries")
+    list.add("Write Aether examples")
+    list.add("Fix remaining bugs")
+    list.add("Update documentation")
+
+    println("All tasks:")
+    list.print_all()
+    println()
+
+    list.complete(2)
+    list.complete(4)
+
+    println("After completing tasks 2 and 4:")
+    list.print_all()
+    println()
+
+    println("Pending tasks:", list.pending_count())
+}

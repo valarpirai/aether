@@ -306,7 +306,7 @@ impl Evaluator {
                 Ok(Value::Function {
                     params: params.clone(),
                     body: body.clone(),
-                    closure: Box::new(self.environment.clone()),
+                    closure: Rc::new(self.environment.clone()),
                 })
             }
             Expr::StringInterp(parts) => {
@@ -842,11 +842,16 @@ impl Evaluator {
                 // Clone the inner Vec, mutate it, wrap in new Rc
                 let mut new_elements = (**elements).to_vec();
                 new_elements.push(item);
+                let new_array = Value::Array(Rc::new(new_elements));
 
-                // Update in environment (only works for identifiers)
+                // Update in environment: direct identifier or struct field
                 if let Expr::Identifier(name) = object {
-                    self.environment
-                        .set(name, Value::Array(Rc::new(new_elements)))?;
+                    self.environment.set(name, new_array)?;
+                } else if let Expr::Member(obj_expr, field) = object {
+                    let owner = self.eval_expr(obj_expr)?;
+                    if let Value::Instance { fields, .. } = owner {
+                        fields.borrow_mut().insert(field.clone(), new_array);
+                    }
                 }
 
                 Ok(Value::Null)
@@ -863,10 +868,15 @@ impl Evaluator {
                 let mut new_elements = (**elements).to_vec();
                 let popped = new_elements.pop();
 
-                // Update in environment (only works for identifiers)
+                // Update in environment: direct identifier or struct field
+                let new_array = Value::Array(Rc::new(new_elements));
                 if let Expr::Identifier(name) = object {
-                    self.environment
-                        .set(name, Value::Array(Rc::new(new_elements)))?;
+                    self.environment.set(name, new_array)?;
+                } else if let Expr::Member(obj_expr, field) = object {
+                    let owner = self.eval_expr(obj_expr)?;
+                    if let Value::Instance { fields, .. } = owner {
+                        fields.borrow_mut().insert(field.clone(), new_array);
+                    }
                 }
 
                 Ok(popped.unwrap_or(Value::Null))
@@ -1118,7 +1128,7 @@ impl Evaluator {
                 let temp_func = Value::Function {
                     params: params.clone(),
                     body: body.clone(),
-                    closure: Box::new(self.environment.clone()),
+                    closure: Rc::new(self.environment.clone()),
                 };
 
                 // Define function in environment
@@ -1128,7 +1138,7 @@ impl Evaluator {
                 let func = Value::Function {
                     params: params.clone(),
                     body: body.clone(),
-                    closure: Box::new(self.environment.clone()),
+                    closure: Rc::new(self.environment.clone()),
                 };
 
                 // Update with final version
@@ -1235,6 +1245,27 @@ impl Evaluator {
                         if let Expr::Identifier(name) = &**array {
                             self.environment
                                 .set(name, Value::Array(Rc::new(new_elements)))?;
+                        }
+                        Ok(())
+                    }
+                    (Value::Dict(pairs), key) => {
+                        // Update existing key or insert new key-value pair
+                        let mut new_pairs = (*pairs).to_vec();
+                        let mut found = false;
+                        for (k, v) in new_pairs.iter_mut() {
+                            if k == &key {
+                                *v = value.clone();
+                                found = true;
+                                break;
+                            }
+                        }
+                        if !found {
+                            new_pairs.push((key, value));
+                        }
+                        // Update the dict in environment (only works for simple identifiers)
+                        if let Expr::Identifier(name) = &**array {
+                            self.environment
+                                .set(name, Value::Dict(Rc::new(new_pairs)))?;
                         }
                         Ok(())
                     }
