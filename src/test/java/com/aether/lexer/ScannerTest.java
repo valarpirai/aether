@@ -142,4 +142,19 @@ class ScannerTest {
   void unterminatedStringThrows() {
     assertThrows(LexerException.class, () -> scan("\"unterminated"));
   }
+
+  @Test
+  void invalidIntSuffixThrows() {
+    assertThrows(LexerException.class, () -> scan("42s"));
+  }
+
+  @Test
+  void invalidFloatSuffixThrows() {
+    assertThrows(LexerException.class, () -> scan("3.14f"));
+  }
+
+  @Test
+  void invalidNumericSuffixInExpressionThrows() {
+    assertThrows(LexerException.class, () -> scan("10 * 3223.23423s"));
+  }
 }

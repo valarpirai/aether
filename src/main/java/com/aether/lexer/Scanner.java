@@ -238,6 +238,15 @@ public final class Scanner {
       }
     }
 
+    if (Character.isLetter(peek()) || peek() == '_') {
+      while (Character.isLetterOrDigit(peek()) || peek() == '_') {
+        advance();
+      }
+      String invalid = source.substring(start, current);
+      throw new com.aether.exception.LexerException(
+          "Invalid suffix on numeric literal: '" + invalid + "'", line, startCol);
+    }
+
     String text = source.substring(start, current);
     if (isFloat) {
       tokens.add(Token.ofFloat(Double.parseDouble(text), text, line, startCol));
