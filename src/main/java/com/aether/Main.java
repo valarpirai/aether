@@ -1,8 +1,11 @@
 package com.aether;
 
+import com.aether.exception.AetherRuntimeException;
 import com.aether.interpreter.Evaluator;
+import com.aether.interpreter.Value;
 import com.aether.lexer.Scanner;
 import com.aether.parser.Parser;
+import com.aether.parser.ast.Expr;
 import com.aether.parser.ast.Stmt;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -48,7 +51,15 @@ public final class Main {
       List<Stmt> statements = new Parser(scanner.scanTokens()).parse();
       Evaluator evaluator = Evaluator.withStdlib();
       evaluator.execute(statements);
-      // TODO: call main() function if defined (matching Rust run_file behaviour)
+      // Call main() if the script defines one
+      try {
+        Value main = evaluator.environment().get("main");
+        if (main instanceof Value.AetherFunction || main instanceof Value.Builtin) {
+          evaluator.evalExpr(new Expr.Call(new Expr.Identifier("main"), List.of()));
+        }
+      } catch (AetherRuntimeException.UndefinedVariable ignored) {
+        // No main() defined — script-style file, that's fine
+      }
     } catch (Exception e) {
       System.err.println("Runtime error: " + e.getMessage());
       System.exit(1);

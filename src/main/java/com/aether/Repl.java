@@ -1,11 +1,13 @@
 package com.aether;
 
+import com.aether.interpreter.Builtins;
 import com.aether.interpreter.Evaluator;
 import com.aether.interpreter.Value;
 import com.aether.lexer.Scanner;
 import com.aether.parser.Parser;
 import com.aether.parser.ast.Stmt;
 import java.util.List;
+import java.util.Map;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -17,8 +19,6 @@ import org.jline.terminal.TerminalBuilder;
  * Interactive REPL (Read-Eval-Print Loop) for Aether.
  *
  * <p>Uses JLine 3 for line editing and history (mirrors the Rust rustyline-based REPL).
- *
- * <p>TODO: implement {@link #run()} — currently a no-op stub.
  */
 public final class Repl {
 
@@ -51,24 +51,68 @@ public final class Repl {
           continue;
         }
 
-        // TODO: handle special commands (help, env, etc.)
-        // TODO: scan → parse → execute, printing last expression value
-        evalLine(line.trim());
+        String trimmed = line.trim();
+        if (handleCommand(trimmed)) {
+          continue;
+        }
+
+        evalLine(trimmed);
       }
     } catch (Exception e) {
       System.err.println("REPL error: " + e.getMessage());
     }
   }
 
+  /**
+   * Handle built-in REPL commands.
+   *
+   * @return true if the line was a command and should not be evaluated
+   */
+  private boolean handleCommand(String line) {
+    return switch (line) {
+      case "help" -> {
+        System.out.println("Commands:");
+        System.out.println("  help  — show this message");
+        System.out.println("  env   — list all defined variables");
+        System.out.println("  Ctrl+D — exit");
+        yield true;
+      }
+      case "env" -> {
+        Map<String, Value> bindings = evaluator.environment().localBindings();
+        if (bindings.isEmpty()) {
+          System.out.println("(no variables defined)");
+        } else {
+          bindings.forEach((name, val) ->
+              System.out.println(name + " = " + Builtins.display(val)));
+        }
+        yield true;
+      }
+      default -> false;
+    };
+  }
+
   private void evalLine(String source) {
     try {
-      Scanner scanner = new Scanner(source);
-      List<Stmt> stmts = new Parser(scanner.scanTokens()).parse();
+      List<Stmt> stmts = new Parser(new Scanner(source).scanTokens()).parse();
       if (stmts.isEmpty()) {
         return;
       }
-      // TODO: if last stmt is ExprStmt, print its value
-      evaluator.execute(stmts);
+
+      // Execute all statements but the last
+      for (int i = 0; i < stmts.size() - 1; i++) {
+        evaluator.execStmt(stmts.get(i));
+      }
+
+      // If the last statement is an expression, print its value
+      Stmt last = stmts.getLast();
+      if (last instanceof Stmt.ExprStmt es) {
+        Value result = evaluator.evalExpr(es.expr());
+        if (!(result instanceof Value.Null)) {
+          System.out.println(Builtins.display(result));
+        }
+      } else {
+        evaluator.execStmt(last);
+      }
     } catch (Exception e) {
       System.err.println("Error: " + e.getMessage());
     }

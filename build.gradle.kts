@@ -5,6 +5,7 @@ plugins {
     application
     id("com.diffplug.spotless") version "6.25.0"
     id("checkstyle")
+    id("com.gradleup.shadow") version "8.3.5"
 }
 
 group = "com.aether"
@@ -76,4 +77,16 @@ checkstyle {
 
 tasks.named("check") {
     dependsOn("spotlessCheck")
+}
+
+// Fat JAR: bundle all dependencies for distribution
+tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+    archiveBaseName = "aether"
+    archiveClassifier = ""
+    archiveVersion = ""
+    manifest {
+        attributes["Main-Class"] = "com.aether.Main"
+        attributes["Multi-Release"] = "true"
+    }
+    mergeServiceFiles()
 }
