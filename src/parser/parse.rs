@@ -459,8 +459,11 @@ impl Parser {
             if self.match_token(&[TokenKind::LeftParen]) {
                 // Function call
                 expr = self.finish_call(expr)?;
-            } else if self.match_token(&[TokenKind::LeftBracket]) {
-                // Array indexing or slice: arr[i], arr[start:end], arr[:end], arr[start:], arr[:]
+            } else if self.peek().kind == TokenKind::LeftBracket
+                && self.peek().line == self.previous().line
+            {
+                // Array indexing or slice (only on same line to avoid ambiguity with array literals)
+                self.advance(); // consume '['
                 if self.check(&TokenKind::Colon) {
                     // [:end] or [:]
                     self.advance(); // consume ':'
@@ -567,12 +570,17 @@ impl Parser {
                 Ok(expr)
             }
             TokenKind::LeftBracket => {
-                // Array literal
+                // Array literal (supports spread: [...arr, elem])
                 let mut elements = Vec::new();
 
                 if !self.check(&TokenKind::RightBracket) {
                     loop {
-                        elements.push(self.expression()?);
+                        if self.match_token(&[TokenKind::Spread]) {
+                            let expr = self.expression()?;
+                            elements.push(Expr::Spread(Box::new(expr)));
+                        } else {
+                            elements.push(self.expression()?);
+                        }
                         if !self.match_token(&[TokenKind::Comma]) {
                             break;
                         }

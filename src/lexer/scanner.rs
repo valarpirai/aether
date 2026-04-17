@@ -90,7 +90,15 @@ impl Scanner {
             '[' => self.add_token(TokenKind::LeftBracket, start_column),
             ']' => self.add_token(TokenKind::RightBracket, start_column),
             ',' => self.add_token(TokenKind::Comma, start_column),
-            '.' => self.add_token(TokenKind::Dot, start_column),
+            '.' => {
+                if self.peek() == '.' && self.peek_next() == '.' {
+                    self.advance(); // consume second '.'
+                    self.advance(); // consume third '.'
+                    self.add_token(TokenKind::Spread, start_column);
+                } else {
+                    self.add_token(TokenKind::Dot, start_column);
+                }
+            }
             ':' => self.add_token(TokenKind::Colon, start_column),
             '%' => self.add_token(TokenKind::Percent, start_column),
             '+' => {

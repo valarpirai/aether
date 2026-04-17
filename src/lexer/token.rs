@@ -74,6 +74,7 @@ pub enum TokenKind {
     RightBracket, // ]
     Comma,        // ,
     Dot,          // .
+    Spread,       // ...
     Colon,        // :
 
     // Special

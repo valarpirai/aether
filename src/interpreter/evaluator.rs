@@ -242,7 +242,23 @@ impl Evaluator {
             Expr::Array(elements) => {
                 let mut values = Vec::new();
                 for elem in elements {
-                    values.push(self.eval_expr(elem)?);
+                    if let Expr::Spread(inner) = elem {
+                        match self.eval_expr(inner)? {
+                            Value::Array(arr) => {
+                                for item in arr.iter() {
+                                    values.push(item.clone());
+                                }
+                            }
+                            other => {
+                                return Err(RuntimeError::InvalidOperation(format!(
+                                    "spread operator requires an array, got {}",
+                                    other.type_name()
+                                )))
+                            }
+                        }
+                    } else {
+                        values.push(self.eval_expr(elem)?);
+                    }
                 }
                 Ok(Value::Array(Rc::new(values)))
             }
@@ -277,6 +293,9 @@ impl Evaluator {
                 }
                 Ok(Value::Dict(Rc::new(evaluated)))
             }
+            Expr::Spread(_) => Err(RuntimeError::InvalidOperation(
+                "spread operator is only valid inside array literals".to_string(),
+            )),
         }
     }
 

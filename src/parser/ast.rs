@@ -29,6 +29,8 @@ pub enum Expr {
     Index(Box<Expr>, Box<Expr>),
     /// Slice access (object, start, end) — arr[start:end], arr[start:], arr[:end], arr[:]
     Slice(Box<Expr>, Option<Box<Expr>>, Option<Box<Expr>>),
+    /// Spread expression: ...expr — valid only inside array literals
+    Spread(Box<Expr>),
     /// Member access (object, member)
     Member(Box<Expr>, String),
     /// Function expression (parameters, body)
