@@ -651,6 +651,35 @@ public final class Evaluator {
     };
   }
 
+  private Value callFunctionWithValues(Value funcVal, List<Value> args) {
+    return switch (funcVal) {
+      case Value.AetherFunction(List<String> params, Stmt body, Environment closure) -> {
+        callDepth++;
+        if (callDepth > maxCallDepth) {
+          callDepth--;
+          throw new AetherRuntimeException.StackOverflow(callDepth + 1, maxCallDepth);
+        }
+        Environment savedEnv = environment;
+        environment = new Environment(closure);
+        for (int i = 0; i < params.size(); i++) {
+          environment.define(params.get(i), i < args.size() ? args.get(i) : Value.Null.INSTANCE);
+        }
+        try {
+          ControlFlow cf = execStmtInternal(body);
+          yield cf instanceof ControlFlow.Return(Value v) ? v : Value.Null.INSTANCE;
+        } finally {
+          environment = savedEnv;
+          callDepth--;
+        }
+      }
+      case Value.Builtin(String name, int arity, java.util.function.Function<List<Value>, Value> impl) ->
+          impl.apply(args);
+      default ->
+          throw new AetherRuntimeException.InvalidOperation(
+              "Cannot call value of type '" + funcVal.typeName() + "'");
+    };
+  }
+
   private Value evalMethodCall(Expr objectExpr, String method, List<Expr> argExprs) {
     Value object = evalExpr(objectExpr);
 
@@ -706,13 +735,30 @@ public final class Evaluator {
       }
       case "sort" -> {
         List<Value> sorted = new ArrayList<>(arr.elements());
-        sorted.sort(this::compareValues);
+        if (!argExprs.isEmpty()) {
+          Value comparatorVal = evalExpr(argExprs.get(0));
+          sorted.sort((a, b) -> {
+            Value result = callFunctionWithValues(comparatorVal, List.of(a, b));
+            return result.isTruthy() ? -1 : 1;
+          });
+        } else {
+          sorted.sort(this::compareValues);
+        }
         if (objectExpr instanceof Expr.Identifier(String name)) {
           environment.set(name, new Value.Array(sorted));
         } else {
           arr.setElements(sorted);
         }
         yield Value.Null.INSTANCE;
+      }
+      case "contains" -> {
+        if (argExprs.size() != 1) {
+          throw new AetherRuntimeException.ArityMismatch(1, argExprs.size());
+        }
+        Value target = evalExpr(argExprs.get(0));
+        boolean found = arr.elements().stream()
+            .anyMatch(el -> compareValues(el, target) == 0);
+        yield new Value.Bool(found);
       }
       case "concat" -> {
         if (argExprs.size() != 1) {
