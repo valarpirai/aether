@@ -1,6 +1,7 @@
 //! Built-in functions for Aether
 
 use std::rc::Rc;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::{RuntimeError, Value};
 use serde_json::Value as JsonValue;
@@ -310,4 +311,45 @@ fn value_to_json(value: &Value) -> Result<JsonValue, RuntimeError> {
             other.type_name()
         ))),
     }
+}
+
+/// Built-in function: clock() -> float
+/// Returns seconds since Unix epoch as a float.
+pub fn builtin_clock(args: &[Value]) -> Result<Value, RuntimeError> {
+    if !args.is_empty() {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 0,
+            got: args.len(),
+        });
+    }
+    let secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or(Duration::ZERO)
+        .as_secs_f64();
+    Ok(Value::Float(secs))
+}
+
+/// Built-in function: sleep(seconds)
+/// Pauses execution for the given number of seconds (int or float).
+pub fn builtin_sleep(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    let secs = match &args[0] {
+        Value::Int(n) => *n as f64,
+        Value::Float(f) => *f,
+        other => {
+            return Err(RuntimeError::TypeError {
+                expected: "int or float".to_string(),
+                got: other.type_name().to_string(),
+            })
+        }
+    };
+    if secs > 0.0 {
+        std::thread::sleep(Duration::from_secs_f64(secs));
+    }
+    Ok(Value::Null)
 }

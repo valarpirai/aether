@@ -175,6 +175,25 @@ impl Evaluator {
             },
         );
 
+        // Time functions
+        self.environment.define(
+            "clock".to_string(),
+            Value::BuiltinFn {
+                name: "clock".to_string(),
+                arity: 0,
+                func: builtins::builtin_clock,
+            },
+        );
+
+        self.environment.define(
+            "sleep".to_string(),
+            Value::BuiltinFn {
+                name: "sleep".to_string(),
+                arity: 1,
+                func: builtins::builtin_sleep,
+            },
+        );
+
         // JSON functions
         self.environment.define(
             "json_parse".to_string(),
