@@ -78,9 +78,26 @@ src/main/resources/stdlib/         # Standard library (written in Aether)
     core.ae, collections.ae, math.ae, string.ae, testing.ae
 
 src/test/java/com/aether/
-    lexer/ScannerTest.java         # 16 tests
-    parser/ParserTest.java         # 36 tests
-    interpreter/EvaluatorTest.java # 47 tests
+    lexer/ScannerTest.java                 # 16 tests
+    parser/ParserTest.java                 # 36 tests
+    interpreter/EvaluatorTest.java         # 47 tests (core evaluator)
+    interpreter/MoreEvaluatorTest.java     # 53 tests (JSON, modules, closures)
+    interpreter/StdlibTest.java            # 41 tests (stdlib functions)
+    interpreter/IntegrationTest.java       # 24 tests (complete programs)
+    interpreter/FunctionExprTest.java      # 13 tests (fn expressions)
+    interpreter/StringInterpTest.java      # 14 tests (interpolation)
+    interpreter/StringIndexingTest.java    # 15 tests (s[i])
+    interpreter/StringMethodsTest.java     # 16 tests (upper/lower/trim/split)
+    interpreter/SliceAndSpreadTest.java    # 32 tests (slices, spread)
+    interpreter/ArrayMethodsTest.java      # 15 tests (push/pop/sort/concat)
+    interpreter/DictTest.java              # 17 tests (dict operations)
+    interpreter/StructTest.java            # 14 tests (struct and methods)
+    interpreter/MemberAccessTest.java      #  8 tests (.length, errors)
+    interpreter/JsonTest.java              # 25 tests (json_parse/stringify)
+    interpreter/ModuleTest.java            # 13 tests (module imports)
+    interpreter/ErrorHandlingTest.java     # 10 tests (try/catch/throw)
+    interpreter/IoAndTimeTest.java         # 13 tests (file I/O, clock)
+    interpreter/TestingFrameworkTest.java  # 19 tests (stdlib testing)
 ```
 
 ---
@@ -91,9 +108,11 @@ src/test/java/com/aether/
 |------|-------------|-----------|
 | New token | `lexer/TokenKind.java` + `Scanner.java` | `ScannerTest.java` |
 | New AST node | `parser/ast/Expr.java` or `Stmt.java` + `Parser.java` | `ParserTest.java` |
-| New built-in | `interpreter/Builtins.java` + `Evaluator.registerBuiltins()` | `EvaluatorTest.java` |
-| New stdlib fn | `resources/stdlib/*.ae` | `EvaluatorTest.java` |
-| New member method | `Evaluator.evalMember()` / `evalCall()` | `EvaluatorTest.java` |
+| New built-in | `interpreter/Builtins.java` + `Evaluator.registerBuiltins()` | `IntegrationTest.java` |
+| New stdlib fn | `resources/stdlib/*.ae` | `StdlibTest.java` |
+| New array method | `Evaluator.evalArrayMethod()` | `ArrayMethodsTest.java` |
+| New string method | `Evaluator.evalStringMethod()` | `StringMethodsTest.java` |
+| New member method | `Evaluator.evalMember()` / `evalCall()` | `MemberAccessTest.java` |
 | New Value type | `interpreter/Value.java` (add record to sealed interface) | `EvaluatorTest.java` |
 
 ---
@@ -153,7 +172,7 @@ java --enable-preview -jar target/aether.jar
 ## Current Status
 
 **Branch**: `java-port`
-**Tests**: 99 passing (16 scanner + 36 parser + 47 evaluator)
+**Tests**: 451 passing (16 scanner + 36 parser + 399 interpreter)
 **Distribution**: fat JAR (`mvn package` → `target/aether.jar`)
 
 ### Completed
@@ -164,7 +183,9 @@ java --enable-preview -jar target/aether.jar
 - Structs with fields, methods, self, mutation
 - Error handling: try/catch/throw
 - Module system: import, from...import, import...as
+- Array built-in methods: push, pop, sort(comparator), concat, contains, length
 - Fat JAR packaging (Maven Shade + Gradle Shadow)
+- 451 tests across 20 test classes (parity with Rust ~420 tests)
 
 ### Next
 - GraalVM native-image for zero-JVM startup binary

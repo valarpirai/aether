@@ -8,31 +8,54 @@ How to run, write, and debug tests for the Aether Java interpreter.
 
 ```
 src/test/java/com/aether/
-├── lexer/ScannerTest.java         # 16 tests — tokenisation
-├── parser/ParserTest.java         # 36 tests — AST structure
-└── interpreter/EvaluatorTest.java # 47 tests — end-to-end execution
+├── lexer/
+│   └── ScannerTest.java           # 16 tests — tokenisation
+├── parser/
+│   └── ParserTest.java            # 36 tests — AST structure
+└── interpreter/
+    ├── EvaluatorTest.java         # 47 tests — core evaluator
+    ├── MoreEvaluatorTest.java     # 53 tests — JSON, modules, closures, dicts
+    ├── StdlibTest.java            # 41 tests — stdlib functions (needs withStdlib)
+    ├── IntegrationTest.java       # 24 tests — end-to-end programs
+    ├── FunctionExprTest.java      # 13 tests — function expressions, closures
+    ├── StringInterpTest.java      # 14 tests — string interpolation
+    ├── StringIndexingTest.java    # 15 tests — string character indexing
+    ├── StringMethodsTest.java     # 16 tests — upper/lower/trim/split
+    ├── SliceAndSpreadTest.java    # 32 tests — array/string slices, spread
+    ├── ArrayMethodsTest.java      # 15 tests — push/pop/sort/concat/contains
+    ├── DictTest.java              # 17 tests — dict literals and methods
+    ├── StructTest.java            # 14 tests — struct declaration and methods
+    ├── MemberAccessTest.java      #  8 tests — .length and property access
+    ├── JsonTest.java              # 25 tests — json_parse / json_stringify
+    ├── ModuleTest.java            # 13 tests — import / from...import / aliases
+    ├── ErrorHandlingTest.java     # 10 tests — try/catch/throw
+    ├── IoAndTimeTest.java         # 13 tests — read_file/write_file/clock/sleep
+    └── TestingFrameworkTest.java  # 19 tests — stdlib testing module
 ```
 
-**Total: 99 tests, 0 failures.**
+**Total: 451 tests, 0 failures.**
 
-All three suites are integration-style: they parse and execute Aether source strings directly, testing the full pipeline rather than mocked units.
+All suites are integration-style: they parse and execute Aether source strings directly, testing the full pipeline rather than mocked units.
 
 ---
 
 ## Running Tests
 
 ```bash
-# All tests (Maven)
-JAVA_HOME=/opt/homebrew/opt/openjdk@25 mvn test
+# Requires Java 25
+export JAVA_HOME=/opt/homebrew/opt/openjdk@25
+
+# All tests
+mvn test
 
 # Single class
-JAVA_HOME=/opt/homebrew/opt/openjdk@25 mvn test -Dtest=EvaluatorTest
+mvn test -Dtest=EvaluatorTest
 
 # Single method
-JAVA_HOME=/opt/homebrew/opt/openjdk@25 mvn test -Dtest=EvaluatorTest#closures
+mvn test -Dtest=EvaluatorTest#closures
 
 # Show stdout during tests
-JAVA_HOME=/opt/homebrew/opt/openjdk@25 mvn test -Dtest=EvaluatorTest -Dsurefire.useFile=false
+mvn test -Dtest=EvaluatorTest -Dsurefire.useFile=false
 ```
 
 ---
@@ -101,7 +124,7 @@ void intToken() {
 
 ## Evaluator test setup
 
-`EvaluatorTest` uses `Evaluator.withoutStdlib()` so each test starts with a clean, fast environment:
+Most tests use `Evaluator.withoutStdlib()` so each test starts with a clean, fast environment:
 
 ```java
 @BeforeEach
@@ -110,7 +133,14 @@ void setUp() {
 }
 ```
 
-Use `Evaluator.withStdlib()` only when a test needs stdlib functions like `map()` or `range()`.
+Use `Evaluator.withStdlib()` only when a test needs stdlib functions like `map()`, `range()`, or `assert_eq()`:
+
+```java
+@BeforeEach
+void setUp() {
+  evaluator = Evaluator.withStdlib();
+}
+```
 
 ---
 
@@ -147,22 +177,31 @@ mvn test -Dtest=EvaluatorTest#myTest -Dsurefire.useFile=false
 
 ---
 
-## Test Coverage
+## Test Coverage Summary
 
-| Category | Tests |
-|----------|-------|
-| Arithmetic & operators | intArithmetic, floatArithmetic, mixedIntFloat, stringConcatenation |
-| Booleans & truthiness | booleanLogic, comparison, truthinessRules |
-| Variables | letAndLookup, assignment, compoundAssignment, undefinedVariableThrows |
-| Control flow | ifTrue, ifElse, whileLoop, forLoop, breakInWhile |
-| Functions | functionDeclarationAndCall, optionalParams, closures, recursion, stackOverflowThrows |
-| Strings | stringIndexing, stringMethods, stringSplit, stringInterpolation, stringLength |
-| Arrays | arrayLiteral, arrayIndex, arrayLength, arrayPushPop, arraySlice, spreadOperator |
-| Dicts | dictLiteralAndAccess, dictKeys, dictContains |
-| Error handling | tryCatch, tryCatchRuntimeError |
-| Structs | structDeclarationAndInstantiation, structMethod, structFieldMutation |
-| Builtins | typeBuiltin, lenBuiltin, conversionBuiltins, clockReturnsPositiveFloat |
-| Runtime errors | typeError, indexOutOfBounds, divisionByZeroThrows |
+| Test Class | Count | Coverage |
+|---|---|---|
+| `ScannerTest` | 16 | Tokenisation: keywords, literals, operators, strings |
+| `ParserTest` | 36 | AST: expressions, statements, control flow, structs |
+| `EvaluatorTest` | 47 | Core: arithmetic, variables, loops, functions, builtins |
+| `MoreEvaluatorTest` | 53 | JSON, modules, closures, dicts, error handling, types |
+| `StdlibTest` | 41 | range, enumerate, map, filter, reduce, sort, abs, join, reverse |
+| `IntegrationTest` | 24 | Complete programs: fibonacci, builtins, operators |
+| `FunctionExprTest` | 13 | fn expressions, closures, higher-order functions |
+| `StringInterpTest` | 14 | `"${expr}"` interpolation in various contexts |
+| `StringIndexingTest` | 15 | `s[i]` indexing, negative, out-of-bounds, expressions |
+| `StringMethodsTest` | 16 | upper, lower, trim, split, length, chaining |
+| `SliceAndSpreadTest` | 32 | `arr[a:b]`, `str[a:b]`, `[...arr]` |
+| `ArrayMethodsTest` | 15 | push, pop, sort, sort(fn), concat, contains, length |
+| `DictTest` | 17 | literals, keys/values/contains, assignment, iteration |
+| `StructTest` | 14 | fields, methods, nesting, mutation, error cases |
+| `MemberAccessTest` | 8 | `.length` on arrays/strings, error cases |
+| `JsonTest` | 25 | json_parse/json_stringify: all types, round-trip |
+| `ModuleTest` | 13 | import, from...import, aliases, error cases |
+| `ErrorHandlingTest` | 10 | throw, catch, rethrow, nested, cross-call propagation |
+| `IoAndTimeTest` | 13 | read_file, write_file, clock, sleep |
+| `TestingFrameworkTest` | 19 | assert_eq, assert_true, expect_error, test(), test_summary |
+| **Total** | **451** | |
 
 ---
 

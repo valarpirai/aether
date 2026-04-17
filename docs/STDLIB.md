@@ -10,11 +10,11 @@ The Aether standard library provides commonly-used functions and utilities imple
 
 ### What Goes Where?
 
-**Built-in Functions (Rust)** - Primitives that require interpreter internals:
+**Built-in Functions (Java)** - Primitives that require interpreter internals:
 - I/O operations: `print()`, `println()`
 - Type introspection: `type()`, `len()`
 - Type conversions: `int()`, `float()`, `str()`, `bool()`
-- Collection methods: `array.push()`, `string.upper()`, etc.
+- Collection methods: `array.push()`, `array.sort()`, `string.upper()`, etc.
 
 **Standard Library (Aether)** - Higher-level functions built on primitives:
 - Iteration helpers: `range()`, `enumerate()`
@@ -28,7 +28,7 @@ The Aether standard library provides commonly-used functions and utilities imple
 ### Directory Structure
 
 ```
-stdlib/
+src/main/resources/stdlib/
 ├── core.ae          # Core utilities (range, enumerate)
 ├── collections.ae   # Collection operations (map, filter, reduce)
 ├── math.ae          # Mathematical functions
@@ -38,10 +38,10 @@ stdlib/
 
 ### Loading Mechanism
 
-1. **Embedded in Binary**: Stdlib files are compiled into the binary using `include_str!()`
-2. **Automatic Loading**: Core modules loaded automatically at startup
-3. **Lazy Loading**: Other modules loaded on first use
-4. **No File I/O**: Works everywhere, no deployment complexity
+1. **Classpath resources**: Stdlib `.ae` files are bundled inside the JAR under `stdlib/`
+2. **On-demand loading**: Modules are loaded when first imported via `import` or `from ... import`
+3. **Caching**: Each module is parsed and executed once; subsequent imports reuse the cached environment
+4. **No File I/O**: Works everywhere the JAR runs, no deployment complexity
 
 ### Import Syntax
 
@@ -52,6 +52,59 @@ import collections
 
 let doubled = collections.map([1, 2, 3], fn(x) { return x * 2 })
 ```
+
+## Built-in Array Methods
+
+These are implemented in the Java interpreter directly (not in Aether).
+
+#### `array.push(value)`
+Append a value to the end. Returns `null`. Mutates the array.
+
+```aether
+let a = [1, 2]
+a.push(3)    // a is now [1, 2, 3]
+```
+
+#### `array.pop()`
+Remove and return the last element. Returns `null` on an empty array.
+
+```aether
+let a = [1, 2, 3]
+a.pop()      // 3  (a is now [1, 2])
+```
+
+#### `array.sort()` / `array.sort(comparator)`
+Sort in place. Without a comparator, sorts in natural order. With a comparator `fn(a, b)`, the function should return `true` if `a` should come before `b`.
+
+```aether
+let a = [3, 1, 4, 2]
+a.sort()                              // a is now [1, 2, 3, 4]
+a.sort(fn(a, b) { return a > b })    // a is now [4, 3, 2, 1]
+```
+
+#### `array.contains(value)`
+Return `true` if the value exists in the array.
+
+```aether
+[1, 2, 3].contains(2)   // true
+[1, 2, 3].contains(9)   // false
+```
+
+#### `array.concat(other)`
+Return a new array with all elements of both arrays (does not mutate).
+
+```aether
+[1, 2].concat([3, 4])   // [1, 2, 3, 4]
+```
+
+#### `array.length`
+Property (not method) returning the number of elements.
+
+```aether
+[1, 2, 3].length   // 3
+```
+
+---
 
 ## Standard Library Functions
 
@@ -260,38 +313,31 @@ Print summary of all test results (pass/fail counts).
 
 ## Technical Implementation
 
-### Embedding Files in Binary
+### Bundling Files in the JAR
 
-Use Rust's `include_str!()` macro:
+Stdlib `.ae` files live in `src/main/resources/stdlib/` and are packaged into the fat JAR automatically by Maven. `StdlibLoader` reads them at runtime via the classpath:
 
-```rust
-// src/interpreter/stdlib.rs
-pub const STDLIB_CORE: &str = include_str!("../../stdlib/core.ae");
-pub const STDLIB_COLLECTIONS: &str = include_str!("../../stdlib/collections.ae");
-pub const STDLIB_MATH: &str = include_str!("../../stdlib/math.ae");
-pub const STDLIB_STRING: &str = include_str!("../../stdlib/string.ae");
+```java
+// StdlibLoader.java
+private static String loadResource(String name) {
+  try (InputStream is = StdlibLoader.class.getResourceAsStream("/stdlib/" + name)) {
+    return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+  }
+}
 ```
 
 ### Loading at Runtime
 
-```rust
-impl Evaluator {
-    pub fn new() -> Self {
-        let mut evaluator = Self {
-            environment: Environment::new(),
-        };
-        evaluator.register_builtins();
-        evaluator.load_stdlib();  // Load stdlib modules
-        evaluator
-    }
-
-    fn load_stdlib(&mut self) {
-        // Parse and execute stdlib modules
-        self.exec_module(STDLIB_CORE).expect("Failed to load core stdlib");
-        self.exec_module(STDLIB_COLLECTIONS).expect("Failed to load collections");
-        // ... other modules
-    }
+```java
+// Evaluator.java
+public static Evaluator withStdlib() {
+  Evaluator ev = new Evaluator();
+  ev.registerBuiltins();
+  StdlibLoader.load(ev);   // parses and executes each module
+  return ev;
 }
+
+// Evaluator.withoutStdlib() skips this for fast test startup
 ```
 
 ## Usage Examples
@@ -342,20 +388,25 @@ println(repeated)  // "**********"
 
 ## Testing Strategy
 
-### Unit Tests (Rust)
-- Test module loading mechanism
-- Test embedded resource reading
-- Test stdlib execution without errors
+### Unit Tests (Java — `StdlibTest.java`, 41 tests)
+Use `Evaluator.withStdlib()` so stdlib functions are available:
 
-### Integration Tests (Aether)
-- Test each stdlib function individually
-- Test function composition
-- Test edge cases (empty arrays, null values, etc.)
+```java
+@BeforeEach
+void setUp() {
+  evaluator = Evaluator.withStdlib();
+}
 
-### Example Programs
-- Real-world programs using stdlib
-- Performance benchmarks
-- Error handling scenarios
+@Test
+void mapDoubles() {
+  assertEquals("[2, 4, 6]", eval("map([1, 2, 3], fn(x) { return x * 2 })"));
+}
+```
+
+### Integration Tests
+- `TestingFrameworkTest.java` — assert_eq, assert_true, test(), test_summary
+- `ModuleTest.java` — import/from-import/alias for all stdlib modules
+- `StdlibTest.java` — each function exercised individually with edge cases
 
 ## Performance Considerations
 
@@ -374,10 +425,9 @@ Track performance of stdlib functions vs. Rust built-ins:
 ## Future Enhancements
 
 ### Standard Library Expansion (Planned)
-- **JSON**: `json_parse()`, `json_stringify()` (requires Rust builtins)
-- **Time**: `clock()`, `sleep()` (requires Rust builtins)
-- **HTTP**: `http_get()`, `http_post()` (requires reqwest dependency)
+- **HTTP**: `http_get()`, `http_post()` (requires an HTTP client dependency)
 - **RegEx**: Regular expression matching
+- **Path**: File path manipulation utilities
 
 ### Advanced Features
 - **Lazy sequences**: Infinite ranges, generators
@@ -401,40 +451,9 @@ Track performance of stdlib functions vs. Rust built-ins:
 - Return consistent types
 - Use early returns for error cases
 
-## Migration Path
-
-### From Rust Built-ins to Stdlib
-
-Some functions might start as Rust built-ins and later move to stdlib:
-
-```rust
-// Before: Rust built-in
-pub fn builtin_range(args: &[Value]) -> Result<Value, RuntimeError> {
-    // Complex Rust implementation
-}
-```
-
-```aether
-// After: Aether stdlib
-fn range(start, end) {
-    let result = []
-    let i = start
-    while (i < end) {
-        result.push(i)
-        i += 1
-    }
-    return result
-}
-```
-
-This improves:
-- Maintainability (simpler code)
-- Transparency (users can read implementation)
-- Flexibility (users can override if needed)
-
 ## References
 
-- **Python**: Large stdlib, mix of C and Python
+- **Python**: Large stdlib, mix of native C and Python
 - **Ruby**: Core vs. stdlib distinction
 - **JavaScript**: Small core, large npm ecosystem
 - **Lua**: Minimal core, extension through modules
@@ -445,5 +464,5 @@ Aether follows the **small core, rich stdlib** philosophy.
 ---
 
 **Last Updated**: April 17, 2026
-**Phase**: 5 Complete (base)
-**Status**: 35+ functions implemented, 333 tests passing
+**Phase**: Complete
+**Status**: 35+ functions implemented, 451 tests passing

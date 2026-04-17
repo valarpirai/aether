@@ -55,9 +55,27 @@ src/
 │       ├── string.ae
 │       └── testing.ae
 └── test/java/com/aether/
-    ├── lexer/ScannerTest.java         # 16 tests
-    ├── parser/ParserTest.java         # 36 tests
-    └── interpreter/EvaluatorTest.java # 47 tests
+    ├── lexer/ScannerTest.java             # 16 tests
+    ├── parser/ParserTest.java             # 36 tests
+    └── interpreter/
+        ├── EvaluatorTest.java             # 47 tests — core evaluator
+        ├── MoreEvaluatorTest.java         # 53 tests — JSON, modules, closures
+        ├── StdlibTest.java                # 41 tests — stdlib functions
+        ├── IntegrationTest.java           # 24 tests — complete programs
+        ├── FunctionExprTest.java          # 13 tests — fn expressions
+        ├── StringInterpTest.java          # 14 tests — string interpolation
+        ├── StringIndexingTest.java        # 15 tests — s[i] indexing
+        ├── StringMethodsTest.java         # 16 tests — upper/lower/trim/split
+        ├── SliceAndSpreadTest.java        # 32 tests — slices and spread
+        ├── ArrayMethodsTest.java          # 15 tests — push/pop/sort/concat
+        ├── DictTest.java                  # 17 tests — dict operations
+        ├── StructTest.java                # 14 tests — struct and methods
+        ├── MemberAccessTest.java          #  8 tests — .length property
+        ├── JsonTest.java                  # 25 tests — json_parse/stringify
+        ├── ModuleTest.java                # 13 tests — module imports
+        ├── ErrorHandlingTest.java         # 10 tests — try/catch/throw
+        ├── IoAndTimeTest.java             # 13 tests — file I/O, clock
+        └── TestingFrameworkTest.java      # 19 tests — stdlib testing
 ```
 
 ## Key Design Choices
@@ -97,11 +115,13 @@ return switch (expr) {
 |-----------|-------|--------|
 | Lexer (Scanner) | 16 | Complete |
 | Parser | 36 | Complete |
-| Evaluator | 47 | Complete |
+| Evaluator (core) | 47 | Complete |
+| Evaluator (extended) | 53 | Complete |
+| Stdlib | 41 | Complete |
+| Integration | 171 | Complete |
 | REPL | manual | Complete |
-| Stdlib | covered by evaluator tests | Complete |
 
-**Total: 99 tests, 0 failures.**
+**Total: 451 tests, 0 failures.**
 
 ## Roadmap
 
