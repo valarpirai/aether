@@ -1,292 +1,140 @@
-# Aether Architecture & Roadmap
+# Aether Architecture
 
-This document provides a high-level overview of Aether's architecture, current status, and future roadmap.
+High-level overview of Aether's architecture, implementation choices, and roadmap.
 
-## Table of Contents
-- [Architecture Overview](#architecture-overview)
-- [Current Status](#current-status)
-- [Roadmap](#roadmap)
-- [Design Principles](#design-principles)
-- [Resources](#resources)
+> For day-to-day development see [DEVELOPMENT.md](DEVELOPMENT.md) and [CLAUDE.md](../CLAUDE.md).
 
 ---
 
-> **📖 For Practical Development**: This document focuses on high-level architecture and long-term roadmap.
->
-> For day-to-day development guidance, see:
-> - **[CLAUDE.md](../CLAUDE.md)** - Quick reference, project status, where to add features
-> - **[DEVELOPMENT.md](DEVELOPMENT.md)** - TDD workflow, testing strategy, code style, common pitfalls
-
----
-
-## Architecture Overview
-
-Aether is a **tree-walking interpreter** written in Rust following a classic three-stage pipeline:
+## Pipeline
 
 ```
 Source Code (.ae)
       ↓
-   [Lexer]  ──→  Tokens
+   [Scanner]  →  Tokens          com.aether.lexer.Scanner
       ↓
-   [Parser] ──→  Abstract Syntax Tree (AST)
+   [Parser]   →  AST             com.aether.parser.Parser
       ↓
-[Interpreter] ──→  Execution / Output
+[Evaluator]   →  Output          com.aether.interpreter.Evaluator
 ```
 
-### Core Components
-
-| Component | Status | Purpose | Details |
-|-----------|--------|---------|---------|
-| **Lexer** | ✅ Complete | Tokenization | See [LEXER.md](LEXER.md) |
-| **Parser** | ✅ Complete | Syntax analysis | See [PARSER.md](PARSER.md) |
-| **Interpreter** | ✅ Complete | AST execution | See [INTERPRETER.md](INTERPRETER.md) |
-| **REPL** | ✅ Complete | Interactive mode | See [REPL.md](REPL.md) |
-| **Standard Library** | ✅ Complete | Core functions | See [STDLIB.md](STDLIB.md) |
-| **Garbage Collection** | ✅ Complete | Memory management | See [GC_DESIGN.md](GC_DESIGN.md) |
-
-### Project Structure
+## Project Structure
 
 ```
-aether/
-├── docs/              # Comprehensive documentation
-├── stdlib/            # Standard library (written in Aether!)
-├── examples/          # Example programs
-├── tests/             # Integration tests (234 tests)
-└── src/
-    ├── lexer/         # Tokenization (14 tests)
-    ├── parser/        # Parsing (53 tests)
-    ├── interpreter/   # Execution (32 tests)
-    └── repl/          # Interactive mode
+src/
+├── main/
+│   ├── java/com/aether/
+│   │   ├── Main.java                  # CLI entry point
+│   │   ├── Repl.java                  # Interactive REPL (JLine 3)
+│   │   ├── exception/
+│   │   │   ├── AetherRuntimeException.java  # Sealed runtime errors
+│   │   │   ├── LexerException.java
+│   │   │   └── ParseException.java
+│   │   ├── lexer/
+│   │   │   ├── Scanner.java           # Tokeniser
+│   │   │   ├── Token.java             # Token record
+│   │   │   ├── TokenKind.java         # Token type enum
+│   │   │   └── StringPart.java        # Interpolation segments
+│   │   ├── parser/
+│   │   │   ├── Parser.java            # Recursive-descent parser
+│   │   │   └── ast/
+│   │   │       ├── Expr.java          # Sealed expression nodes (records)
+│   │   │       ├── Stmt.java          # Sealed statement nodes (records)
+│   │   │       ├── BinaryOp.java
+│   │   │       └── UnaryOp.java
+│   │   └── interpreter/
+│   │       ├── Evaluator.java         # Tree-walking evaluator
+│   │       ├── Environment.java       # Lexical scoping
+│   │       ├── Value.java             # Sealed runtime value types
+│   │       ├── Builtins.java          # Native built-in functions
+│   │       └── StdlibLoader.java      # Classpath stdlib loader
+│   └── resources/stdlib/              # Standard library (.ae files)
+│       ├── core.ae
+│       ├── collections.ae
+│       ├── math.ae
+│       ├── string.ae
+│       └── testing.ae
+└── test/java/com/aether/
+    ├── lexer/ScannerTest.java         # 16 tests
+    ├── parser/ParserTest.java         # 36 tests
+    └── interpreter/EvaluatorTest.java # 47 tests
 ```
 
-## Current Status
+## Key Design Choices
 
-### Phase 5 Complete ✅
+### Java 25 + sealed interfaces + records
 
-**Development Time**: ~15 hours across 5 phases
-**Test Coverage**: 333 tests passing (1 known recursion stack-overflow bug)
-**Code Quality**: 0 clippy warnings
+Every AST node (`Expr`, `Stmt`) and every runtime value (`Value`) is a **sealed interface** whose permitted types are **records**. This gives exhaustive `switch` expressions at compile time — the same safety as Rust `enum` matching.
 
-### What's Implemented
-
-**Core Language** ✅
-- Dynamic typing with runtime type checking
-- First-class functions with closures and function expressions
-- Arrays, dicts, and indexing
-- Automatic memory management (Rc-based GC)
-- Member access syntax (obj.property)
-- C-like syntax (curly braces, no semicolons)
-- String interpolation: `"Hello ${name}"`
-- String indexing: `str[0]`
-
-**Control Flow** ✅
-- if/else conditionals
-- while loops
-- for-in loops (iteration over arrays)
-- break/continue statements
-- return statements
-
-**Error Handling** ✅
-- `try { ... } catch(e) { ... }` - structured exception handling
-- `throw value` - throw any value as an error
-- Error propagation across function calls
-
-**Module System** ✅
-- `import module` - namespace import
-- `from module import fn1, fn2` - selective import
-- `import module as alias` - aliased import
-- User-defined `.ae` modules from filesystem
-
-**Built-in Functions** ✅
-- I/O: `print()`, `println()`, `input()`, `read_file()`, `write_file()`
-- Type introspection: `type()`, `len()`
-- Type conversions: `int()`, `float()`, `str()`, `bool()`
-
-**Collection Methods** ✅
-- Arrays: `push()`, `pop()`, `length`
-- Dicts: `keys()`, `values()`, `contains()`
-- Strings: `upper()`, `lower()`, `trim()`, `split()`, `length`
-
-**Standard Library** ✅ (35+ functions, written in Aether)
-- **Core**: `range()`, `enumerate()`
-- **Collections**: `map()`, `filter()`, `reduce()`, `find()`, `every()`, `some()`
-- **Math**: `abs()`, `min()`, `max()`, `sum()`, `clamp()`, `sign()`
-- **String**: `join()`, `repeat()`, `reverse()`, `starts_with()`, `ends_with()`
-- **Testing**: `assert_eq()`, `assert_true()`, `assert_false()`, `assert_null()`, `assert_not_null()`, `expect_error()`, `test()`, `test_summary()`
-
-**Development Tools** ✅
-- Interactive REPL with line editing and history
-- File execution mode
-- Comprehensive error messages
-- 333 automated tests
-
-### Test Coverage
-
+```java
+// Pattern-matched exhaustively — compiler rejects missing cases
+return switch (expr) {
+  case Expr.IntLiteral(long v)  -> new Value.IntVal(v);
+  case Expr.Binary(Expr l, BinaryOp op, Expr r) -> evalBinary(l, op, r);
+  // ...
+};
 ```
-Total: 333 tests passing ✅ (1 known stack-overflow in recursion limit test)
 
-Unit Tests (99):
-├── Lexer: 14 tests
-├── Parser: 53 tests
-├── Interpreter: 17 tests
-└── Built-ins: 15 tests
+### Lombok
 
-Integration Tests (234):
-├── Core features: 29 tests
-├── Member access: 8 tests
-├── Array methods: 8 tests
-├── String methods: 8 tests
-├── String indexing: 16 tests
-├── String interpolation: 9 tests
-├── Function expressions: 13 tests
-├── Closures: 3 tests
-├── Dict literals: 10 tests
-├── Error handling: 10 tests
-├── Module system: 13 tests
-├── IO builtins: 5 tests
-├── Stdlib core: 9 tests
-├── Stdlib testing: 19 tests
-├── Stdlib collections: 24 tests
-├── Stdlib math: 26 tests
-└── Stdlib string: 24 tests
-```
+`@Getter` on mutable classes (`Environment`, exception types) eliminates boilerplate accessor methods. Records generate their own compact accessors automatically.
+
+### Closures
+
+`Value.AetherFunction` stores a reference to the `Environment` at definition time. Java's reference semantics mean captured variables stay alive as long as the closure exists — no explicit `Rc` cloning needed.
+
+### Control flow
+
+`break`, `continue`, and `return` are modelled as a private sealed `ControlFlow` interface inside `Evaluator`. The execution loop checks the returned signal and unwinds the call stack accordingly.
+
+### Standard library
+
+`.ae` files in `src/main/resources/stdlib/` are read from the classpath at startup via `StdlibLoader`. The evaluator executes them in the global environment before user code runs.
+
+## Component Status
+
+| Component | Tests | Status |
+|-----------|-------|--------|
+| Lexer (Scanner) | 16 | Complete |
+| Parser | 36 | Complete |
+| Evaluator | 47 | Complete |
+| REPL | manual | Complete |
+| Stdlib | covered by evaluator tests | Complete |
+
+**Total: 99 tests, 0 failures.**
 
 ## Roadmap
 
-### Phase 4: Advanced Language Features ✅ Complete
+### Near term
+- GraalVM `native-image` build (zero-JVM startup)
+- Homebrew tap / package for distribution
+- HTTP stdlib module (`http_get`, `http_post`)
 
-- ✅ Function expressions: `fn(x) { return x * 2 }`
-- ✅ String indexing: `text[0]`
-- ✅ String interpolation: `"Hello ${name}"`
-- ✅ Module system: `import`, `from ... import`, aliases
-- ✅ Error handling: `try/catch/throw`
-- ✅ Dict literals: `{"key": value}`
-- ✅ IO builtins: `input()`, `read_file()`, `write_file()`
+### Medium term
+- Bytecode compiler + VM (replace tree-walking for performance)
+- Iterator protocol
+- Async/await
 
-### Phase 5: Stdlib Expansion ✅ Complete (Base)
+### Long term
+- JIT for hot paths
+- Generational garbage collection
+- Official package registry
 
-- ✅ Testing framework stdlib module
-- ⏳ `json` module — json_parse(), json_stringify() (requires Rust builtins)
-- ⏳ `time` module — clock(), sleep() (requires Rust builtins)
-- ⏳ `http` module — http_get(), http_post() (requires reqwest dependency)
-- ⏳ User-defined types / structs
-- ⏳ Iterator protocol
-- ⏳ Async/await support
+## Technical Decisions
 
-### Phase 6: Performance Optimization
+**Why Java 25?**
+Pattern matching in `switch` (preview) enables safe, exhaustive dispatch over sealed types — the closest Java equivalent to Rust `enum` + `match`.
 
-**Compiler Improvements**
-- Bytecode compilation (instead of tree-walking)
-- Constant folding
-- Dead code elimination
-- Tail call optimization
+**Why tree-walking?**
+Fastest path to a correct, maintainable interpreter. Bytecode can be layered later without changing the language.
 
-**Runtime Optimization**
-- JIT compilation for hot paths
-- Better garbage collection (generational GC)
-- String interning
-- Inline caching
+**Why dual Maven + Gradle?**
+Developers can choose their preferred toolchain. Both produce equivalent outputs including the fat JAR.
 
-**Benchmarking**
-- Performance benchmark suite
-- Memory profiling tools
-- Regression testing
-
-### Phase 7: Community & Adoption
-
-**Documentation & Learning**
-- Official website with playground
-- Tutorial series (beginner to advanced)
-- API reference
-- Cookbook (common patterns)
-
-**Community Building**
-- GitHub discussions
-- Discord/Slack community
-- Contribution guidelines
-- RFC process for major changes
-
-**Real-World Usage**
-- Example applications
-- Case studies
-- Community showcase
-- Plugin ecosystem
-
-## Design Principles
-
-### Core Philosophy
-
-1. **Simplicity First**
-   - Start with straightforward implementations
-   - Optimize for readability over performance (initially)
-   - Progressive complexity as needed
-
-2. **Test-Driven Development**
-   - Write tests before implementation
-   - Maintain 100% test success rate
-   - Tests serve as documentation
-
-3. **User Empowerment**
-   - Stdlib in Aether (users can read and extend)
-   - Clear error messages
-   - Predictable behavior
-
-4. **Pragmatic Evolution**
-   - Ship working features quickly
-   - Iterate based on usage
-   - No premature optimization
-
-### Technical Decisions
-
-**Why Tree-Walking Interpreter?**
-- Faster to implement and iterate
-- Easier to debug
-- Good enough performance for Phase 1-3
-- Can optimize later with bytecode
-
-**Why Rust?**
-- Memory safety without GC overhead (for interpreter itself)
-- Strong type system catches bugs early
-- Excellent tooling (cargo, clippy)
-- Fast enough for production use
-
-**Why Rc for GC?**
-- Simple reference counting
-- Predictable memory behavior
-- Good enough for single-threaded interpreter
-- Can upgrade to mark-and-sweep if cycles become an issue
-
-**Why Stdlib in Aether?**
-- Validates language expressiveness ("dogfooding")
-- User-readable implementations
-- Easy to extend and customize
-- Proves the language works for real code
-
-## Resources
-
-### Documentation
-- **[DESIGN.md](DESIGN.md)** - Complete language specification
-- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Development guidelines and best practices
-- **[LEXER.md](LEXER.md)** - Tokenization implementation
-- **[PARSER.md](PARSER.md)** - Syntax analysis implementation
-- **[INTERPRETER.md](INTERPRETER.md)** - Execution engine implementation
-- **[REPL.md](REPL.md)** - Interactive mode implementation
-- **[STDLIB.md](STDLIB.md)** - Standard library design
-- **[GC_DESIGN.md](GC_DESIGN.md)** - Garbage collection architecture
-
-### External Resources
-- [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom
-- [Writing An Interpreter In Go](https://interpreterbook.com/) by Thorsten Ball
-- [Rust Programming Language Book](https://doc.rust-lang.org/book/)
-
-### Quick Links
-- **Main README**: [../README.md](../README.md)
-- **Project Guide**: [../CLAUDE.md](../CLAUDE.md)
-- **Examples**: [../examples/](../examples/)
-- **Standard Library**: [../stdlib/](../stdlib/)
+**Why Jackson for JSON?**
+Battle-tested, zero-configuration for basic serialisation, available on Maven Central.
 
 ---
 
 **Last Updated**: April 17, 2026
-**Current Phase**: Phase 5 Complete ✅ (base)
-**Next Phase**: Phase 5 continued - JSON, Time, HTTP modules
+**Implementation**: Java 25 (Maven + Gradle)

@@ -1,73 +1,90 @@
-# Aether REPL Documentation
+# Aether REPL
 
-## Overview
+Interactive Read-Eval-Print Loop for the Aether interpreter.
 
-Interactive Read-Eval-Print Loop for executing Aether code.
+**Source**: `src/main/java/com/aether/Repl.java`
+**Line editing**: JLine 3 (replaces Rust's rustyline)
 
-**Location**: `src/repl.rs` and `src/main.rs`
-**Status**: ✅ Complete
+---
 
 ## Usage
 
-### Start REPL
 ```bash
-aether
+# Start REPL
+java --enable-preview -jar target/aether.jar
+
+# Run a file
+java --enable-preview -jar target/aether.jar examples/hello.ae
 ```
 
-### Run File
-```bash
-aether examples/hello.ae
-```
+---
 
 ## Features
 
-- **Line editing** with rustyline (arrow keys, Ctrl+A/E, etc.)
-- **Command history** (up/down arrows)
-- **Multi-line support** (TODO)
-- **Special commands** starting with `_`
+- Line editing — arrow keys, Ctrl+A/E, Ctrl+W
+- Command history (up/down arrows, 500 entries)
+- State persists across inputs — variables defined on one line survive to the next
+- Non-null expression results are printed automatically
+- Errors are reported and the REPL continues (no crash)
 
-## Special Commands
+---
+
+## Built-in Commands
 
 | Command | Description |
 |---------|-------------|
-| `_help` | Show help message |
-| `_env` | Display current environment (variables) |
-| `_exit` | Exit REPL |
-| `_tokens` | Show tokens (TODO) |
-| `_ast` | Show AST (TODO) |
+| `help`  | Show available commands |
+| `env`   | List all defined variables and their values |
+| Ctrl+D  | Exit |
+| Ctrl+C  | Cancel current input line |
 
-## Controls
+---
 
-- **Ctrl+D** - Exit REPL
-- **Ctrl+C** - Cancel current input
-- **Up/Down** - Navigate history
-- **Ctrl+A** - Start of line
-- **Ctrl+E** - End of line
-
-## Examples
+## Session Example
 
 ```
->> let x = 42
->> x + 10
-52
->> fn double(n) { return n * 2 }
->> double(21)
-42
->> _env
-Current environment: ...
->> _exit
-Goodbye!
+>> let name = "Aether"
+>> "Hello ${name}!"
+Hello Aether!
+>> fn square(n) { return n * n }
+>> square(9)
+81
+>> let nums = [1, 2, 3, 4, 5]
+>> nums.length
+5
+>> env
+name = Aether
+square = <fn ["n"]>
+nums = [1, 2, 3, 4, 5]
+>> help
+Commands:
+  help  — show this message
+  env   — list all defined variables
+  Ctrl+D — exit
 ```
 
-## Implementation
+---
 
-```rust
-pub fn run() -> Result<(), Box<dyn std::error::Error>>
+## File Execution
+
+When given a file argument, the interpreter:
+
+1. Parses and executes all top-level statements
+2. If a `main` function is defined, calls it automatically
+3. Script-style files (no `main`) work as-is
+
+```aether
+fn main() {
+    println("Hello from Aether!")
+}
 ```
 
-Uses `rustyline::DefaultEditor` for line editing and maintains a persistent `Evaluator` across inputs.
+```bash
+java --enable-preview -jar target/aether.jar hello.ae
+# Hello from Aether!
+```
 
 ---
 
 **Last Updated**: April 17, 2026
-**Status**: Fully functional with history support
+**Status**: Complete

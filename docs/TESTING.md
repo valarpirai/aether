@@ -1,528 +1,170 @@
 # Aether Testing Guide
 
-This document provides comprehensive guidance on testing the Aether interpreter.
+How to run, write, and debug tests for the Aether Java interpreter.
 
-## Table of Contents
-- [Test Organization](#test-organization)
-- [Running Tests](#running-tests)
-- [Test-Driven Development](#test-driven-development)
-- [Writing Tests](#writing-tests)
-- [Debugging Test Failures](#debugging-test-failures)
-- [Test Coverage Goals](#test-coverage-goals)
+---
 
-## Test Organization
-
-### Directory Structure
+## Test Layout
 
 ```
-tests/
-├── integration_test.rs       # Core end-to-end program tests
-├── member_access_test.rs     # Member access feature tests
-├── array_methods_test.rs     # Array method tests
-├── string_methods_test.rs    # String method tests
-├── string_indexing_test.rs   # String indexing tests
-├── string_interp_test.rs     # String interpolation tests
-├── function_expr_test.rs     # Function expression tests
-├── closure_leak_test.rs      # Closure tests
-├── dict_test.rs              # Dict literal and method tests
-├── error_handling_test.rs    # try/catch/throw tests
-├── module_test.rs            # Module system tests
-├── io_test.rs                # IO builtin tests
-├── recursion_limit_test.rs   # Recursion depth tests
-├── small_recursion_test.rs   # Small recursion tests
-├── stdlib_test.rs            # Core stdlib tests
-├── stdlib_testing_test.rs    # Testing framework tests
-├── stdlib_collections_test.rs # Collections stdlib tests
-├── stdlib_math_test.rs       # Math stdlib tests
-└── stdlib_string_test.rs     # String stdlib tests
-
-src/
-├── lexer/
-│   └── lexer_tests.rs        # Lexer unit tests
-├── parser/
-│   └── parser_tests.rs       # Parser unit tests
-└── interpreter/
-    ├── interpreter_tests.rs  # Interpreter unit tests
-    └── builtins_tests.rs     # Built-ins unit tests
+src/test/java/com/aether/
+├── lexer/ScannerTest.java         # 16 tests — tokenisation
+├── parser/ParserTest.java         # 36 tests — AST structure
+└── interpreter/EvaluatorTest.java # 47 tests — end-to-end execution
 ```
 
-### Test Categories
+**Total: 99 tests, 0 failures.**
 
-**Unit Tests** (99 tests):
-- Test individual components in isolation
-- Located in module test files (`*_tests.rs`)
-- Fast execution (< 1 second)
-- No dependencies between tests
+All three suites are integration-style: they parse and execute Aether source strings directly, testing the full pipeline rather than mocked units.
 
-**Integration Tests** (234 tests):
-- Test complete programs end-to-end
-- Located in `tests/` directory
-- Test feature interaction
-- Slower execution (few seconds)
+---
 
 ## Running Tests
 
-### Basic Commands
-
 ```bash
-# Run all tests
-cargo test
+# All tests (Maven)
+JAVA_HOME=/opt/homebrew/opt/openjdk@25 mvn test
 
-# Run specific test
-cargo test test_name
+# Single class
+JAVA_HOME=/opt/homebrew/opt/openjdk@25 mvn test -Dtest=EvaluatorTest
 
-# Run tests for specific module
-cargo test lexer
-cargo test parser
-cargo test interpreter
+# Single method
+JAVA_HOME=/opt/homebrew/opt/openjdk@25 mvn test -Dtest=EvaluatorTest#closures
 
-# Show println! output during tests
-cargo test -- --nocapture
+# Show stdout during tests
+JAVA_HOME=/opt/homebrew/opt/openjdk@25 mvn test -Dtest=EvaluatorTest -Dsurefire.useFile=false
 ```
 
-### Recommended Options
-
-**IMPORTANT**: Always use these flags to prevent memory issues:
-
-```bash
-# Sequential execution (prevents memory pressure)
-cargo test -- --test-threads=1
-
-# With output
-cargo test -- --nocapture --test-threads=1
-
-# Single test with output
-cargo test test_name -- --nocapture --test-threads=1
-```
-
-**Why `--test-threads=1`?**
-- Reduces memory pressure (parallel tests can use 135 GB+)
-- More predictable execution
-- Easier debugging
-
-### Test Filtering
-
-```bash
-# Run only integration tests
-cargo test --test integration_tests
-
-# Run only unit tests
-cargo test --lib
-
-# Run tests matching pattern
-cargo test string  # Runs all tests with "string" in name
-
-# Run ignored tests
-cargo test -- --ignored
-```
-
-### Continuous Testing
-
-```bash
-# Watch for changes and re-run tests
-cargo watch -x test
-
-# Watch with clear screen
-cargo watch -c -x "test -- --test-threads=1"
-```
-
-## Test-Driven Development
-
-### The Red-Green-Refactor Cycle
-
-**1. Red**: Write a failing test
-```rust
-#[test]
-fn test_exponentiation() {
-    let result = eval("2 ** 3");
-    assert_eq!(result, Value::Int(8));  // FAILS - feature not implemented
-}
-```
-
-**2. Green**: Write minimal code to make it pass
-```rust
-// Add just enough code to pass the test
-// Don't over-engineer!
-```
-
-**3. Refactor**: Improve code while keeping tests green
-```rust
-// Clean up implementation
-// Tests should still pass
-```
-
-### TDD Workflow Example
-
-**Goal**: Add string `repeat()` method
-
-**Step 1**: Write the test first
-```rust
-#[test]
-fn test_string_repeat() {
-    let result = eval("\"ha\".repeat(3)");
-    assert_eq!(result, Value::string("hahaha".to_string()));
-}
-```
-
-**Step 2**: Run test (it should fail)
-```bash
-cargo test test_string_repeat
-# Expected failure: repeat not implemented
-```
-
-**Step 3**: Implement minimum code to pass
-```aether
-// In stdlib/string.ae
-fn repeat(text, n) {
-    let result = ""
-    let i = 0
-    while (i < n) {
-        result = result + text
-        i = i + 1
-    }
-    return result
-}
-```
-
-**Step 4**: Run test again (should pass)
-```bash
-cargo test test_string_repeat -- --test-threads=1
-```
-
-**Step 5**: Add edge case tests
-```rust
-#[test]
-fn test_string_repeat_zero() {
-    assert_eq!(eval("\"x\".repeat(0)"), Value::string("".to_string()));
-}
-
-#[test]
-fn test_string_repeat_negative() {
-    assert!(eval("\"x\".repeat(-1)").is_err());
-}
-```
-
-**Step 6**: Refactor if needed
-
-### Benefits of TDD
-
-✅ **Clear requirements** - Test defines what "done" means
-✅ **Confidence** - Refactoring doesn't break functionality
-✅ **Documentation** - Tests show how to use features
-✅ **Better design** - Testable code is usually better code
-✅ **Regression prevention** - Old tests catch new bugs
+---
 
 ## Writing Tests
 
-### Unit Test Structure
+### Evaluator tests
 
-```rust
-#[test]
-fn test_<component>_<feature>() {
-    // Arrange: Set up test data
-    let input = "...";
+Use the `eval()` helper — it parses a source string, executes all statements except the last, then returns the display value of the last expression:
 
-    // Act: Execute the operation
-    let result = operation(input);
-
-    // Assert: Verify the result
-    assert_eq!(result, expected);
+```java
+@Test
+void myFeature() {
+  assertEquals("42", eval("let x = 40\nx + 2"));
 }
 ```
 
-### Integration Test Structure
+For statements that produce no value (control flow, declarations), end with a variable reference:
 
-```rust
-#[test]
-fn test_<feature_name>() {
-    let source = r#"
-        fn main() {
-            // Aether code here
-        }
-    "#;
+```java
+assertEquals("10", eval("let x = 5\nx = 10\nx"));
+```
 
-    let result = run_program(source);
-    assert_eq!(result, expected_output);
+For expected runtime errors:
+
+```java
+@Test
+void divisionByZero() {
+  assertThrows(AetherRuntimeException.DivisionByZero.class, () -> eval("1 / 0"));
 }
 ```
 
-### Assertion Helpers
+### Parser tests
 
-```rust
-// Equality
-assert_eq!(actual, expected);
-assert_ne!(actual, unexpected);
+```java
+private List<Stmt> parse(String source) {
+  return new Parser(new Scanner(source).scanTokens()).parse();
+}
 
-// Boolean
-assert!(condition);
-assert!(!condition);
+private Expr parseExpr(String source) {
+  return ((Stmt.ExprStmt) parse(source).get(0)).expr();
+}
 
-// Error handling
-assert!(result.is_ok());
-assert!(result.is_err());
-
-// Pattern matching
-match result {
-    Ok(Value::Int(n)) => assert_eq!(n, 42),
-    _ => panic!("Expected Int"),
+@Test
+void integerLiteral() {
+  assertEquals(42L, ((Expr.IntLiteral) parseExpr("42")).value());
 }
 ```
 
-### Test Naming Conventions
+### Scanner tests
 
-**Good test names**:
-- `test_addition_integers`
-- `test_division_by_zero_error`
-- `test_array_push_increases_length`
-- `test_string_upper_ascii`
+```java
+private List<Token> scan(String source) {
+  return new Scanner(source).scanTokens();
+}
 
-**Poor test names**:
-- `test1`, `test2`
-- `test_function`
-- `test_it_works`
-
-**Pattern**: `test_<what>_<scenario>_<expected_result>`
-
-## Debugging Test Failures
-
-### Step 1: Read the Error Message
-
-```
----- test_division_by_zero panicked at 'assertion failed: `(left == right)`
-  left: `Ok(Int(5))`,
- right: `Err(DivisionByZero)`', tests/integration_tests.rs:42:5
+@Test
+void intToken() {
+  Token t = scan("42").get(0);
+  assertEquals(TokenKind.INT, t.kind());
+  assertEquals(42L, t.intValue());
+}
 ```
 
-**Key information**:
-- Test name: `test_division_by_zero`
-- Expected: `Err(DivisionByZero)`
-- Actual: `Ok(Int(5))`
-- Location: `tests/integration_tests.rs:42:5`
+---
 
-### Step 2: Isolate the Test
+## Evaluator test setup
 
+`EvaluatorTest` uses `Evaluator.withoutStdlib()` so each test starts with a clean, fast environment:
+
+```java
+@BeforeEach
+void setUp() {
+  evaluator = Evaluator.withoutStdlib();
+}
+```
+
+Use `Evaluator.withStdlib()` only when a test needs stdlib functions like `map()` or `range()`.
+
+---
+
+## What to Test
+
+For each new feature, cover:
+
+1. **Happy path** — expected output for valid input
+2. **Edge cases** — empty collections, zero, null, negative numbers
+3. **Error cases** — `assertThrows` for type errors, bounds errors, etc.
+4. **Interaction** — feature combined with existing features (closures + recursion, etc.)
+
+---
+
+## Debugging Failures
+
+**Print the actual value:**
+```java
+System.out.println(eval("your expression here"));
+```
+
+**Run one test in isolation:**
 ```bash
-# Run only the failing test
-cargo test test_division_by_zero -- --nocapture --test-threads=1
+mvn test -Dtest=EvaluatorTest#myTest -Dsurefire.useFile=false
 ```
 
-### Step 3: Add Debug Output
+**Common causes of unexpected `null`:**
+- Function body missing `return` — Aether requires explicit `return`
+- `if/else` used as an expression — it is a statement; assign to a variable instead
 
-```rust
-#[test]
-fn test_division_by_zero() {
-    let source = "10 / 0";
-    println!("Input: {}", source);
+**Common parse failures:**
+- Dict `{}` at statement level — wrap in `let d = {}` for expression context
+- Missing commas or braces in struct/dict definitions
 
-    let result = eval(source);
-    println!("Result: {:?}", result);
+---
 
-    assert!(result.is_err());
-}
-```
+## Test Coverage
 
-### Step 4: Use Rust Debugger
-
-```bash
-# Install rust-lldb or rust-gdb
-rust-lldb target/debug/deps/aether-<hash>
-
-# Set breakpoint
-(lldb) breakpoint set --name test_division_by_zero
-(lldb) run
-
-# Step through
-(lldb) step
-(lldb) print variable_name
-```
-
-### Common Test Failures
-
-**Memory Issues**
-```
-error: test failed, to rerun pass '--lib'
-signal: 9, SIGKILL: kill
-```
-**Solution**: Use `--test-threads=1`
-
-**Timeout**
-```
-test hangs indefinitely
-```
-**Solution**:
-- Check for infinite loops
-- Add timeout to test command
-- Use `timeout 60 cargo test`
-
-**Floating Point Precision**
-```rust
-// Wrong: Exact equality
-assert_eq!(result, 3.14159);
-
-// Right: Approximate equality
-assert!((result - 3.14159).abs() < 0.00001);
-```
-
-**String/Array Comparison**
-```rust
-// For Rc-wrapped values, use pattern matching or helper methods
-match &value {
-    Value::String(s) => assert_eq!(s.as_ref(), "expected"),
-    _ => panic!("Expected string"),
-}
-```
-
-## Test Coverage Goals
-
-### Current Coverage (Phase 5)
-
-- **Total**: 333 tests ✅ (1 known stack-overflow in recursion limit test)
-- **Success Rate**: ~99.7%
-- **Lines Covered**: ~85% (estimated)
-
-### Coverage by Component
-
-| Component | Unit Tests | Integration Tests | Status |
-|-----------|------------|-------------------|--------|
-| Lexer | 14 | - | ✅ Complete |
-| Parser | 53 | - | ✅ Complete |
-| Interpreter | 17 | 29 | ✅ Complete |
-| Built-ins | 15 | - | ✅ Complete |
-| Member Access | - | 8 | ✅ Complete |
-| Array Methods | - | 8 | ✅ Complete |
-| String Methods | - | 8 | ✅ Complete |
-| String Indexing | - | 16 | ✅ Complete |
-| String Interpolation | - | 9 | ✅ Complete |
-| Function Expressions | - | 13 | ✅ Complete |
-| Closures | - | 3 | ✅ Complete |
-| Dict Literals | - | 10 | ✅ Complete |
-| Error Handling | - | 10 | ✅ Complete |
-| Module System | - | 13 | ✅ Complete |
-| IO Builtins | - | 5 | ✅ Complete |
-| Stdlib Core | - | 9 | ✅ Complete |
-| Stdlib Testing | - | 19 | ✅ Complete |
-| Stdlib Collections | - | 24 | ✅ Complete |
-| Stdlib Math | - | 26 | ✅ Complete |
-| Stdlib String | - | 24 | ✅ Complete |
-
-### What to Test
-
-**Always test**:
-- ✅ Happy path (valid inputs)
-- ✅ Edge cases (empty, zero, null)
-- ✅ Error conditions (invalid inputs)
-- ✅ Boundary values (min, max)
-- ✅ Type mismatches
-
-**Example - Testing `array.push()`**:
-```rust
-// Happy path
-test_array_push_adds_element()
-
-// Edge cases
-test_array_push_to_empty_array()
-test_array_push_multiple_types()
-
-// Integration
-test_array_push_in_loop()
-test_array_push_with_function_result()
-```
-
-### Measuring Coverage
-
-```bash
-# Install tarpaulin
-cargo install cargo-tarpaulin
-
-# Run coverage report
-cargo tarpaulin --out Html
-
-# Open report
-open tarpaulin-report.html
-```
-
-**Coverage Goals**:
-- Core components: 90%+ line coverage
-- Error handling paths: 80%+ coverage
-- Overall: 85%+ coverage
-
-## Best Practices
-
-### Do's ✅
-
-- **Write tests first** (TDD)
-- **Test one thing** per test
-- **Use descriptive names**
-- **Test edge cases**
-- **Keep tests independent**
-- **Use `--test-threads=1`** for Aether tests
-- **Commit tests with code**
-
-### Don'ts ❌
-
-- **Don't test implementation details**
-- **Don't share state between tests**
-- **Don't skip error cases**
-- **Don't use random values** (unless testing random behavior)
-- **Don't make tests depend on each other**
-- **Don't ignore failing tests** (fix or remove)
-
-### Test Smells
-
-**Problem**: Tests are slow (> 10 seconds)
-- **Solution**: Mock external dependencies, reduce test scope
-
-**Problem**: Tests are flaky (pass/fail randomly)
-- **Solution**: Check for race conditions, shared state, random values
-
-**Problem**: Tests break on every change
-- **Solution**: Test behavior, not implementation details
-
-**Problem**: Can't understand what test does
-- **Solution**: Better names, comments, simpler test structure
-
-## Continuous Integration
-
-### Future CI Setup
-
-When setting up CI, include:
-
-```yaml
-# .github/workflows/test.yml
-name: Tests
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - name: Run tests
-        run: cargo test -- --test-threads=1
-      - name: Check formatting
-        run: cargo fmt --check
-      - name: Run clippy
-        run: cargo clippy -- -D warnings
-```
-
-## Resources
-
-### Internal Documentation
-- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Development workflow
-- **[CLAUDE.md](../CLAUDE.md)** - Project overview
-- Component docs: LEXER.md, PARSER.md, INTERPRETER.md
-
-### External Resources
-- [Rust Testing Book](https://doc.rust-lang.org/book/ch11-00-testing.html)
-- [Rust By Example - Testing](https://doc.rust-lang.org/rust-by-example/testing.html)
-- [TDD in Rust](https://www.youtube.com/watch?v=2vBQFIWl36k)
+| Category | Tests |
+|----------|-------|
+| Arithmetic & operators | intArithmetic, floatArithmetic, mixedIntFloat, stringConcatenation |
+| Booleans & truthiness | booleanLogic, comparison, truthinessRules |
+| Variables | letAndLookup, assignment, compoundAssignment, undefinedVariableThrows |
+| Control flow | ifTrue, ifElse, whileLoop, forLoop, breakInWhile |
+| Functions | functionDeclarationAndCall, optionalParams, closures, recursion, stackOverflowThrows |
+| Strings | stringIndexing, stringMethods, stringSplit, stringInterpolation, stringLength |
+| Arrays | arrayLiteral, arrayIndex, arrayLength, arrayPushPop, arraySlice, spreadOperator |
+| Dicts | dictLiteralAndAccess, dictKeys, dictContains |
+| Error handling | tryCatch, tryCatchRuntimeError |
+| Structs | structDeclarationAndInstantiation, structMethod, structFieldMutation |
+| Builtins | typeBuiltin, lenBuiltin, conversionBuiltins, clockReturnsPositiveFloat |
+| Runtime errors | typeError, indexOutOfBounds, divisionByZeroThrows |
 
 ---
 
 **Last Updated**: April 17, 2026
-**Phase**: 5 Complete (base)
-**Status**: 333 tests passing, comprehensive test coverage
+**Implementation**: Java 25, JUnit 5
