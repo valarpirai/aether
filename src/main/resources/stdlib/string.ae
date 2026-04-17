@@ -27,13 +27,12 @@ fn repeat(string, n) {
     return result
 }
 
-// reverse(string) - Reverse a string
+// reverse(string) - Reverse a string using character indexing
 fn reverse(string) {
-    let chars = string.split("")
     let result = ""
-    let i = len(chars) - 1
+    let i = len(string) - 1
     while (i >= 0) {
-        result = result + chars[i]
+        result = result + string[i]
         i = i - 1
     }
     return result
@@ -43,22 +42,17 @@ fn reverse(string) {
 fn starts_with(string, prefix) {
     let prefix_len = len(prefix)
 
-    // Empty prefix always matches
     if (prefix_len == 0) {
         return true
     }
 
-    // Prefix longer than string
     if (prefix_len > len(string)) {
         return false
     }
 
-    // Compare character by character
-    let chars = string.split("")
-    let prefix_chars = prefix.split("")
     let i = 0
     while (i < prefix_len) {
-        if (chars[i] != prefix_chars[i]) {
+        if (string[i] != prefix[i]) {
             return false
         }
         i = i + 1
@@ -72,23 +66,17 @@ fn ends_with(string, suffix) {
     let suffix_len = len(suffix)
     let string_len = len(string)
 
-    // Empty suffix always matches
     if (suffix_len == 0) {
         return true
     }
 
-    // Suffix longer than string
     if (suffix_len > string_len) {
         return false
     }
 
-    // Compare character by character from the end
-    let chars = string.split("")
-    let suffix_chars = suffix.split("")
     let i = 0
     while (i < suffix_len) {
-        let string_idx = string_len - suffix_len + i
-        if (chars[string_idx] != suffix_chars[i]) {
+        if (string[string_len - suffix_len + i] != suffix[i]) {
             return false
         }
         i = i + 1
