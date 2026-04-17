@@ -247,6 +247,7 @@ public sealed interface Value
       case FloatVal f -> f.value() != 0.0;
       case Str s -> !s.value().isEmpty();
       case Array a -> !a.elements().isEmpty();
+      case Dict d -> !d.entries().isEmpty();
       default -> true;
     };
   }

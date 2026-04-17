@@ -184,8 +184,11 @@ public final class Evaluator {
           throw new AetherRuntimeException.TypeError("array", iterVal.typeName());
         }
         for (Value element : arr.elements()) {
+          Environment saved = environment;
+          environment = new Environment(saved);
           environment.define(varName, element);
           ControlFlow cf = execStmtInternal(body);
+          environment = saved;
           if (cf instanceof ControlFlow.Break) break;
           if (cf instanceof ControlFlow.Return r) yield r;
         }
@@ -397,7 +400,7 @@ public final class Evaluator {
         default -> throw new AetherRuntimeException.TypeError("number", right.typeName());
       };
       case Value.Str(String a) -> switch (right) {
-        case Value.Str(String b) -> new Value.Bool(a.compareTo(b) < 0);
+        case Value.Str(String b) -> new Value.Bool(intOp.apply(a.compareTo(b), 0));
         default -> throw new AetherRuntimeException.TypeError("string", right.typeName());
       };
       default -> throw new AetherRuntimeException.TypeError("comparable value", left.typeName());
@@ -738,8 +741,9 @@ public final class Evaluator {
         if (!argExprs.isEmpty()) {
           Value comparatorVal = evalExpr(argExprs.get(0));
           sorted.sort((a, b) -> {
-            Value result = callFunctionWithValues(comparatorVal, List.of(a, b));
-            return result.isTruthy() ? -1 : 1;
+            if (callFunctionWithValues(comparatorVal, List.of(a, b)).isTruthy()) return -1;
+            if (callFunctionWithValues(comparatorVal, List.of(b, a)).isTruthy()) return 1;
+            return 0;
           });
         } else {
           sorted.sort(this::compareValues);
