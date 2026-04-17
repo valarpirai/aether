@@ -849,19 +849,23 @@ public final class Evaluator {
       case Expr.Index(Expr objectExpr, Expr indexExpr) -> {
         Value object = evalExpr(objectExpr);
         Value index = evalExpr(indexExpr);
-        if (!(object instanceof Value.Array arr) || !(index instanceof Value.IntVal(long idx))) {
-          throw new AetherRuntimeException.InvalidOperation("Index assignment requires array[int]");
-        }
-        List<Value> elements = arr.elements();
-        if (idx < 0 || idx >= elements.size()) {
-          throw new AetherRuntimeException.IndexOutOfBounds(idx, elements.size());
-        }
-        List<Value> newElements = new ArrayList<>(elements);
-        newElements.set((int) idx, value);
-        if (objectExpr instanceof Expr.Identifier(String name)) {
-          environment.set(name, new Value.Array(newElements));
+        if (object instanceof Value.Dict dict) {
+          dict.entries().put(index, value);
+        } else if (object instanceof Value.Array arr && index instanceof Value.IntVal(long idx)) {
+          List<Value> elements = arr.elements();
+          if (idx < 0 || idx >= elements.size()) {
+            throw new AetherRuntimeException.IndexOutOfBounds(idx, elements.size());
+          }
+          List<Value> newElements = new ArrayList<>(elements);
+          newElements.set((int) idx, value);
+          if (objectExpr instanceof Expr.Identifier(String name)) {
+            environment.set(name, new Value.Array(newElements));
+          } else {
+            arr.setElements(newElements);
+          }
         } else {
-          arr.setElements(newElements);
+          throw new AetherRuntimeException.InvalidOperation(
+              "Index assignment requires array[int] or dict[key]");
         }
       }
       case Expr.Member(Expr objectExpr, String member) -> {
