@@ -40,6 +40,7 @@ pub enum TokenKind {
     Try,
     Catch,
     Throw,
+    Struct,
 
     // Operators
     Plus,    // +

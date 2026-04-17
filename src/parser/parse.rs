@@ -73,6 +73,15 @@ impl Parser {
         self.previous()
     }
 
+    fn peek_at(&self, offset: usize) -> &Token {
+        let idx = self.current + offset;
+        if idx < self.tokens.len() {
+            &self.tokens[idx]
+        } else {
+            &self.tokens[self.tokens.len() - 1] // Eof
+        }
+    }
+
     fn check(&self, kind: &TokenKind) -> bool {
         if self.is_at_end() {
             return false;
@@ -105,6 +114,9 @@ impl Parser {
     fn declaration(&mut self) -> Result<Stmt, ParseError> {
         if self.match_token(&[TokenKind::Let]) {
             return self.let_declaration();
+        }
+        if self.match_token(&[TokenKind::Struct]) {
+            return self.struct_declaration();
         }
         if self.match_token(&[TokenKind::Import]) {
             return self.import_statement();
@@ -562,7 +574,19 @@ impl Parser {
             TokenKind::True => Ok(Expr::Bool(true)),
             TokenKind::False => Ok(Expr::Bool(false)),
             TokenKind::Null => Ok(Expr::Null),
-            TokenKind::Identifier(name) => Ok(Expr::Identifier(name.clone())),
+            TokenKind::Identifier(name) => {
+                let name = name.clone();
+                // Same-line '{' after identifier may be struct init.
+                // Disambiguate: struct init requires 'identifier :' or '}' inside the braces.
+                if self.peek().kind == TokenKind::LeftBrace
+                    && self.peek().line == self.previous().line
+                    && self.is_struct_init()
+                {
+                    self.advance(); // consume '{'
+                    return self.struct_init(name);
+                }
+                Ok(Expr::Identifier(name))
+            }
             TokenKind::Fn => self.function_expression(),
             TokenKind::LeftParen => {
                 let expr = self.expression()?;
@@ -647,6 +671,131 @@ impl Parser {
         let body = self.block_statement()?;
 
         Ok(Expr::FunctionExpr(params, Box::new(body)))
+    }
+
+    // Returns true if the upcoming '{' begins a struct init (identifier ':' or just '}')
+    // self.peek() must be '{' before calling this.
+    fn is_struct_init(&self) -> bool {
+        // peek_at(0) is '{', peek_at(1) is what's inside
+        let inside = self.peek_at(1);
+        match &inside.kind {
+            // Empty braces: Name {} — could be struct init
+            TokenKind::RightBrace => true,
+            // identifier followed by ':' — struct field
+            TokenKind::Identifier(_) => {
+                matches!(self.peek_at(2).kind, TokenKind::Colon)
+            }
+            _ => false,
+        }
+    }
+
+    // Parse struct declaration: struct Name { field, ... fn method(self, ...) { body } }
+    fn struct_declaration(&mut self) -> Result<Stmt, ParseError> {
+        let name = if let TokenKind::Identifier(n) = &self.peek().kind {
+            n.clone()
+        } else {
+            return Err(ParseError::UnexpectedToken {
+                expected: "struct name".to_string(),
+                found: self.peek().clone(),
+            });
+        };
+        self.advance();
+
+        self.consume(TokenKind::LeftBrace, "{")?;
+
+        let mut fields = Vec::new();
+        let mut methods = Vec::new();
+
+        while !self.check(&TokenKind::RightBrace) && !self.is_at_end() {
+            if self.match_token(&[TokenKind::Fn]) {
+                // Method declaration: fn name(self, ...) { body }
+                let method_name = if let TokenKind::Identifier(n) = &self.peek().kind {
+                    n.clone()
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        expected: "method name".to_string(),
+                        found: self.peek().clone(),
+                    });
+                };
+                self.advance();
+
+                self.consume(TokenKind::LeftParen, "(")?;
+                let mut params = Vec::new();
+                if !self.check(&TokenKind::RightParen) {
+                    loop {
+                        if let TokenKind::Identifier(param) = &self.peek().kind {
+                            params.push(param.clone());
+                            self.advance();
+                        } else {
+                            return Err(ParseError::UnexpectedToken {
+                                expected: "parameter name".to_string(),
+                                found: self.peek().clone(),
+                            });
+                        }
+                        if !self.match_token(&[TokenKind::Comma]) {
+                            break;
+                        }
+                    }
+                }
+                self.consume(TokenKind::RightParen, ")")?;
+                self.consume(TokenKind::LeftBrace, "{")?;
+                let body = self.block_statement()?;
+                methods.push((method_name, params, Box::new(body)));
+            } else if let TokenKind::Identifier(field) = &self.peek().kind {
+                // Field declaration (comma-separated: x, y or one per line)
+                fields.push(field.clone());
+                self.advance();
+                while self.match_token(&[TokenKind::Comma]) {
+                    if let TokenKind::Identifier(f) = &self.peek().kind {
+                        fields.push(f.clone());
+                        self.advance();
+                    } else {
+                        break;
+                    }
+                }
+            } else {
+                return Err(ParseError::UnexpectedToken {
+                    expected: "field name or fn".to_string(),
+                    found: self.peek().clone(),
+                });
+            }
+        }
+
+        self.consume(TokenKind::RightBrace, "}")?;
+
+        Ok(Stmt::StructDecl {
+            name,
+            fields,
+            methods,
+        })
+    }
+
+    // Parse struct initialization: StructName { field: value, ... }
+    fn struct_init(&mut self, name: String) -> Result<Expr, ParseError> {
+        let mut fields = Vec::new();
+
+        if !self.check(&TokenKind::RightBrace) {
+            loop {
+                let field_name = if let TokenKind::Identifier(n) = &self.peek().kind {
+                    n.clone()
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        expected: "field name".to_string(),
+                        found: self.peek().clone(),
+                    });
+                };
+                self.advance();
+                self.consume(TokenKind::Colon, ":")?;
+                let value = self.expression()?;
+                fields.push((field_name, value));
+                if !self.match_token(&[TokenKind::Comma]) {
+                    break;
+                }
+            }
+        }
+
+        self.consume(TokenKind::RightBrace, "}")?;
+        Ok(Expr::StructInit { name, fields })
     }
 
     // Parse import statement: import module [as alias]

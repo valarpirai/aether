@@ -1,5 +1,6 @@
 //! Runtime value types for the Aether interpreter
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
@@ -8,6 +9,9 @@ use super::RuntimeError;
 
 /// Type for built-in function implementations
 pub type BuiltinFn = fn(&[Value]) -> Result<Value, RuntimeError>;
+
+/// Method map type: method name → (param names, body)
+pub type MethodMap = Rc<HashMap<String, (Vec<String>, Box<crate::parser::ast::Stmt>)>>;
 
 /// Runtime value type with reference-counted garbage collection
 #[derive(Debug, Clone)]
@@ -43,6 +47,18 @@ pub enum Value {
     },
     /// Dictionary (ordered by insertion, key must be string/int/bool)
     Dict(Rc<Vec<(Value, Value)>>),
+    /// Struct type definition (blueprint)
+    StructDef {
+        name: String,
+        fields: Vec<String>,
+        methods: MethodMap,
+    },
+    /// Struct instance (runtime object with mutable fields)
+    Instance {
+        type_name: String,
+        fields: Rc<RefCell<HashMap<String, Value>>>,
+        methods: MethodMap,
+    },
 }
 
 impl Value {
@@ -82,6 +98,8 @@ impl Value {
             Value::BuiltinFn { .. } => "builtin_function",
             Value::Module { .. } => "module",
             Value::Dict(_) => "dict",
+            Value::StructDef { .. } => "struct",
+            Value::Instance { type_name, .. } => type_name.as_str(),
         }
     }
 }
@@ -99,6 +117,7 @@ impl PartialEq for Value {
             (Value::BuiltinFn { .. }, Value::BuiltinFn { .. }) => false,
             (Value::Module { name: a, .. }, Value::Module { name: b, .. }) => a == b,
             (Value::Dict(a), Value::Dict(b)) => a == b,
+            (Value::StructDef { name: a, .. }, Value::StructDef { name: b, .. }) => a == b,
             _ => false,
         }
     }
@@ -140,6 +159,22 @@ impl fmt::Display for Value {
                     write!(f, "{}: {}", k, v)?;
                 }
                 write!(f, "}}")
+            }
+            Value::StructDef { name, .. } => write!(f, "<struct {}>", name),
+            Value::Instance {
+                type_name, fields, ..
+            } => {
+                write!(f, "{} {{ ", type_name)?;
+                let map = fields.borrow();
+                let mut sorted: Vec<(&String, &Value)> = map.iter().collect();
+                sorted.sort_by_key(|(k, _)| k.as_str());
+                for (i, (k, v)) in sorted.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}: {}", k, v)?;
+                }
+                write!(f, " }}")
             }
         }
     }

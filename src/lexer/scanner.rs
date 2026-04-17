@@ -353,6 +353,7 @@ impl Scanner {
             "try" => TokenKind::Try,
             "catch" => TokenKind::Catch,
             "throw" => TokenKind::Throw,
+            "struct" => TokenKind::Struct,
             _ => TokenKind::Identifier(text.clone()),
         };
 

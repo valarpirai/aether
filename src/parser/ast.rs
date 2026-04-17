@@ -37,6 +37,11 @@ pub enum Expr {
     FunctionExpr(Vec<String>, Box<Stmt>),
     /// String interpolation: parts are alternating literals and expressions
     StringInterp(Vec<Expr>),
+    /// Struct instantiation: StructName { field: value, ... }
+    StructInit {
+        name: String,
+        fields: Vec<(String, Expr)>,
+    },
 }
 
 /// Binary operators
@@ -108,6 +113,12 @@ pub enum Stmt {
     TryCatch(Box<Stmt>, String, Box<Stmt>),
     /// Throw statement (value to throw)
     Throw(Expr),
+    /// Struct declaration (name, fields, methods)
+    StructDecl {
+        name: String,
+        fields: Vec<String>,
+        methods: Vec<(String, Vec<String>, Box<Stmt>)>,
+    },
 }
 
 /// Program (top-level statements)

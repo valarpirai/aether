@@ -1,5 +1,6 @@
 //! Expression evaluation and statement execution for the Aether interpreter
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -334,6 +335,38 @@ impl Evaluator {
             Expr::Spread(_) => Err(RuntimeError::InvalidOperation(
                 "spread operator is only valid inside array literals".to_string(),
             )),
+            Expr::StructInit { name, fields } => {
+                // Look up the struct definition
+                let struct_def = self.environment.get(name)?;
+                match struct_def {
+                    Value::StructDef {
+                        fields: def_fields,
+                        methods,
+                        ..
+                    } => {
+                        // Build field map; start with nulls for declared fields
+                        let mut field_map: HashMap<String, Value> = def_fields
+                            .iter()
+                            .map(|f| (f.clone(), Value::Null))
+                            .collect();
+                        // Fill in provided values
+                        for (field_name, field_expr) in fields {
+                            let val = self.eval_expr(field_expr)?;
+                            field_map.insert(field_name.clone(), val);
+                        }
+                        Ok(Value::Instance {
+                            type_name: name.clone(),
+                            fields: Rc::new(RefCell::new(field_map)),
+                            methods,
+                        })
+                    }
+                    other => Err(RuntimeError::InvalidOperation(format!(
+                        "'{}' is not a struct (got {})",
+                        name,
+                        other.type_name()
+                    ))),
+                }
+            }
         }
     }
 
@@ -703,6 +736,22 @@ impl Evaluator {
                 })
             }
 
+            // Instance field access
+            (
+                Value::Instance {
+                    type_name, fields, ..
+                },
+                prop,
+            ) => {
+                let map = fields.borrow();
+                map.get(prop).cloned().ok_or_else(|| {
+                    RuntimeError::InvalidOperation(format!(
+                        "Field '{}' does not exist on '{}'",
+                        prop, type_name
+                    ))
+                })
+            }
+
             // Undefined property
             (obj, prop) => Err(RuntimeError::InvalidOperation(format!(
                 "Property '{}' does not exist on type '{}'",
@@ -892,6 +941,68 @@ impl Evaluator {
                 self.call_value(func, arg_values)
             }
 
+            // Instance method call: instance.method(args)
+            (
+                Value::Instance {
+                    type_name,
+                    fields,
+                    methods,
+                },
+                meth,
+            ) => {
+                let method = methods.get(meth).cloned().ok_or_else(|| {
+                    RuntimeError::InvalidOperation(format!(
+                        "Method '{}' does not exist on '{}'",
+                        meth, type_name
+                    ))
+                })?;
+                let (params, body) = method;
+                let instance = Value::Instance {
+                    type_name: type_name.clone(),
+                    fields: Rc::clone(fields),
+                    methods: Rc::clone(methods),
+                };
+                // Evaluate call arguments
+                let mut arg_values = Vec::new();
+                for arg in args {
+                    arg_values.push(self.eval_expr(arg)?);
+                }
+                // Execute method with self bound and extra params
+                self.call_depth += 1;
+                if self.call_depth > self.max_call_depth {
+                    self.call_depth -= 1;
+                    return Err(RuntimeError::StackOverflow {
+                        depth: self.call_depth + 1,
+                        limit: self.max_call_depth,
+                    });
+                }
+                let saved_env = self.environment.clone();
+                self.environment = Environment::with_parent(self.environment.clone());
+                // Bind 'self' as first param
+                self.environment.define("self".to_string(), instance);
+                // Bind remaining params (skip first if it is 'self')
+                let user_params: &[String] = if params.first().map(|s| s.as_str()) == Some("self") {
+                    &params[1..]
+                } else {
+                    &params
+                };
+                let mut padded = arg_values;
+                while padded.len() < user_params.len() {
+                    padded.push(Value::Null);
+                }
+                for (param, val) in user_params.iter().zip(padded) {
+                    self.environment.define(param.clone(), val);
+                }
+                let result = match self.exec_stmt_internal(&body) {
+                    Ok(ControlFlow::Return(val)) => Ok(val),
+                    Ok(_) => Ok(Value::Null),
+                    Err(e) => Err(e),
+                };
+                self.environment = saved_env;
+                self.call_depth -= 1;
+                result
+            }
+
             // Undefined method
             (obj, meth) => Err(RuntimeError::InvalidOperation(format!(
                 "Method '{}' does not exist on type '{}'",
@@ -1047,6 +1158,23 @@ impl Evaluator {
                 let msg = format!("{}", value);
                 Err(RuntimeError::Thrown(msg))
             }
+            Stmt::StructDecl {
+                name,
+                fields,
+                methods,
+            } => {
+                let mut method_map = HashMap::new();
+                for (method_name, params, body) in methods {
+                    method_map.insert(method_name.clone(), (params.clone(), body.clone()));
+                }
+                let struct_def = Value::StructDef {
+                    name: name.clone(),
+                    fields: fields.clone(),
+                    methods: Rc::new(method_map),
+                };
+                self.environment.define(name.clone(), struct_def);
+                Ok(ControlFlow::None)
+            }
             Stmt::TryCatch(try_body, error_var, catch_body) => {
                 match self.exec_stmt_internal(try_body) {
                     Ok(flow) => Ok(flow),
@@ -1116,9 +1244,19 @@ impl Evaluator {
                     }),
                 }
             }
-            Expr::Member(_obj, _member) => Err(RuntimeError::InvalidOperation(
-                "Member assignment not yet implemented".to_string(),
-            )),
+            Expr::Member(obj, member) => {
+                let obj_val = self.eval_expr(obj)?;
+                match obj_val {
+                    Value::Instance { fields, .. } => {
+                        fields.borrow_mut().insert(member.clone(), value);
+                        Ok(())
+                    }
+                    other => Err(RuntimeError::InvalidOperation(format!(
+                        "Cannot assign field on type '{}'",
+                        other.type_name()
+                    ))),
+                }
+            }
             _ => Err(RuntimeError::InvalidOperation(
                 "Invalid assignment target".to_string(),
             )),

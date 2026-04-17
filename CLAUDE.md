@@ -245,7 +245,8 @@ All planned features for Phase 1 have been implemented and tested.
   - Math: abs(), min(), max(), sum(), clamp(), sign()
   - String: join(), repeat(), reverse(), starts_with(), ends_with()
   - Testing: assert_eq(), assert_true(), assert_false(), assert_null(), assert_not_null(), expect_error(), test(), test_summary()
-- ✅ **406 tests passing** (99 unit + 307 integration, 1 ignored)
+- ✅ Structs with fields, methods, and `self` binding
+- ✅ **420 tests passing** (99 unit + 321 integration, 1 ignored)
 
 ### Completed Milestones
 1. ✅ Phase 1: Core Interpreter (102 tests)
@@ -253,6 +254,7 @@ All planned features for Phase 1 have been implemented and tested.
 3. ✅ Phase 3: Standard Library (+83 tests → 230 total)
 4. ✅ Phase 4: Advanced Language Features (+84 tests → 314 total)
 5. ✅ Phase 5 Sprint 1: Testing Framework (+19 tests → 333 total)
+6. ✅ Phase 5 Sprint 2: Advanced Types (+87 tests → 420 total)
 
 **Development Time**: ~15 hours total across 5 phases
 
@@ -260,7 +262,7 @@ All planned features for Phase 1 have been implemented and tested.
 1. ✅ `json_parse()`, `json_stringify()` — via serde_json
 2. ✅ `clock()`, `sleep()` — Unix epoch float, thread sleep
 3. ⏳ `http` module — http_get(), http_post() (requires reqwest dependency)
-4. ⏳ User-defined types / structs
+4. ✅ User-defined structs — fields, methods, `self` binding, mutation via RefCell
 5. ⏳ Iterator protocol
 6. ⏳ Async/await support
 
@@ -272,7 +274,7 @@ All planned features for Phase 1 have been implemented and tested.
 
 ### Test Coverage (Last Updated: 2026-04-02)
 
-- **Total**: 406 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test)
+- **Total**: 420 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test)
 - **Code Quality**: 0 clippy warnings
 
 **Breakdown by Category:**
@@ -301,6 +303,11 @@ All planned features for Phase 1 have been implemented and tested.
 - Stdlib collections: 38 tests
 - Stdlib math: 26 tests
 - Stdlib string: 24 tests
+- Slice syntax: 15 tests
+- Spread operator: 9 tests
+- JSON builtins: 25 tests
+- Time builtins: 10 tests
+- Structs: 14 tests
 
 ## Development Resources
 
