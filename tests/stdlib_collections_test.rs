@@ -265,6 +265,103 @@ fn test_some_empty_array() {
     assert_eq!(result.unwrap(), "false");
 }
 
+// sort() tests
+#[test]
+fn test_sort_integers_ascending() {
+    let result = eval("sort([3, 1, 4, 1, 5, 9, 2, 6])");
+    assert_eq!(result.unwrap(), "[1, 1, 2, 3, 4, 5, 6, 9]");
+}
+
+#[test]
+fn test_sort_already_sorted() {
+    let result = eval("sort([1, 2, 3, 4, 5])");
+    assert_eq!(result.unwrap(), "[1, 2, 3, 4, 5]");
+}
+
+#[test]
+fn test_sort_reverse_order() {
+    let result = eval("sort([5, 4, 3, 2, 1])");
+    assert_eq!(result.unwrap(), "[1, 2, 3, 4, 5]");
+}
+
+#[test]
+fn test_sort_empty_array() {
+    let result = eval("sort([])");
+    assert_eq!(result.unwrap(), "[]");
+}
+
+#[test]
+fn test_sort_single_element() {
+    let result = eval("sort([42])");
+    assert_eq!(result.unwrap(), "[42]");
+}
+
+#[test]
+fn test_sort_strings() {
+    let result = eval(r#"sort(["banana", "apple", "cherry"])"#);
+    assert_eq!(result.unwrap(), "[apple, banana, cherry]");
+}
+
+#[test]
+fn test_sort_custom_comparator_descending() {
+    let result = eval(
+        r#"
+        fn desc(a, b) { return a > b }
+        sort([3, 1, 4, 1, 5], desc)
+    "#,
+    );
+    assert_eq!(result.unwrap(), "[5, 4, 3, 1, 1]");
+}
+
+#[test]
+fn test_sort_does_not_mutate_original() {
+    let result = eval(
+        r#"
+        let arr = [3, 1, 2]
+        let sorted = sort(arr)
+        arr
+    "#,
+    );
+    assert_eq!(result.unwrap(), "[3, 1, 2]");
+}
+
+// concat() tests
+#[test]
+fn test_concat_two_arrays() {
+    let result = eval("concat([1, 2, 3], [4, 5, 6])");
+    assert_eq!(result.unwrap(), "[1, 2, 3, 4, 5, 6]");
+}
+
+#[test]
+fn test_concat_empty_first() {
+    let result = eval("concat([], [1, 2, 3])");
+    assert_eq!(result.unwrap(), "[1, 2, 3]");
+}
+
+#[test]
+fn test_concat_empty_second() {
+    let result = eval("concat([1, 2, 3], [])");
+    assert_eq!(result.unwrap(), "[1, 2, 3]");
+}
+
+#[test]
+fn test_concat_two_empty() {
+    let result = eval("concat([], [])");
+    assert_eq!(result.unwrap(), "[]");
+}
+
+#[test]
+fn test_concat_preserves_order() {
+    let result = eval(r#"concat(["a", "b"], ["c", "d"])"#);
+    assert_eq!(result.unwrap(), "[a, b, c, d]");
+}
+
+#[test]
+fn test_concat_mixed_types() {
+    let result = eval("concat([1, 2], [true, null])");
+    assert_eq!(result.unwrap(), "[1, 2, true, null]");
+}
+
 // Composition tests
 #[test]
 fn test_map_filter_composition() {

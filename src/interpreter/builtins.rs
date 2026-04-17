@@ -155,9 +155,9 @@ pub fn builtin_read_file(args: &[Value]) -> Result<Value, RuntimeError> {
             })
         }
     };
-    std::fs::read_to_string(&path).map(Value::string).map_err(|e| {
-        RuntimeError::InvalidOperation(format!("read_file failed: {}", e))
-    })
+    std::fs::read_to_string(&path)
+        .map(Value::string)
+        .map_err(|e| RuntimeError::InvalidOperation(format!("read_file failed: {}", e)))
 }
 
 /// Built-in function: write_file(path, content)
@@ -202,5 +202,9 @@ pub fn builtin_input(args: &[Value]) -> Result<Value, RuntimeError> {
     std::io::stdin()
         .read_line(&mut line)
         .map_err(|e| RuntimeError::InvalidOperation(format!("input failed: {}", e)))?;
-    Ok(Value::string(line.trim_end_matches('\n').trim_end_matches('\r').to_string()))
+    Ok(Value::string(
+        line.trim_end_matches('\n')
+            .trim_end_matches('\r')
+            .to_string(),
+    ))
 }

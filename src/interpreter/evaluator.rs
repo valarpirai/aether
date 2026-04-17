@@ -1004,7 +1004,11 @@ impl Evaluator {
         })?;
 
         match main_val {
-            Value::Function { params, body, closure } => {
+            Value::Function {
+                params,
+                body,
+                closure,
+            } => {
                 if !params.is_empty() {
                     return Err(RuntimeError::InvalidOperation(
                         "main() must take no arguments".to_string(),

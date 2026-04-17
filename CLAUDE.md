@@ -245,7 +245,7 @@ All planned features for Phase 1 have been implemented and tested.
   - Math: abs(), min(), max(), sum(), clamp(), sign()
   - String: join(), repeat(), reverse(), starts_with(), ends_with()
   - Testing: assert_eq(), assert_true(), assert_false(), assert_null(), assert_not_null(), expect_error(), test(), test_summary()
-- ✅ **333 tests passing** (99 unit + 234 integration, 1 ignored)
+- ✅ **347 tests passing** (99 unit + 248 integration, 1 ignored)
 
 ### Completed Milestones
 1. ✅ Phase 1: Core Interpreter (102 tests)
@@ -264,9 +264,15 @@ All planned features for Phase 1 have been implemented and tested.
 5. ⏳ Iterator protocol
 6. ⏳ Async/await support
 
+### Backlog
+- ⏳ Array slice syntax: `arr[1:3]`
+- ⏳ Array spread operator: `[...arr1, ...arr2]`
+- ✅ Array `sort()` method
+- ✅ Array `concat()` method
+
 ### Test Coverage (Last Updated: 2026-04-02)
 
-- **Total**: 333 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test)
+- **Total**: 347 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test)
 - **Code Quality**: 0 clippy warnings
 
 **Breakdown by Category:**
@@ -292,7 +298,7 @@ All planned features for Phase 1 have been implemented and tested.
 - IO builtins: 5 tests
 - Stdlib core: 9 tests
 - Stdlib testing: 19 tests
-- Stdlib collections: 24 tests
+- Stdlib collections: 38 tests
 - Stdlib math: 26 tests
 - Stdlib string: 24 tests
 

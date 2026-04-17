@@ -38,7 +38,11 @@ fn test_assert_eq_passes_when_equal() {
 #[test]
 fn test_assert_eq_passes_string() {
     let result = run(r#"assert_eq("hello", "hello")"#);
-    assert!(result.is_ok(), "assert_eq strings should pass: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "assert_eq strings should pass: {:?}",
+        result
+    );
 }
 
 #[test]
@@ -46,7 +50,11 @@ fn test_assert_eq_fails_when_not_equal() {
     let result = run(r#"assert_eq(1, 2)"#);
     assert!(result.is_err(), "assert_eq(1, 2) should throw");
     let err = result.unwrap_err();
-    assert!(err.contains("1") && err.contains("2"), "Error should mention values: {}", err);
+    assert!(
+        err.contains("1") && err.contains("2"),
+        "Error should mention values: {}",
+        err
+    );
 }
 
 #[test]
@@ -54,7 +62,11 @@ fn test_assert_eq_fails_with_descriptive_message() {
     let result = run(r#"assert_eq("foo", "bar")"#);
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert!(err.contains("foo") || err.contains("bar"), "Error should include values: {}", err);
+    assert!(
+        err.contains("foo") || err.contains("bar"),
+        "Error should include values: {}",
+        err
+    );
 }
 
 // assert_true / assert_false tests
@@ -62,7 +74,11 @@ fn test_assert_eq_fails_with_descriptive_message() {
 #[test]
 fn test_assert_true_passes() {
     let result = run(r#"assert_true(true)"#);
-    assert!(result.is_ok(), "assert_true(true) should pass: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "assert_true(true) should pass: {:?}",
+        result
+    );
 }
 
 #[test]
@@ -74,7 +90,11 @@ fn test_assert_true_fails() {
 #[test]
 fn test_assert_false_passes() {
     let result = run(r#"assert_false(false)"#);
-    assert!(result.is_ok(), "assert_false(false) should pass: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "assert_false(false) should pass: {:?}",
+        result
+    );
 }
 
 #[test]
@@ -88,7 +108,11 @@ fn test_assert_false_fails() {
 #[test]
 fn test_assert_null_passes() {
     let result = run(r#"assert_null(null)"#);
-    assert!(result.is_ok(), "assert_null(null) should pass: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "assert_null(null) should pass: {:?}",
+        result
+    );
 }
 
 #[test]
@@ -100,7 +124,11 @@ fn test_assert_null_fails() {
 #[test]
 fn test_assert_not_null_passes() {
     let result = run(r#"assert_not_null(42)"#);
-    assert!(result.is_ok(), "assert_not_null(42) should pass: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "assert_not_null(42) should pass: {:?}",
+        result
+    );
 }
 
 #[test]
@@ -119,7 +147,11 @@ expect_error(fn() {
 })
 "#;
     let result = run(source);
-    assert!(result.is_ok(), "expect_error should pass when fn throws: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "expect_error should pass when fn throws: {:?}",
+        result
+    );
 }
 
 #[test]
@@ -130,7 +162,10 @@ expect_error(fn() {
 })
 "#;
     let result = run(source);
-    assert!(result.is_err(), "expect_error should throw when fn does not throw");
+    assert!(
+        result.is_err(),
+        "expect_error should throw when fn does not throw"
+    );
 }
 
 // test() runner tests
@@ -143,7 +178,11 @@ test("addition works", fn() {
 })
 "#;
     let result = run(source);
-    assert!(result.is_ok(), "test() should not throw on passing test: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "test() should not throw on passing test: {:?}",
+        result
+    );
 }
 
 #[test]
@@ -155,7 +194,11 @@ test("this fails", fn() {
 "#;
     // test() catches the error and records it — it should NOT propagate
     let result = run(source);
-    assert!(result.is_ok(), "test() should catch failures, not propagate: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "test() should catch failures, not propagate: {:?}",
+        result
+    );
 }
 
 #[test]
@@ -177,7 +220,11 @@ let r = test("my test", fn() { assert_eq(2, 2) })
 r["passed"]
 "#;
     let result = run(source);
-    assert!(result.is_ok(), "test() should return a result dict: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "test() should return a result dict: {:?}",
+        result
+    );
     assert_eq!(result.unwrap(), "true");
 }
 
@@ -188,6 +235,10 @@ let r = test("failing", fn() { assert_eq(1, 2) })
 r["passed"]
 "#;
     let result = run(source);
-    assert!(result.is_ok(), "test() should return failure dict without throwing: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "test() should return failure dict without throwing: {:?}",
+        result
+    );
     assert_eq!(result.unwrap(), "false");
 }

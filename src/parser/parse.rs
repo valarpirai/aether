@@ -730,7 +730,11 @@ impl Parser {
         self.consume(TokenKind::LeftBrace, "{")?;
         let catch_body = self.block_statement()?;
 
-        Ok(Stmt::TryCatch(Box::new(try_body), error_var, Box::new(catch_body)))
+        Ok(Stmt::TryCatch(
+            Box::new(try_body),
+            error_var,
+            Box::new(catch_body),
+        ))
     }
 
     // Parse throw: throw expr
