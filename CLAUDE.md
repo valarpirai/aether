@@ -245,7 +245,7 @@ All planned features for Phase 1 have been implemented and tested.
   - Math: abs(), min(), max(), sum(), clamp(), sign()
   - String: join(), repeat(), reverse(), starts_with(), ends_with()
   - Testing: assert_eq(), assert_true(), assert_false(), assert_null(), assert_not_null(), expect_error(), test(), test_summary()
-- ✅ **371 tests passing** (99 unit + 272 integration, 1 ignored)
+- ✅ **396 tests passing** (99 unit + 297 integration, 1 ignored)
 
 ### Completed Milestones
 1. ✅ Phase 1: Core Interpreter (102 tests)
@@ -257,7 +257,7 @@ All planned features for Phase 1 have been implemented and tested.
 **Development Time**: ~15 hours total across 5 phases
 
 ### Future Work (Phase 5 continued)
-1. ⏳ `json` module — json_parse(), json_stringify() (requires Rust builtins)
+1. ✅ `json_parse()`, `json_stringify()` — via serde_json
 2. ⏳ `time` module — clock(), sleep() (requires Rust builtins)
 3. ⏳ `http` module — http_get(), http_post() (requires reqwest dependency)
 4. ⏳ User-defined types / structs
@@ -272,7 +272,7 @@ All planned features for Phase 1 have been implemented and tested.
 
 ### Test Coverage (Last Updated: 2026-04-02)
 
-- **Total**: 371 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test)
+- **Total**: 396 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test)
 - **Code Quality**: 0 clippy warnings
 
 **Breakdown by Category:**

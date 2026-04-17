@@ -174,6 +174,25 @@ impl Evaluator {
                 func: builtins::builtin_input,
             },
         );
+
+        // JSON functions
+        self.environment.define(
+            "json_parse".to_string(),
+            Value::BuiltinFn {
+                name: "json_parse".to_string(),
+                arity: 1,
+                func: builtins::builtin_json_parse,
+            },
+        );
+
+        self.environment.define(
+            "json_stringify".to_string(),
+            Value::BuiltinFn {
+                name: "json_stringify".to_string(),
+                arity: 1,
+                func: builtins::builtin_json_stringify,
+            },
+        );
     }
 
     /// Load standard library modules
