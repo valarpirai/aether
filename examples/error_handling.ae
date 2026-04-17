@@ -1,0 +1,59 @@
+// Error handling: try/catch/throw patterns
+
+fn safe_divide(a, b) {
+    if (b == 0) {
+        throw "Division by zero"
+    }
+    return a / b
+}
+
+fn parse_positive(s) {
+    let n = int(s)
+    if (n <= 0) {
+        throw "Expected positive number, got: " + s
+    }
+    return n
+}
+
+// Basic try/catch
+try {
+    let result = safe_divide(10, 2)
+    println("10 / 2 = " + str(result))
+
+    let bad = safe_divide(5, 0)
+    println("Should not reach here")
+} catch (err) {
+    println("Caught: " + err)
+}
+
+// Catch parse errors
+try {
+    let n = parse_positive("42")
+    println("Parsed: " + str(n))
+} catch (err) {
+    println("Unexpected error: " + err)
+}
+
+try {
+    let n = parse_positive("-5")
+    println("Should not reach here")
+} catch (err) {
+    println("Caught: " + err)
+}
+
+// Nested try/catch
+fn process(values) {
+    let results = []
+    for v in values {
+        try {
+            results.push(safe_divide(100, v))
+        } catch (err) {
+            results.push("error")
+        }
+    }
+    return results
+}
+
+let inputs = [5, 0, 4, 0, 2]
+let outputs = process(inputs)
+println("Results: " + str(outputs))

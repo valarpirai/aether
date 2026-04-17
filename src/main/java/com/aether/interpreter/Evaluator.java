@@ -357,21 +357,12 @@ public final class Evaluator {
           if (b == 0) throw new AetherRuntimeException.DivisionByZero();
           yield new Value.IntVal(a / b);
         }
-        case Value.FloatVal(double b) -> {
-          if (b == 0.0) throw new AetherRuntimeException.DivisionByZero();
-          yield new Value.FloatVal(a / b);
-        }
+        case Value.FloatVal(double b) -> new Value.FloatVal(a / b);
         default -> throw new AetherRuntimeException.TypeError("number", right.typeName());
       };
       case Value.FloatVal(double a) -> switch (right) {
-        case Value.IntVal(long b) -> {
-          if (b == 0) throw new AetherRuntimeException.DivisionByZero();
-          yield new Value.FloatVal(a / b);
-        }
-        case Value.FloatVal(double b) -> {
-          if (b == 0.0) throw new AetherRuntimeException.DivisionByZero();
-          yield new Value.FloatVal(a / b);
-        }
+        case Value.IntVal(long b) -> new Value.FloatVal(a / b);
+        case Value.FloatVal(double b) -> new Value.FloatVal(a / b);
         default -> throw new AetherRuntimeException.TypeError("number", right.typeName());
       };
       default -> throw new AetherRuntimeException.TypeError("number", left.typeName());
@@ -379,11 +370,31 @@ public final class Evaluator {
   }
 
   private Value evalModulo(Value left, Value right) {
-    if (left instanceof Value.IntVal(long a) && right instanceof Value.IntVal(long b)) {
-      if (b == 0) throw new AetherRuntimeException.DivisionByZero();
-      return new Value.IntVal(a % b);
-    }
-    throw new AetherRuntimeException.TypeError("integer", left.typeName() + " % " + right.typeName());
+    return switch (left) {
+      case Value.IntVal(long a) -> switch (right) {
+        case Value.IntVal(long b) -> {
+          if (b == 0) throw new AetherRuntimeException.DivisionByZero();
+          yield new Value.IntVal(a % b);
+        }
+        case Value.FloatVal(double b) -> {
+          if (b == 0.0) throw new AetherRuntimeException.DivisionByZero();
+          yield new Value.FloatVal(a % b);
+        }
+        default -> throw new AetherRuntimeException.TypeError("number", right.typeName());
+      };
+      case Value.FloatVal(double a) -> switch (right) {
+        case Value.IntVal(long b) -> {
+          if (b == 0) throw new AetherRuntimeException.DivisionByZero();
+          yield new Value.FloatVal(a % b);
+        }
+        case Value.FloatVal(double b) -> {
+          if (b == 0.0) throw new AetherRuntimeException.DivisionByZero();
+          yield new Value.FloatVal(a % b);
+        }
+        default -> throw new AetherRuntimeException.TypeError("number", right.typeName());
+      };
+      default -> throw new AetherRuntimeException.TypeError("number", left.typeName());
+    };
   }
 
   private Value evalComparison(
@@ -583,6 +594,10 @@ public final class Evaluator {
       fieldMap.put(f, Value.Null.INSTANCE);
     }
     for (Expr.FieldInit fi : fields) {
+      if (!sd.fields().contains(fi.name())) {
+        throw new AetherRuntimeException.InvalidOperation(
+            "Struct '" + name + "' has no field '" + fi.name() + "'");
+      }
       fieldMap.put(fi.name(), evalExpr(fi.value()));
     }
     return new Value.Instance(name, fieldMap, sd.methods());
@@ -923,6 +938,10 @@ public final class Evaluator {
         if (!(object instanceof Value.Instance inst)) {
           throw new AetherRuntimeException.InvalidOperation(
               "Cannot assign field on type '" + object.typeName() + "'");
+        }
+        if (!inst.fields().containsKey(member)) {
+          throw new AetherRuntimeException.InvalidOperation(
+              "Struct '" + inst.typeName() + "' has no field '" + member + "'");
         }
         inst.fields().put(member, value);
       }

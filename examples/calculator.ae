@@ -1,0 +1,64 @@
+// Simple expression calculator using structs and closures
+
+struct Calc {
+    history
+
+    fn add(self, a, b) {
+        let result = a + b
+        self.history.push(str(a) + " + " + str(b) + " = " + str(result))
+        return result
+    }
+
+    fn sub(self, a, b) {
+        let result = a - b
+        self.history.push(str(a) + " - " + str(b) + " = " + str(result))
+        return result
+    }
+
+    fn mul(self, a, b) {
+        let result = a * b
+        self.history.push(str(a) + " * " + str(b) + " = " + str(result))
+        return result
+    }
+
+    fn div(self, a, b) {
+        if (b == 0) {
+            throw "Cannot divide by zero"
+        }
+        let result = a / b
+        self.history.push(str(a) + " / " + str(b) + " = " + str(result))
+        return result
+    }
+
+    fn print_history(self) {
+        println("Calculation history:")
+        for entry in self.history {
+            println("  " + entry)
+        }
+    }
+}
+
+let c = Calc { history: [] }
+
+println(c.add(10, 5))
+println(c.sub(20, 8))
+println(c.mul(4, 7))
+println(c.div(15, 3))
+
+// Float arithmetic
+println(c.add(3.14, 2.86))
+println(c.mul(2.5, 4.0))
+
+// Mixed int and float
+println(c.div(7, 2))
+println(c.div(7.0, 2))
+
+// Error handling for division by zero
+try {
+    c.div(10, 0)
+} catch (err) {
+    println("Error: " + err)
+}
+
+println("")
+c.print_history()

@@ -200,4 +200,94 @@ class BugRegressionTest {
           eval("let a = [1]\nlet r = \"falsy\"\nif (a) { r = \"truthy\" }\nr"));
     }
   }
+
+  // ── Bug 5: float modulo was not supported (only int % int worked) ─────────────
+  // `5.5 % 2.5` threw TypeError; `7 % 2.5` threw TypeError.
+
+  @Nested
+  class FloatModulo {
+
+    @Test
+    void floatModFloat() {
+      assertEquals("0.5", eval("5.5 % 2.5"));
+    }
+
+    @Test
+    void intModFloat() {
+      assertEquals("1.0", eval("7 % 2.0"));
+    }
+
+    @Test
+    void floatModInt() {
+      assertEquals("1.5", eval("7.5 % 3"));
+    }
+
+    @Test
+    void floatModZeroThrows() {
+      assertThrows(AetherRuntimeException.DivisionByZero.class,
+          () -> eval("5.5 % 0.0"));
+    }
+  }
+
+  // ── Bug 6: float division by zero threw instead of returning Infinity ─────────
+  // `1.0 / 0.0` threw DivisionByZero; IEEE 754 says it should be Infinity.
+
+  @Nested
+  class FloatDivisionByZero {
+
+    @Test
+    void floatDivByFloatZeroIsInfinity() {
+      assertEquals("Infinity", eval("1.0 / 0.0"));
+    }
+
+    @Test
+    void intDivByFloatZeroIsInfinity() {
+      assertEquals("Infinity", eval("1 / 0.0"));
+    }
+
+    @Test
+    void floatDivByIntZeroIsInfinity() {
+      assertEquals("Infinity", eval("1.0 / 0"));
+    }
+
+    @Test
+    void negativeInfinity() {
+      assertEquals("-Infinity", eval("-1.0 / 0.0"));
+    }
+
+    @Test
+    void intDivByIntZeroStillThrows() {
+      assertThrows(AetherRuntimeException.DivisionByZero.class,
+          () -> eval("1 / 0"));
+    }
+  }
+
+  // ── Bug 7: struct init accepted undeclared fields silently ────────────────────
+  // `Point{x:1, z:99}` on a struct with only `x` field should throw.
+
+  @Nested
+  class StructFieldValidation {
+
+    @Test
+    void initRejectsUndeclaredField() {
+      assertThrows(AetherRuntimeException.InvalidOperation.class,
+          () -> eval("struct P { x }\nP { x: 1, z: 99 }"));
+    }
+
+    @Test
+    void assignRejectsUndeclaredField() {
+      assertThrows(AetherRuntimeException.InvalidOperation.class,
+          () -> eval("struct P { x }\nlet p = P { x: 1 }\np.z = 99"));
+    }
+
+    @Test
+    void initWithDeclaredFieldsWorks() {
+      assertEquals("42", eval("struct P { x }\nlet p = P { x: 42 }\np.x"));
+    }
+
+    @Test
+    void assignDeclaredFieldWorks() {
+      assertEquals("99", eval("struct P { x }\nlet p = P { x: 1 }\np.x = 99\np.x"));
+    }
+  }
 }

@@ -1,0 +1,67 @@
+// Data processing: filtering, mapping, aggregation
+
+fn map(arr, transform) {
+    let result = []
+    for item in arr {
+        result.push(transform(item))
+    }
+    return result
+}
+
+fn filter(arr, predicate) {
+    let result = []
+    for item in arr {
+        if (predicate(item)) {
+            result.push(item)
+        }
+    }
+    return result
+}
+
+fn reduce(arr, initial, combiner) {
+    let acc = initial
+    for item in arr {
+        acc = combiner(acc, item)
+    }
+    return acc
+}
+
+let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+// Map: square each number
+let squares = map(numbers, fn(x) { return x * x })
+println("Squares:")
+println(squares)
+
+// Filter: keep only even numbers
+let evens = filter(numbers, fn(x) { return x % 2 == 0 })
+println("Evens:")
+println(evens)
+
+// Reduce: sum all elements
+let total = reduce(numbers, 0, fn(acc, x) { return acc + x })
+println("Sum: " + str(total))
+
+// Chaining: sum of squares of odd numbers
+let odd_squares_sum = reduce(
+    map(filter(numbers, fn(x) { return x % 2 != 0 }),
+        fn(x) { return x * x }),
+    0,
+    fn(acc, x) { return acc + x }
+)
+println("Sum of squares of odd numbers: " + str(odd_squares_sum))
+
+// Word frequency counter
+let words = ["apple", "banana", "apple", "cherry", "banana", "apple"]
+let freq = {}
+for word in words {
+    if (freq.contains(word)) {
+        freq[word] = freq[word] + 1
+    } else {
+        freq[word] = 1
+    }
+}
+println("Word frequencies:")
+for word in freq.keys() {
+    println("  " + word + ": " + str(freq[word]))
+}

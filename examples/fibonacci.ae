@@ -1,0 +1,46 @@
+// Fibonacci: recursive and iterative implementations
+
+fn fib_recursive(n) {
+    if (n <= 1) {
+        return n
+    }
+    return fib_recursive(n - 1) + fib_recursive(n - 2)
+}
+
+fn fib_iterative(n) {
+    if (n <= 1) {
+        return n
+    }
+    let a = 0
+    let b = 1
+    let i = 2
+    while (i <= n) {
+        let temp = a + b
+        a = b
+        b = temp
+        i += 1
+    }
+    return b
+}
+
+// Generate first 10 Fibonacci numbers using iterative method
+println("Fibonacci sequence (first 10):")
+let i = 0
+while (i < 10) {
+    print(fib_iterative(i))
+    print(" ")
+    i += 1
+}
+println("")
+
+// Verify recursive matches iterative for n=0..9
+println("Recursive matches iterative:")
+let all_match = true
+let k = 0
+while (k < 10) {
+    if (fib_recursive(k) != fib_iterative(k)) {
+        all_match = false
+    }
+    k += 1
+}
+println(all_match)

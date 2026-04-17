@@ -1,0 +1,60 @@
+// Sorting algorithms implemented in Aether
+
+fn bubble_sort(arr) {
+    let n = arr.length
+    let i = 0
+    while (i < n - 1) {
+        let j = 0
+        while (j < n - i - 1) {
+            if (arr[j] > arr[j + 1]) {
+                let temp = arr[j]
+                arr[j] = arr[j + 1]
+                arr[j + 1] = temp
+            }
+            j += 1
+        }
+        i += 1
+    }
+    return arr
+}
+
+fn insertion_sort(arr) {
+    let n = arr.length
+    let i = 1
+    while (i < n) {
+        let key = arr[i]
+        let j = i - 1
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j]
+            j -= 1
+        }
+        arr[j + 1] = key
+        i += 1
+    }
+    return arr
+}
+
+let data = [64, 34, 25, 12, 22, 11, 90]
+println("Original: ")
+println(data)
+
+data = bubble_sort(data)
+println("After bubble sort:")
+println(data)
+
+let data2 = [64, 34, 25, 12, 22, 11, 90]
+data2 = insertion_sort(data2)
+println("After insertion sort:")
+println(data2)
+
+// Using built-in sort
+let data3 = [64, 34, 25, 12, 22, 11, 90]
+data3.sort()
+println("After built-in sort:")
+println(data3)
+
+// Sort descending with comparator
+let data4 = [3, 1, 4, 1, 5, 9, 2, 6]
+data4.sort(fn(a, b) { return a > b })
+println("Descending sort:")
+println(data4)
