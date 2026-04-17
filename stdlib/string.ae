@@ -27,16 +27,12 @@ fn repeat(string, n) {
     return result
 }
 
-// reverse(string) - Reverse a string
+// reverse(string) - Reverse a string using character indexing
 fn reverse(string) {
-    // Split into array of characters using split on empty string
-    let chars = string.split("")
     let result = ""
-
-    // Skip first empty and iterate backwards from second-to-last
-    let i = len(chars) - 2
-    while (i > 0) {
-        result = result + chars[i]
+    let i = len(string) - 1
+    while (i >= 0) {
+        result = result + string[i]
         i = i - 1
     }
     return result
@@ -46,24 +42,17 @@ fn reverse(string) {
 fn starts_with(string, prefix) {
     let prefix_len = len(prefix)
 
-    // Empty prefix always matches
     if (prefix_len == 0) {
         return true
     }
 
-    // Prefix longer than string
     if (prefix_len > len(string)) {
         return false
     }
 
-    // Compare character by character
-    let chars = string.split("")
-    let prefix_chars = prefix.split("")
     let i = 0
-
-    // Start at index 1 to skip first empty string
     while (i < prefix_len) {
-        if (chars[i + 1] != prefix_chars[i + 1]) {
+        if (string[i] != prefix[i]) {
             return false
         }
         i = i + 1
@@ -77,27 +66,17 @@ fn ends_with(string, suffix) {
     let suffix_len = len(suffix)
     let string_len = len(string)
 
-    // Empty suffix always matches
     if (suffix_len == 0) {
         return true
     }
 
-    // Suffix longer than string
     if (suffix_len > string_len) {
         return false
     }
 
-    // Compare character by character from the end
-    let chars = string.split("")
-    let suffix_chars = suffix.split("")
-
-    // chars has empty at start and end, so actual chars are at [1..len-1]
-    // For "hello" split("") = ["", "h", "e", "l", "l", "o", ""]
     let i = 0
     while (i < suffix_len) {
-        let string_idx = string_len - suffix_len + i + 1
-        let suffix_idx = i + 1
-        if (chars[string_idx] != suffix_chars[suffix_idx]) {
+        if (string[string_len - suffix_len + i] != suffix[i]) {
             return false
         }
         i = i + 1
