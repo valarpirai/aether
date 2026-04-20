@@ -185,9 +185,9 @@ java --enable-preview -jar target/aether.jar
 - Module system: import, from...import, import...as
 - Array built-in methods: push, pop, sort(comparator), concat, contains, length
 - Fat JAR packaging (Maven Shade + Gradle Shadow)
-- 451 tests across 20 test classes (parity with Rust ~420 tests)
+- 451 tests across 20 test classes (parity with Rust ~420 tests); 3 http tests disabled (require network)
+- `http_get(url)`, `http_post(url, body)` via Java HttpClient (Java 11+)
 
 ### Next
 - GraalVM native-image for zero-JVM startup binary
-- HTTP stdlib module
 - Bytecode compiler (performance)
