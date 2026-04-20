@@ -213,6 +213,25 @@ impl Evaluator {
                 func: builtins::builtin_json_stringify,
             },
         );
+
+        // HTTP functions
+        self.environment.define(
+            "http_get".to_string(),
+            Value::BuiltinFn {
+                name: "http_get".to_string(),
+                arity: 1,
+                func: builtins::builtin_http_get,
+            },
+        );
+
+        self.environment.define(
+            "http_post".to_string(),
+            Value::BuiltinFn {
+                name: "http_post".to_string(),
+                arity: 2,
+                func: builtins::builtin_http_post,
+            },
+        );
     }
 
     /// Load standard library modules

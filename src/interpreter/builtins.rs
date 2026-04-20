@@ -329,6 +329,59 @@ pub fn builtin_clock(args: &[Value]) -> Result<Value, RuntimeError> {
     Ok(Value::Float(secs))
 }
 
+/// Built-in function: http_get(url) -> string
+pub fn builtin_http_get(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    let url = match &args[0] {
+        Value::String(s) => s.as_ref().clone(),
+        other => {
+            return Err(RuntimeError::TypeError {
+                expected: "string".to_string(),
+                got: other.type_name().to_string(),
+            })
+        }
+    };
+    let body = reqwest::blocking::get(&url)
+        .map_err(|e| RuntimeError::InvalidOperation(format!("http_get failed: {}", e)))?
+        .text()
+        .map_err(|e| RuntimeError::InvalidOperation(format!("http_get read failed: {}", e)))?;
+    Ok(Value::string(body))
+}
+
+/// Built-in function: http_post(url, body) -> string
+pub fn builtin_http_post(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 2 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 2,
+            got: args.len(),
+        });
+    }
+    let url = match &args[0] {
+        Value::String(s) => s.as_ref().clone(),
+        other => {
+            return Err(RuntimeError::TypeError {
+                expected: "string".to_string(),
+                got: other.type_name().to_string(),
+            })
+        }
+    };
+    let body = format!("{}", args[1]);
+    let client = reqwest::blocking::Client::new();
+    let response_body = client
+        .post(&url)
+        .body(body)
+        .send()
+        .map_err(|e| RuntimeError::InvalidOperation(format!("http_post failed: {}", e)))?
+        .text()
+        .map_err(|e| RuntimeError::InvalidOperation(format!("http_post read failed: {}", e)))?;
+    Ok(Value::string(response_body))
+}
+
 /// Built-in function: sleep(seconds)
 /// Pauses execution for the given number of seconds (int or float).
 pub fn builtin_sleep(args: &[Value]) -> Result<Value, RuntimeError> {
