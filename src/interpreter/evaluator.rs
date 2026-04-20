@@ -900,6 +900,114 @@ impl Evaluator {
 
                 Ok(popped.unwrap_or(Value::Null))
             }
+            (Value::Array(elements), "contains") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let needle = self.eval_expr(&args[0])?;
+                let found = elements.iter().any(|elem| self.values_equal(elem, &needle));
+                Ok(Value::Bool(found))
+            }
+            (Value::Array(elements), "sort") => {
+                if args.len() > 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let mut new_elements = (**elements).to_vec();
+                if args.is_empty() {
+                    let sort_err: Option<RuntimeError> = None;
+                    new_elements.sort_by(|a, b| {
+                        if sort_err.is_some() {
+                            return std::cmp::Ordering::Equal;
+                        }
+                        match (a, b) {
+                            (Value::Int(x), Value::Int(y)) => x.cmp(y),
+                            (Value::Float(x), Value::Float(y)) => {
+                                x.partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal)
+                            }
+                            (Value::Int(x), Value::Float(y)) => {
+                                (*x as f64).partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal)
+                            }
+                            (Value::Float(x), Value::Int(y)) => {
+                                x.partial_cmp(&(*y as f64)).unwrap_or(std::cmp::Ordering::Equal)
+                            }
+                            (Value::String(x), Value::String(y)) => x.cmp(y),
+                            _ => a.type_name().cmp(b.type_name()),
+                        }
+                    });
+                    if let Some(e) = sort_err {
+                        return Err(e);
+                    }
+                } else {
+                    let comparator = self.eval_expr(&args[0])?;
+                    let mut sort_err: Option<RuntimeError> = None;
+                    new_elements.sort_by(|a, b| {
+                        if sort_err.is_some() {
+                            return std::cmp::Ordering::Equal;
+                        }
+                        match self.call_value(comparator.clone(), vec![a.clone(), b.clone()]) {
+                            Ok(Value::Int(n)) => {
+                                if n < 0 {
+                                    std::cmp::Ordering::Less
+                                } else if n > 0 {
+                                    std::cmp::Ordering::Greater
+                                } else {
+                                    std::cmp::Ordering::Equal
+                                }
+                            }
+                            Ok(other) => {
+                                sort_err = Some(RuntimeError::TypeError {
+                                    expected: "int".to_string(),
+                                    got: other.type_name().to_string(),
+                                });
+                                std::cmp::Ordering::Equal
+                            }
+                            Err(e) => {
+                                sort_err = Some(e);
+                                std::cmp::Ordering::Equal
+                            }
+                        }
+                    });
+                    if let Some(e) = sort_err {
+                        return Err(e);
+                    }
+                }
+                let new_array = Value::Array(Rc::new(new_elements));
+                if let Expr::Identifier(name) = object {
+                    self.environment.set(name, new_array)?;
+                } else if let Expr::Member(obj_expr, field) = object {
+                    let owner = self.eval_expr(obj_expr)?;
+                    if let Value::Instance { fields, .. } = owner {
+                        fields.borrow_mut().insert(field.clone(), new_array);
+                    }
+                }
+                Ok(Value::Null)
+            }
+            (Value::Array(elements), "concat") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let other_val = self.eval_expr(&args[0])?;
+                match other_val {
+                    Value::Array(other_elements) => {
+                        let mut result = (**elements).to_vec();
+                        result.extend_from_slice(&other_elements);
+                        Ok(Value::Array(Rc::new(result)))
+                    }
+                    other => Err(RuntimeError::TypeError {
+                        expected: "array".to_string(),
+                        got: other.type_name().to_string(),
+                    }),
+                }
+            }
 
             // String methods
             (Value::String(s), "upper") => {
