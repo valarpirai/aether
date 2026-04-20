@@ -261,7 +261,7 @@ All planned features for Phase 1 have been implemented and tested.
 ### Future Work (Phase 5 continued)
 1. ✅ `json_parse()`, `json_stringify()` — via serde_json
 2. ✅ `clock()`, `sleep()` — Unix epoch float, thread sleep
-3. ⏳ `http` module — http_get(), http_post() (requires reqwest dependency)
+3. ✅ `http` module — http_get(), http_post() via reqwest (blocking)
 4. ✅ User-defined structs — fields, methods, `self` binding, mutation via RefCell
 5. ⏳ Iterator protocol
 6. ⏳ Async/await support
@@ -274,7 +274,7 @@ All planned features for Phase 1 have been implemented and tested.
 
 ### Test Coverage (Last Updated: 2026-04-02)
 
-- **Total**: 420 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test)
+- **Total**: 420 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test; 5 http tests ignored — require network)
 - **Code Quality**: 0 clippy warnings
 
 **Breakdown by Category:**
