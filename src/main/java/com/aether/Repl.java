@@ -29,7 +29,7 @@ public final class Repl {
 
   /** Start the interactive REPL loop. Exits on Ctrl+D. */
   public void run() {
-    System.out.println("Aether " + VERSION + " REPL — type 'help' for commands, Ctrl+D to exit");
+    System.out.println("Aether " + VERSION + " REPL — type '_help' for commands, Ctrl+D to exit");
 
     try (Terminal terminal = TerminalBuilder.builder().system(true).build()) {
       LineReader reader =
@@ -70,14 +70,15 @@ public final class Repl {
    */
   private boolean handleCommand(String line) {
     return switch (line) {
-      case "help" -> {
+      case "_help" -> {
         System.out.println("Commands:");
-        System.out.println("  help  — show this message");
-        System.out.println("  env   — list all defined variables");
+        System.out.println("  _help  — show this message");
+        System.out.println("  _env   — list all defined variables");
+        System.out.println("  _exit  — exit the REPL");
         System.out.println("  Ctrl+D — exit");
         yield true;
       }
-      case "env" -> {
+      case "_env" -> {
         Map<String, Value> bindings = evaluator.environment().localBindings();
         if (bindings.isEmpty()) {
           System.out.println("(no variables defined)");
@@ -85,6 +86,11 @@ public final class Repl {
           bindings.forEach((name, val) ->
               System.out.println(name + " = " + Builtins.display(val)));
         }
+        yield true;
+      }
+      case "_exit" -> {
+        System.out.println("Goodbye!");
+        System.exit(0);
         yield true;
       }
       default -> false;

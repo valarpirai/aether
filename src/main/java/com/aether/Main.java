@@ -51,14 +51,15 @@ public final class Main {
       List<Stmt> statements = new Parser(scanner.scanTokens()).parse();
       Evaluator evaluator = Evaluator.withStdlib();
       evaluator.execute(statements);
-      // Call main() if the script defines one
       try {
         Value main = evaluator.environment().get("main");
         if (main instanceof Value.AetherFunction || main instanceof Value.Builtin) {
           evaluator.evalExpr(new Expr.Call(new Expr.Identifier("main"), List.of()));
         }
-      } catch (AetherRuntimeException.UndefinedVariable ignored) {
-        // No main() defined — script-style file, that's fine
+      } catch (AetherRuntimeException.UndefinedVariable e) {
+        System.err.println(
+            "No main() function defined. Every Aether program must have a main() function.");
+        System.exit(1);
       }
     } catch (Exception e) {
       System.err.println("Runtime error: " + e.getMessage());
