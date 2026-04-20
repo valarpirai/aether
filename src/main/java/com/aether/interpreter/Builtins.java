@@ -8,6 +8,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -191,6 +195,52 @@ public final class Builtins {
         Thread.currentThread().interrupt();
       }
       return Value.Null.INSTANCE;
+    });
+  }
+
+  // ── HTTP ─────────────────────────────────────────────────────────────────────
+
+  /** {@code http_get(url)} — perform a GET request and return the response body. */
+  public static Value.Builtin httpGet() {
+    return builtin("http_get", 1, args -> {
+      String url = requireStr(args.get(0), "http_get");
+      try {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .GET()
+            .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        return new Value.Str(response.body());
+      } catch (IOException | InterruptedException e) {
+        if (e instanceof InterruptedException) Thread.currentThread().interrupt();
+        throw new AetherRuntimeException.InvalidOperation("http_get failed: " + e.getMessage());
+      } catch (IllegalArgumentException e) {
+        throw new AetherRuntimeException.InvalidOperation("http_get failed: invalid URL: " + url);
+      }
+    });
+  }
+
+  /** {@code http_post(url, body)} — perform a POST request and return the response body. */
+  public static Value.Builtin httpPost() {
+    return builtin("http_post", 2, args -> {
+      String url = requireStr(args.get(0), "http_post");
+      String body = display(args.get(1));
+      try {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(url))
+            .header("Content-Type", "text/plain")
+            .POST(HttpRequest.BodyPublishers.ofString(body))
+            .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        return new Value.Str(response.body());
+      } catch (IOException | InterruptedException e) {
+        if (e instanceof InterruptedException) Thread.currentThread().interrupt();
+        throw new AetherRuntimeException.InvalidOperation("http_post failed: " + e.getMessage());
+      } catch (IllegalArgumentException e) {
+        throw new AetherRuntimeException.InvalidOperation("http_post failed: invalid URL: " + url);
+      }
     });
   }
 

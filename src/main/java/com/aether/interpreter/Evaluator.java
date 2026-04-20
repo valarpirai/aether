@@ -1057,6 +1057,8 @@ public final class Evaluator {
     environment.define("sleep", Builtins.sleep());
     environment.define("json_parse", Builtins.jsonParse());
     environment.define("json_stringify", Builtins.jsonStringify());
+    environment.define("http_get", Builtins.httpGet());
+    environment.define("http_post", Builtins.httpPost());
   }
 
   private void loadStdlib() {
