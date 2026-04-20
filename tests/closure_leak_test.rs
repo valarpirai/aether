@@ -71,7 +71,6 @@ f(3)
 
 // Test 4: Closure in loop (extreme memory test)
 #[test]
-#[ignore] // Ignore by default - causes OOM
 fn test_closure_in_loop() {
     let source = r#"
 let x = 10

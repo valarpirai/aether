@@ -1251,25 +1251,12 @@ impl Evaluator {
             Stmt::Break => Ok(ControlFlow::Break),
             Stmt::Continue => Ok(ControlFlow::Continue),
             Stmt::Function(name, params, body) => {
-                // Create function with temporary closure
-                let temp_func = Value::Function {
-                    params: params.clone(),
-                    body: body.clone(),
-                    closure: Rc::new(self.environment.clone()),
-                };
-
-                // Define function in environment
-                self.environment.define(name.clone(), temp_func);
-
-                // Now re-create the function with updated closure that includes itself
                 let func = Value::Function {
                     params: params.clone(),
                     body: body.clone(),
                     closure: Rc::new(self.environment.clone()),
                 };
-
-                // Update with final version
-                self.environment.set(&name, func)?;
+                self.environment.define(name.clone(), func);
                 Ok(ControlFlow::None)
             }
             Stmt::Import(module_name) => {
