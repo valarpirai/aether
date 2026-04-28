@@ -40,6 +40,13 @@ Aether is a general-purpose programming language implementation written in Rust.
 | [PARSER.md](docs/PARSER.md) | Parser implementation (recursive descent, 53 tests) | ✅ Complete |
 | [INTERPRETER.md](docs/INTERPRETER.md) | Interpreter implementation (82 tests, 2 ignored) | ✅ Complete |
 | [REPL.md](docs/REPL.md) | REPL and file execution | ✅ Complete |
+| **Features** | | |
+| [STRUCT.md](docs/STRUCT.md) | User-defined types with fields and methods | ✅ Complete |
+| [ERROR_HANDLING.md](docs/ERROR_HANDLING.md) | Try/catch/throw exception handling | ✅ Complete |
+| [STRING_FEATURES.md](docs/STRING_FEATURES.md) | Indexing, interpolation, slicing, spread | ✅ Complete |
+| [JSON.md](docs/JSON.md) | JSON parsing and serialization (25 tests) | ✅ Complete |
+| [TIME.md](docs/TIME.md) | Time functions: clock(), sleep() (10 tests) | ✅ Complete |
+| [HTTP.md](docs/HTTP.md) | HTTP client: http_get(), http_post() | ✅ Complete |
 
 ## Quick Reference for Claude Code
 

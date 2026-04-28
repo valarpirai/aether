@@ -265,6 +265,8 @@ Integration Tests (234):
 ## Resources
 
 ### Documentation
+
+**Core Implementation:**
 - **[DESIGN.md](DESIGN.md)** - Complete language specification
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** - Development guidelines and best practices
 - **[LEXER.md](LEXER.md)** - Tokenization implementation
@@ -273,6 +275,15 @@ Integration Tests (234):
 - **[REPL.md](REPL.md)** - Interactive mode implementation
 - **[STDLIB.md](STDLIB.md)** - Standard library design
 - **[GC_DESIGN.md](GC_DESIGN.md)** - Garbage collection architecture
+
+**Language Features:**
+- **[STRUCT.md](STRUCT.md)** - User-defined types with fields and methods
+- **[ERROR_HANDLING.md](ERROR_HANDLING.md)** - Try/catch/throw exception handling
+- **[STRING_FEATURES.md](STRING_FEATURES.md)** - String indexing, interpolation, slicing
+- **[JSON.md](JSON.md)** - JSON parsing and serialization
+- **[TIME.md](TIME.md)** - Time functions (clock, sleep)
+- **[HTTP.md](HTTP.md)** - HTTP client functions
+- **[MODULE_SYSTEM.md](MODULE_SYSTEM.md)** - Import and module loading
 
 ### External Resources
 - [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom
