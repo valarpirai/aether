@@ -43,6 +43,7 @@ pub enum TokenKind {
     Struct,
     Async,
     Await,
+    Finally,
 
     // Operators
     Plus,    // +

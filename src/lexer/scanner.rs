@@ -356,6 +356,7 @@ impl Scanner {
             "struct" => TokenKind::Struct,
             "async" => TokenKind::Async,
             "await" => TokenKind::Await,
+            "finally" => TokenKind::Finally,
             _ => TokenKind::Identifier(text.clone()),
         };
 

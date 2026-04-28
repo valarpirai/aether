@@ -591,6 +591,7 @@ fn test_try_catch_catches_error() {
             "caught".to_string(),
             Expr::Identifier("e".to_string()),
         )),
+        None,
     );
     eval.exec_stmt(&stmt).unwrap();
     let caught = eval.environment.get("caught").unwrap();
@@ -604,6 +605,7 @@ fn test_try_no_error_skips_catch() {
         Box::new(Stmt::Let("ok".to_string(), Expr::Integer(1))),
         "e".to_string(),
         Box::new(Stmt::Let("ok".to_string(), Expr::Integer(99))),
+        None,
     );
     eval.exec_stmt(&stmt).unwrap();
     assert_eq!(eval.environment.get("ok").unwrap(), Value::Int(1));

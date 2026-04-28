@@ -992,10 +992,19 @@ impl Parser {
         self.consume(TokenKind::LeftBrace, "{")?;
         let catch_body = self.block_statement()?;
 
+        let finally_body = if self.check(&TokenKind::Finally) {
+            self.advance();
+            self.consume(TokenKind::LeftBrace, "{")?;
+            Some(Box::new(self.block_statement()?))
+        } else {
+            None
+        };
+
         Ok(Stmt::TryCatch(
             Box::new(try_body),
             error_var,
             Box::new(catch_body),
+            finally_body,
         ))
     }
 

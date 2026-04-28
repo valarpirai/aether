@@ -184,3 +184,98 @@ x
     assert!(result.is_ok(), "Failed: {:?}", result);
     assert_eq!(result.unwrap(), "2");
 }
+
+// --- finally block ---
+
+#[test]
+fn test_finally_runs_on_success() {
+    let source = r#"
+let log = "start"
+try {
+    log = log + " try"
+} catch(e) {
+    log = log + " catch"
+} finally {
+    log = log + " finally"
+}
+log
+"#;
+    let result = run(source);
+    assert!(result.is_ok(), "Failed: {:?}", result);
+    assert_eq!(result.unwrap(), "start try finally");
+}
+
+#[test]
+fn test_finally_runs_on_error() {
+    let source = r#"
+let log = "start"
+try {
+    throw "oops"
+} catch(e) {
+    log = log + " catch"
+} finally {
+    log = log + " finally"
+}
+log
+"#;
+    let result = run(source);
+    assert!(result.is_ok(), "Failed: {:?}", result);
+    assert_eq!(result.unwrap(), "start catch finally");
+}
+
+#[test]
+fn test_finally_runs_even_when_catch_throws() {
+    let source = r#"
+let log = "start"
+try {
+    try {
+        throw "inner"
+    } catch(e) {
+        log = log + " catch"
+        throw "rethrow"
+    } finally {
+        log = log + " finally"
+    }
+} catch(e2) {
+    log = log + " outer"
+}
+log
+"#;
+    let result = run(source);
+    assert!(result.is_ok(), "Failed: {:?}", result);
+    assert_eq!(result.unwrap(), "start catch finally outer");
+}
+
+#[test]
+fn test_finally_without_error() {
+    let source = r#"
+let cleaned = false
+try {
+    let x = 1 + 1
+} catch(e) {
+    cleaned = false
+} finally {
+    cleaned = true
+}
+cleaned
+"#;
+    let result = run(source);
+    assert!(result.is_ok(), "Failed: {:?}", result);
+    assert_eq!(result.unwrap(), "true");
+}
+
+#[test]
+fn test_try_catch_without_finally_still_works() {
+    let source = r#"
+let x = 0
+try {
+    throw "err"
+} catch(e) {
+    x = 1
+}
+x
+"#;
+    let result = run(source);
+    assert!(result.is_ok(), "Failed: {:?}", result);
+    assert_eq!(result.unwrap(), "1");
+}

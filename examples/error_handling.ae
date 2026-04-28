@@ -27,7 +27,25 @@ fn process_batch(values) {
     return results
 }
 
+fn with_cleanup(label) {
+    println("opening:", label)
+    try {
+        if (label == "bad") {
+            throw "simulated failure"
+        }
+        println("processing:", label)
+    } catch(e) {
+        println("error:", e.message)
+    } finally {
+        println("closing:", label)
+    }
+}
+
 fn main() {
+    // finally always runs
+    with_cleanup("good")
+    with_cleanup("bad")
+
     // Basic try/catch
     try {
         let result = safe_divide(10, 2)
