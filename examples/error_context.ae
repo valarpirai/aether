@@ -1,0 +1,99 @@
+// Error context demo — line numbers, stack traces, e.message / e.stack_trace
+
+fn divide(a, b) {
+    if (b == 0) {
+        throw "division by zero: cannot divide " + str(a) + " by 0"
+    }
+    return a / b
+}
+
+fn calculate(values) {
+    let total = 0
+    for v in values {
+        total = total + divide(v, v - v)   // intentional: v-v == 0
+    }
+    return total
+}
+
+fn process() {
+    let data = [10, 20, 30]
+    return calculate(data)
+}
+
+fn demo_thrown_error() {
+    println("--- 1. Thrown error ---")
+    try {
+        process()
+    } catch(e) {
+        println("message    :", e.message)
+        println("stack trace:")
+        println(e.stack_trace)
+    }
+    println()
+}
+
+fn demo_runtime_error() {
+    println("--- 2. Runtime error (undefined variable) ---")
+    try {
+        let x = no_such_variable
+    } catch(e) {
+        println("message    :", e.message)
+        println("stack trace:")
+        println(e.stack_trace)
+    }
+    println()
+}
+
+fn demo_error_properties() {
+    println("--- 3. Error object properties ---")
+    try {
+        throw "something went wrong"
+    } catch(e) {
+        println("type(e)       :", type(e))
+        println("e.message     :", e.message)
+        println("e (display)   :", e)       // same as e.message — backward compat
+    }
+    println()
+}
+
+fn nested_a() { throw "deep error" }
+fn nested_b() { nested_a() }
+fn nested_c() { nested_b() }
+
+fn demo_deep_stack() {
+    println("--- 4. Deep call stack ---")
+    try {
+        nested_c()
+    } catch(e) {
+        println("message:", e.message)
+        println("stack trace:")
+        println(e.stack_trace)
+    }
+    println()
+}
+
+fn demo_rerethrow() {
+    println("--- 5. Re-throw preserves original message ---")
+    try {
+        try {
+            throw "original problem"
+        } catch(inner) {
+            println("inner caught:", inner.message)
+            throw "wrapped: " + inner.message
+        }
+    } catch(outer) {
+        println("outer caught:", outer.message)
+    }
+    println()
+}
+
+fn main() {
+    println("=== Error Context Demo ===")
+    println()
+    demo_thrown_error()
+    demo_runtime_error()
+    demo_error_properties()
+    demo_deep_stack()
+    demo_rerethrow()
+    println("Done.")
+}
