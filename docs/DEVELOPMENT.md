@@ -291,6 +291,40 @@ cargo build --release   # Ensure release build works
 - Profile with `cargo flamegraph` or similar tools
 - Document why optimizations are necessary
 
+### Key Design Decisions (with rationale)
+
+#### `Rc<Stmt>` for function bodies — not `Box<Stmt>`
+Function bodies are stored as `Rc<Stmt>` so that cloning a `Value::Function` (which happens on every function call because functions live in the environment) only increments a reference count rather than deep-copying the entire AST. Changing this back to `Box<Stmt>` would cause a ~41% slowdown in recursive workloads.
+
+#### `Rc<Vec<Value>>` for arrays — not `Vec<Value>`
+Arrays use reference counting so cloning is O(1). `Rc::make_mut` is used for mutations: it mutates in-place when there is only one owner, and copies on write when shared. Never use `(**arr).to_vec()` to clone-then-mutate — use `Rc::make_mut` instead.
+
+#### `std::mem::swap` for call frames — not `env.clone()`
+Function call setup swaps the current environment pointer with a fresh call frame (`std::mem::swap`). This is O(1). The previous approach (`saved_env = self.environment.clone()`) was O(n) in the size of the environment. Never reintroduce `saved_env = self.environment.clone()` for call frame management.
+
+#### `Rc<String>` for strings
+Same reasoning as arrays — cheap clone, shared immutable data.
+
+### Running Benchmarks
+
+```bash
+cargo bench --bench interpreter_bench
+```
+
+Benchmarks are in `benches/interpreter_bench.rs` and cover:
+- `arithmetic_loop_10k` — tight numeric loops
+- `fibonacci_20` — deep recursive calls
+- `scope_lookups_5k` — variable lookup through scopes
+- `string_ops_1k` — string concatenation
+- `array_ops_1k` — push/index operations
+- `many_fn_calls_5k` — function call overhead
+
+### Memory Safety
+
+Aether uses `Rc<T>` (reference counting) for GC, not `Arc<T>` (atomic ref counting), because the interpreter is single-threaded. `Rc` is cheaper but not thread-safe — do not add `Send`/`Sync` bounds or use `Arc` without good reason.
+
+**Avoiding Rc cycles (memory leaks):** Closures capture the environment *before* the function is defined in it, so there is no cycle between a function value and the environment it lives in. If you add a new feature that allows an object to reference itself, use `Weak<T>` for the back-pointer to break the cycle.
+
 ## Debugging
 
 ### Debug Output
