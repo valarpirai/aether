@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Home
+title: Aether: General purpose programming language
 ---
 
 # Aether Programming Language
