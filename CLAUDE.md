@@ -328,3 +328,7 @@ For contributing or extending Aether, see:
 - **[TESTING.md](docs/TESTING.md)** - Comprehensive testing guide with examples
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design and roadmap
 - Component docs: LEXER.md, PARSER.md, INTERPRETER.md, REPL.md, STDLIB.md, GC_DESIGN.md
+
+## Documentation
+- Update the docs in the gh-pages branch
+- gh-pages is used for deploying github pages website
