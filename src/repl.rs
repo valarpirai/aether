@@ -291,15 +291,55 @@ fn handle_command(cmd: &str, evaluator: &Evaluator) {
         }
         "_exit" => std::process::exit(0),
         "_env" => {
+            use crate::interpreter::value::Value;
             let bindings = evaluator.environment.bindings();
             if bindings.is_empty() {
                 println!("(empty environment)");
             } else {
-                let mut names: Vec<&String> = bindings.keys().collect();
-                names.sort();
-                for name in names {
-                    let val = &bindings[name];
-                    println!("  {} = {}", name, val);
+                // Separate into categories for readability
+                let mut vars: Vec<(&String, &Value)> = Vec::new();
+                let mut fns: Vec<(&String, &Value)> = Vec::new();
+                let mut builtins: Vec<(&String, &Value)> = Vec::new();
+
+                for (name, val) in bindings {
+                    match val {
+                        Value::BuiltinFn { .. } => builtins.push((name, val)),
+                        Value::Function { .. } => fns.push((name, val)),
+                        _ => vars.push((name, val)),
+                    }
+                }
+
+                vars.sort_by_key(|(n, _)| n.as_str());
+                fns.sort_by_key(|(n, _)| n.as_str());
+                builtins.sort_by_key(|(n, _)| n.as_str());
+
+                if !vars.is_empty() {
+                    println!("Variables:");
+                    for (name, val) in &vars {
+                        println!("  {:<20} {}", name, val);
+                    }
+                }
+                if !fns.is_empty() {
+                    if !vars.is_empty() { println!(); }
+                    println!("Functions:");
+                    for (name, val) in &fns {
+                        if let Value::Function { params, .. } = val {
+                            println!("  fn {}({})", name, params.join(", "));
+                        }
+                    }
+                }
+                if !builtins.is_empty() {
+                    if !vars.is_empty() || !fns.is_empty() { println!(); }
+                    println!("Built-ins:");
+                    let names: Vec<&str> = builtins.iter().map(|(n, _)| n.as_str()).collect();
+                    // Print in columns (4 per row)
+                    for chunk in names.chunks(4) {
+                        print!(" ");
+                        for name in chunk {
+                            print!(" {:<18}", name);
+                        }
+                        println!();
+                    }
                 }
             }
         }

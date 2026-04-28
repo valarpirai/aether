@@ -1,0 +1,192 @@
+use crate::interpreter::environment::RuntimeError;
+use crate::interpreter::value::{IteratorSource, Value};
+use crate::parser::ast::Stmt;
+use std::collections::HashMap;
+use std::rc::Rc;
+
+use super::{ControlFlow, Evaluator};
+
+impl Evaluator {
+    pub(super) fn exec_stmt_internal(&mut self, stmt: &Stmt) -> Result<ControlFlow, RuntimeError> {
+        match stmt {
+            Stmt::Expr(expr) => {
+                self.eval_expr(expr)?;
+                Ok(ControlFlow::None)
+            }
+            Stmt::Let(name, initializer) => {
+                let value = self.eval_expr(initializer)?;
+                self.environment.define(name.clone(), value);
+                Ok(ControlFlow::None)
+            }
+            Stmt::Assign(target, value) => {
+                let val = self.eval_expr(value)?;
+                self.assign_target(target, val)?;
+                Ok(ControlFlow::None)
+            }
+            Stmt::CompoundAssign(target, op, value) => {
+                let current = self.eval_expr(target)?;
+                let rhs = self.eval_expr(value)?;
+                let result = self.eval_binary_values(current, *op, rhs)?;
+                self.assign_target(target, result)?;
+                Ok(ControlFlow::None)
+            }
+            Stmt::Block(statements) => {
+                for statement in statements {
+                    let flow = self.exec_stmt_internal(statement)?;
+                    if flow != ControlFlow::None {
+                        return Ok(flow);
+                    }
+                }
+                Ok(ControlFlow::None)
+            }
+            Stmt::If(condition, then_branch, else_branch) => {
+                let cond_val = self.eval_expr(condition)?;
+                if cond_val.is_truthy() {
+                    self.exec_stmt_internal(then_branch)
+                } else if let Some(else_stmt) = else_branch {
+                    self.exec_stmt_internal(else_stmt)
+                } else {
+                    Ok(ControlFlow::None)
+                }
+            }
+            Stmt::While(condition, body) => {
+                loop {
+                    let cond_val = self.eval_expr(condition)?;
+                    if !cond_val.is_truthy() {
+                        break;
+                    }
+
+                    let flow = self.exec_stmt_internal(body)?;
+                    match flow {
+                        ControlFlow::Break => break,
+                        ControlFlow::Continue => continue,
+                        ControlFlow::Return(val) => return Ok(ControlFlow::Return(val)),
+                        ControlFlow::None => {}
+                    }
+                }
+                Ok(ControlFlow::None)
+            }
+            Stmt::For(var, iterable, body) => {
+                let iter_val = self.eval_expr(iterable)?;
+
+                let items: Vec<Value> = match iter_val {
+                    Value::Array(ref elements) => elements.iter().cloned().collect(),
+                    Value::Dict(ref pairs) => pairs.iter().map(|(k, _)| k.clone()).collect(),
+                    Value::Set(ref elements) => elements.iter().cloned().collect(),
+                    Value::String(ref s) => s.chars().map(|c| Value::string(c.to_string())).collect(),
+                    Value::Iterator(ref state) => {
+                        let mut result = Vec::new();
+                        loop {
+                            let mut st = state.borrow_mut();
+                            let val = match &st.source {
+                                IteratorSource::Array(arr) => {
+                                    if st.index < arr.len() { let v = arr[st.index].clone(); st.index += 1; Some(v) } else { None }
+                                }
+                                IteratorSource::DictKeys(pairs) => {
+                                    if st.index < pairs.len() { let v = pairs[st.index].0.clone(); st.index += 1; Some(v) } else { None }
+                                }
+                                IteratorSource::Set(items) => {
+                                    if st.index < items.len() { let v = items[st.index].clone(); st.index += 1; Some(v) } else { None }
+                                }
+                            };
+                            drop(st);
+                            match val {
+                                Some(v) => result.push(v),
+                                None => break,
+                            }
+                        }
+                        result
+                    }
+                    _ => return Err(RuntimeError::TypeError {
+                        expected: "iterable (array, dict, set, string, or iterator)".to_string(),
+                        got: iter_val.type_name().to_string(),
+                    }),
+                };
+
+                for element in items {
+                    self.environment.define(var.clone(), element);
+                    let flow = self.exec_stmt_internal(body)?;
+                    match flow {
+                        ControlFlow::Break => break,
+                        ControlFlow::Continue => continue,
+                        ControlFlow::Return(val) => return Ok(ControlFlow::Return(val)),
+                        ControlFlow::None => {}
+                    }
+                }
+                Ok(ControlFlow::None)
+            }
+            Stmt::Return(expr) => {
+                let value = if let Some(e) = expr {
+                    self.eval_expr(e)?
+                } else {
+                    Value::Null
+                };
+                Ok(ControlFlow::Return(value))
+            }
+            Stmt::Break => Ok(ControlFlow::Break),
+            Stmt::Continue => Ok(ControlFlow::Continue),
+            Stmt::Function(name, params, body) => {
+                let func = Value::Function {
+                    params: params.clone(),
+                    body: Rc::clone(body),
+                    closure: Rc::new(self.environment.clone()),
+                };
+                self.environment.define(name.clone(), func);
+                Ok(ControlFlow::None)
+            }
+            Stmt::AsyncFunction(name, params, body) => {
+                let func = Value::AsyncFunction {
+                    params: params.clone(),
+                    body: Rc::clone(body),
+                    closure: Rc::new(self.environment.clone()),
+                };
+                self.environment.define(name.clone(), func);
+                Ok(ControlFlow::None)
+            }
+            Stmt::Import(module_name) => {
+                self.load_module(module_name)?;
+                Ok(ControlFlow::None)
+            }
+            Stmt::ImportAs(module_name, alias) => {
+                self.load_module_as(module_name, alias)?;
+                Ok(ControlFlow::None)
+            }
+            Stmt::FromImport(module_name, items) => {
+                self.import_from(module_name, items)?;
+                Ok(ControlFlow::None)
+            }
+            Stmt::FromImportAs(module_name, aliased_items) => {
+                self.import_from_as(module_name, aliased_items)?;
+                Ok(ControlFlow::None)
+            }
+            Stmt::Throw(expr) => {
+                let value = self.eval_expr(expr)?;
+                let msg = format!("{}", value);
+                Err(RuntimeError::Thrown(msg))
+            }
+            Stmt::StructDecl { name, fields, methods } => {
+                let mut method_map = HashMap::new();
+                for (method_name, params, body) in methods {
+                    method_map.insert(method_name.clone(), (params.clone(), body.clone()));
+                }
+                let struct_def = Value::StructDef {
+                    name: name.clone(),
+                    fields: fields.clone(),
+                    methods: Rc::new(method_map),
+                };
+                self.environment.define(name.clone(), struct_def);
+                Ok(ControlFlow::None)
+            }
+            Stmt::TryCatch(try_body, error_var, catch_body) => {
+                match self.exec_stmt_internal(try_body) {
+                    Ok(flow) => Ok(flow),
+                    Err(e) => {
+                        self.environment
+                            .define(error_var.clone(), Value::string(e.to_string()));
+                        self.exec_stmt_internal(catch_body)
+                    }
+                }
+            }
+        }
+    }
+}
