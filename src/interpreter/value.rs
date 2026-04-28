@@ -64,6 +64,23 @@ pub enum Value {
     },
     /// Iterator for lazy iteration over collections
     Iterator(Rc<RefCell<IteratorState>>),
+    /// Async function — calling it returns a Promise instead of executing
+    AsyncFunction {
+        params: Vec<String>,
+        body: Rc<crate::parser::ast::Stmt>,
+        closure: Rc<super::environment::Environment>,
+    },
+    /// Deferred result of calling an async function
+    Promise(Rc<RefCell<PromiseState>>),
+}
+
+/// State of a Promise value
+#[derive(Debug, Clone)]
+pub enum PromiseState {
+    /// Not yet resolved — holds the async function and pre-evaluated args
+    Pending { func: Value, args: Vec<Value> },
+    /// Already resolved — holds the result
+    Resolved(Value),
 }
 
 /// Iterator state for sequential access to elements
@@ -114,6 +131,11 @@ impl Value {
         Value::Iterator(Rc::new(RefCell::new(IteratorState { source, index: 0 })))
     }
 
+    /// Helper: Create a pending Promise wrapping a deferred async call
+    pub fn promise(func: Value, args: Vec<Value>) -> Self {
+        Value::Promise(Rc::new(RefCell::new(PromiseState::Pending { func, args })))
+    }
+
     /// Check if value is hashable (can be used in sets/dict keys)
     pub fn is_hashable(&self) -> bool {
         matches!(
@@ -153,6 +175,8 @@ impl Value {
             Value::StructDef { .. } => "struct",
             Value::Instance { type_name, .. } => type_name.as_str(),
             Value::Iterator(_) => "iterator",
+            Value::AsyncFunction { .. } => "async_function",
+            Value::Promise(_) => "promise",
         }
     }
 }
@@ -172,7 +196,9 @@ impl PartialEq for Value {
             (Value::Dict(a), Value::Dict(b)) => a == b,
             (Value::Set(a), Value::Set(b)) => a == b,
             (Value::StructDef { name: a, .. }, Value::StructDef { name: b, .. }) => a == b,
-            (Value::Iterator(_), Value::Iterator(_)) => false, // Iterators never equal
+            (Value::Iterator(_), Value::Iterator(_)) => false,
+            (Value::AsyncFunction { .. }, Value::AsyncFunction { .. }) => false,
+            (Value::Promise(_), Value::Promise(_)) => false,
             _ => false,
         }
     }
@@ -261,6 +287,11 @@ impl fmt::Display for Value {
                 write!(f, ")")
             }
             Value::Iterator(_) => write!(f, "<iterator>"),
+            Value::AsyncFunction { params, .. } => write!(f, "<async fn({})>", params.len()),
+            Value::Promise(state) => match &*state.borrow() {
+                PromiseState::Pending { .. } => write!(f, "<promise:pending>"),
+                PromiseState::Resolved(v) => write!(f, "<promise:{}>", v),
+            },
             Value::StructDef { name, .. } => write!(f, "<struct {}>", name),
             Value::Instance {
                 type_name, fields, ..

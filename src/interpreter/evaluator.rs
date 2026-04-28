@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use super::environment::{Environment, RuntimeError};
-use super::value::{IteratorSource, Value};
+use super::value::{IteratorSource, PromiseState, Value};
 use crate::parser::ast::{BinaryOp, Expr, Stmt, UnaryOp};
 
 /// Control flow signals
@@ -337,6 +337,40 @@ impl Evaluator {
                     closure: Rc::new(self.environment.clone()),
                 })
             }
+            Expr::AsyncFunctionExpr(params, body) => {
+                Ok(Value::AsyncFunction {
+                    params: params.clone(),
+                    body: Rc::clone(body),
+                    closure: Rc::new(self.environment.clone()),
+                })
+            }
+            Expr::Await(inner) => {
+                let val = self.eval_expr(inner)?;
+                match val {
+                    Value::Promise(state_rc) => {
+                        // Move Pending state out before calling call_value to avoid borrow conflict
+                        let pending = {
+                            let mut state = state_rc.borrow_mut();
+                            match &*state {
+                                PromiseState::Resolved(v) => return Ok(v.clone()),
+                                PromiseState::Pending { .. } => {}
+                            }
+                            std::mem::replace(&mut *state, PromiseState::Resolved(Value::Null))
+                        }; // borrow_mut guard dropped here
+                        match pending {
+                            PromiseState::Pending { func, args } => {
+                                // Execute the async function body directly (not via call_value,
+                                // which would wrap it in another Promise)
+                                let result = self.exec_async_body(func, args)?;
+                                *state_rc.borrow_mut() = PromiseState::Resolved(result.clone());
+                                Ok(result)
+                            }
+                            PromiseState::Resolved(v) => Ok(v),
+                        }
+                    }
+                    other => Ok(other), // await non-Promise is identity
+                }
+            }
             Expr::StringInterp(parts) => {
                 let mut result = String::new();
                 for part in parts {
@@ -474,6 +508,8 @@ impl Evaluator {
             (Value::String(a), Value::String(b)) => {
                 Ok(Value::String(Rc::new(format!("{}{}", a, b))))
             }
+            (Value::String(a), right) => Ok(Value::String(Rc::new(format!("{}{}", a, right)))),
+            (left, Value::String(b)) => Ok(Value::String(Rc::new(format!("{}{}", left, b)))),
             (left, right) => Err(RuntimeError::TypeError {
                 expected: "number or string".to_string(),
                 got: format!("{} and {}", left.type_name(), right.type_name()),
@@ -844,11 +880,78 @@ impl Evaluator {
                 }
                 func(&arg_values)
             }
+            Value::AsyncFunction { params, body, closure } => {
+                if arg_values.len() > params.len() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: params.len(),
+                        got: arg_values.len(),
+                    });
+                }
+                let mut padded = arg_values;
+                while padded.len() < params.len() {
+                    padded.push(Value::Null);
+                }
+                Ok(Value::promise(Value::AsyncFunction { params, body, closure }, padded))
+            }
             other => Err(RuntimeError::InvalidOperation(format!(
                 "Cannot call value of type '{}'",
                 other.type_name()
             ))),
         }
+    }
+
+    /// Execute an async function body directly (used by Expr::Await to resolve Promises).
+    /// Unlike call_value, this never wraps AsyncFunction in another Promise.
+    fn exec_async_body(&mut self, func: Value, arg_values: Vec<Value>) -> Result<Value, RuntimeError> {
+        let (params, body, closure) = match func {
+            Value::AsyncFunction { params, body, closure } => (params, body, closure),
+            Value::Function { params, body, closure } => (params, body, closure),
+            Value::BuiltinFn { arity, func, .. } => {
+                if arity != usize::MAX && arity != arg_values.len() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: arity,
+                        got: arg_values.len(),
+                    });
+                }
+                return func(&arg_values);
+            }
+            other => return Err(RuntimeError::InvalidOperation(format!(
+                "Cannot await value of type '{}'", other.type_name()
+            ))),
+        };
+
+        self.call_depth += 1;
+        if self.call_depth > self.max_call_depth {
+            self.call_depth -= 1;
+            return Err(RuntimeError::StackOverflow {
+                depth: self.call_depth + 1,
+                limit: self.max_call_depth,
+            });
+        }
+        if arg_values.len() > params.len() {
+            self.call_depth -= 1;
+            return Err(RuntimeError::ArityMismatch {
+                expected: params.len(),
+                got: arg_values.len(),
+            });
+        }
+        let mut padded = arg_values;
+        while padded.len() < params.len() {
+            padded.push(Value::Null);
+        }
+        let mut call_env = Environment::with_parent((*closure).clone());
+        for (param, value) in params.iter().zip(padded) {
+            call_env.define(param.clone(), value);
+        }
+        std::mem::swap(&mut self.environment, &mut call_env);
+        let result = match self.exec_stmt_internal(&body) {
+            Ok(ControlFlow::Return(val)) => Ok(val),
+            Ok(_) => Ok(Value::Null),
+            Err(e) => Err(e),
+        };
+        std::mem::swap(&mut self.environment, &mut call_env);
+        self.call_depth -= 1;
+        result
     }
 
     fn eval_method_call(
@@ -1580,6 +1683,15 @@ impl Evaluator {
                 self.environment.define(name.clone(), func);
                 Ok(ControlFlow::None)
             }
+            Stmt::AsyncFunction(name, params, body) => {
+                let func = Value::AsyncFunction {
+                    params: params.clone(),
+                    body: Rc::clone(body),
+                    closure: Rc::new(self.environment.clone()),
+                };
+                self.environment.define(name.clone(), func);
+                Ok(ControlFlow::None)
+            }
             Stmt::Import(module_name) => {
                 // Load module and add to environment
                 self.load_module(module_name)?;
@@ -1889,6 +2001,22 @@ impl Evaluator {
 
                 // Call the built-in function
                 func(&arg_values)
+            }
+            Value::AsyncFunction { params, body, closure } => {
+                if args.len() > params.len() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: params.len(),
+                        got: args.len(),
+                    });
+                }
+                let mut arg_values = Vec::new();
+                for arg in args {
+                    arg_values.push(self.eval_expr(arg)?);
+                }
+                while arg_values.len() < params.len() {
+                    arg_values.push(Value::Null);
+                }
+                Ok(Value::promise(Value::AsyncFunction { params, body, closure }, arg_values))
             }
             _ => Err(RuntimeError::TypeError {
                 expected: "function".to_string(),

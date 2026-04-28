@@ -44,6 +44,10 @@ pub enum Expr {
         name: String,
         fields: Vec<(String, Expr)>,
     },
+    /// Async function expression (parameters, body)
+    AsyncFunctionExpr(Vec<String>, Rc<Stmt>),
+    /// Await expression: await <expr>
+    Await(Box<Expr>),
 }
 
 /// Binary operators
@@ -103,6 +107,8 @@ pub enum Stmt {
     Continue,
     /// Function declaration (name, parameters, body)
     Function(String, Vec<String>, Rc<Stmt>),
+    /// Async function declaration (name, parameters, body)
+    AsyncFunction(String, Vec<String>, Rc<Stmt>),
     /// Import statement (module_name)
     Import(String),
     /// Import with alias (module_name, alias)

@@ -41,6 +41,8 @@ pub enum TokenKind {
     Catch,
     Throw,
     Struct,
+    Async,
+    Await,
 
     // Operators
     Plus,    // +

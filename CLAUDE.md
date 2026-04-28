@@ -273,8 +273,8 @@ All planned features for Phase 1 have been implemented and tested.
 2. ✅ `clock()`, `sleep()` — Unix epoch float, thread sleep
 3. ✅ `http` module — http_get(), http_post() via reqwest (blocking)
 4. ✅ User-defined structs — fields, methods, `self` binding, mutation via RefCell
-5. ⏳ Iterator protocol
-6. ⏳ Async/await support
+5. ✅ Iterator protocol — array/dict/set/string iterators, has_next/next, for-in
+6. ✅ Async/await — Promise-based, async fn, await, AsyncFunctionExpr
 
 ### Backlog
 - ✅ Array slice syntax: `arr[1:3]`
@@ -284,7 +284,7 @@ All planned features for Phase 1 have been implemented and tested.
 
 ### Test Coverage (Last Updated: 2026-04-28)
 
-- **Total**: 485 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test; 5 http tests ignored — require network)
+- **Total**: 511 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test; 5 http tests ignored — require network)
 - **Code Quality**: 5 clippy warnings (mutable key type in HashSet - acceptable)
 
 **Breakdown by Category:**

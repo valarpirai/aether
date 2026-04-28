@@ -354,6 +354,8 @@ impl Scanner {
             "catch" => TokenKind::Catch,
             "throw" => TokenKind::Throw,
             "struct" => TokenKind::Struct,
+            "async" => TokenKind::Async,
+            "await" => TokenKind::Await,
             _ => TokenKind::Identifier(text.clone()),
         };
 

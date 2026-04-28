@@ -125,6 +125,15 @@ impl Parser {
         if self.match_token(&[TokenKind::From]) {
             return self.parse_from_import_statement();
         }
+        // Check for async fn name(...) declaration
+        if self.check(&TokenKind::Async)
+            && matches!(self.peek_at(1).kind, TokenKind::Fn)
+            && matches!(self.peek_at(2).kind, TokenKind::Identifier(_))
+        {
+            self.advance(); // consume 'async'
+            self.advance(); // consume 'fn'
+            return self.async_function_declaration();
+        }
         // Check if this is a function declaration (fn identifier) or function expression (fn()
         if self.check(&TokenKind::Fn) {
             // Peek ahead to see what follows 'fn'
@@ -451,6 +460,10 @@ impl Parser {
 
     // Parse unary expressions: -expr, !expr
     fn unary(&mut self) -> Result<Expr, ParseError> {
+        if self.match_token(&[TokenKind::Await]) {
+            let expr = self.unary()?;
+            return Ok(Expr::Await(Box::new(expr)));
+        }
         if self.match_token(&[TokenKind::Minus, TokenKind::Not]) {
             let op = match self.previous().kind {
                 TokenKind::Minus => UnaryOp::Negate,
@@ -589,6 +602,10 @@ impl Parser {
                 Ok(Expr::Identifier(name))
             }
             TokenKind::Fn => self.function_expression(),
+            TokenKind::Async => {
+                self.consume(TokenKind::Fn, "fn after async")?;
+                self.async_function_expression()
+            }
             TokenKind::LeftParen => {
                 let expr = self.expression()?;
                 self.consume(TokenKind::RightParen, ")")?;
@@ -672,6 +689,68 @@ impl Parser {
         let body = self.block_statement()?;
 
         Ok(Expr::FunctionExpr(params, Rc::new(body)))
+    }
+
+    // Parse async function declaration: async fn name(params) { body }
+    fn async_function_declaration(&mut self) -> Result<Stmt, ParseError> {
+        let name = if let TokenKind::Identifier(n) = &self.peek().kind {
+            n.clone()
+        } else {
+            return Err(ParseError::UnexpectedToken {
+                expected: "function name".to_string(),
+                found: self.peek().clone(),
+            });
+        };
+        self.advance();
+
+        self.consume(TokenKind::LeftParen, "(")?;
+        let mut params = Vec::new();
+        if !self.check(&TokenKind::RightParen) {
+            loop {
+                if let TokenKind::Identifier(param) = &self.peek().kind {
+                    params.push(param.clone());
+                    self.advance();
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        expected: "parameter name".to_string(),
+                        found: self.peek().clone(),
+                    });
+                }
+                if !self.match_token(&[TokenKind::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenKind::RightParen, ")")?;
+        self.consume(TokenKind::LeftBrace, "{")?;
+        let body = self.block_statement()?;
+        Ok(Stmt::AsyncFunction(name, params, Rc::new(body)))
+    }
+
+    // Parse async function expression: async fn(params) { body }
+    fn async_function_expression(&mut self) -> Result<Expr, ParseError> {
+        self.consume(TokenKind::LeftParen, "(")?;
+        let mut params = Vec::new();
+        if !self.check(&TokenKind::RightParen) {
+            loop {
+                if let TokenKind::Identifier(param) = &self.peek().kind {
+                    params.push(param.clone());
+                    self.advance();
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        expected: "parameter name".to_string(),
+                        found: self.peek().clone(),
+                    });
+                }
+                if !self.match_token(&[TokenKind::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenKind::RightParen, ")")?;
+        self.consume(TokenKind::LeftBrace, "{")?;
+        let body = self.block_statement()?;
+        Ok(Expr::AsyncFunctionExpr(params, Rc::new(body)))
     }
 
     // Returns true if the upcoming '{' begins a struct init (identifier ':' or just '}')
