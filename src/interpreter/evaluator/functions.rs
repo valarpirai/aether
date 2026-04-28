@@ -1,7 +1,9 @@
 use crate::interpreter::environment::{Environment, RuntimeError};
+use crate::interpreter::io_pool::{IoPool, IoTask};
 use crate::interpreter::value::Value;
 use crate::parser::ast::Expr;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use super::{ControlFlow, Evaluator};
 
@@ -204,7 +206,41 @@ impl Evaluator {
 
                 result
             }
-            Value::BuiltinFn { name: _, arity, func } => {
+            Value::BuiltinFn { name, arity, func } => {
+                // set_workers(n) — replaces the I/O thread pool at runtime
+                if name == "set_workers" {
+                    if args.len() != 1 {
+                        return Err(RuntimeError::ArityMismatch {
+                            expected: 1,
+                            got: args.len(),
+                        });
+                    }
+                    let n_val = self.eval_expr(&args[0])?;
+                    let n = match n_val {
+                        Value::Int(n) if n > 0 => n as usize,
+                        Value::Int(_) => {
+                            return Err(RuntimeError::InvalidOperation(
+                                "set_workers requires a positive integer".to_string(),
+                            ))
+                        }
+                        other => {
+                            return Err(RuntimeError::TypeError {
+                                expected: "positive int".to_string(),
+                                got: other.type_name().to_string(),
+                            })
+                        }
+                    };
+                    self.io_pool = Some(Arc::new(IoPool::new(n)));
+                    return Ok(Value::Null);
+                }
+
+                // Async I/O dispatch when pool is active
+                if let Some(pool) = self.io_pool.clone() {
+                    if let Some(promise) = self.try_submit_io_task(&name, args, &pool)? {
+                        return Ok(promise);
+                    }
+                }
+
                 if arity != usize::MAX && arity != args.len() {
                     return Err(RuntimeError::ArityMismatch {
                         expected: arity,
@@ -310,6 +346,82 @@ impl Evaluator {
             _ => Err(RuntimeError::InvalidOperation(
                 "Invalid assignment target".to_string(),
             )),
+        }
+    }
+
+    /// Try to submit a known I/O builtin as an async task to the pool.
+    /// Returns Some(Promise) if submitted, None if the name is not an async I/O builtin.
+    fn try_submit_io_task(
+        &mut self,
+        name: &str,
+        args: &[Expr],
+        pool: &Arc<IoPool>,
+    ) -> Result<Option<Value>, RuntimeError> {
+        let (tx, rx) = std::sync::mpsc::channel::<crate::interpreter::io_pool::IoResult>();
+
+        match name {
+            "http_get" => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+                }
+                let url = self.require_string_arg(&args[0], "http_get")?;
+                pool.submit(IoTask::HttpGet { url, tx });
+                Ok(Some(Value::promise_io(rx)))
+            }
+            "http_post" => {
+                if args.len() != 2 {
+                    return Err(RuntimeError::ArityMismatch { expected: 2, got: args.len() });
+                }
+                let url = self.require_string_arg(&args[0], "http_post")?;
+                let body = self.require_string_arg(&args[1], "http_post")?;
+                pool.submit(IoTask::HttpPost { url, body, tx });
+                Ok(Some(Value::promise_io(rx)))
+            }
+            "sleep" => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+                }
+                let secs = match self.eval_expr(&args[0])? {
+                    Value::Float(f) => f,
+                    Value::Int(n) => n as f64,
+                    other => {
+                        return Err(RuntimeError::TypeError {
+                            expected: "number".to_string(),
+                            got: other.type_name().to_string(),
+                        })
+                    }
+                };
+                pool.submit(IoTask::Sleep { secs, tx });
+                Ok(Some(Value::promise_io(rx)))
+            }
+            "read_file" => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+                }
+                let path = self.require_string_arg(&args[0], "read_file")?;
+                pool.submit(IoTask::ReadFile { path, tx });
+                Ok(Some(Value::promise_io(rx)))
+            }
+            "write_file" => {
+                if args.len() != 2 {
+                    return Err(RuntimeError::ArityMismatch { expected: 2, got: args.len() });
+                }
+                let path = self.require_string_arg(&args[0], "write_file")?;
+                let content = self.require_string_arg(&args[1], "write_file")?;
+                pool.submit(IoTask::WriteFile { path, content, tx });
+                Ok(Some(Value::promise_io(rx)))
+            }
+            _ => Ok(None),
+        }
+    }
+
+    fn require_string_arg(&mut self, arg: &Expr, fn_name: &str) -> Result<String, RuntimeError> {
+        match self.eval_expr(arg)? {
+            Value::String(s) => Ok(s.as_ref().clone()),
+            other => Err(RuntimeError::TypeError {
+                expected: format!("{} expects string argument", fn_name),
+                got: other.type_name().to_string(),
+            }),
         }
     }
 }

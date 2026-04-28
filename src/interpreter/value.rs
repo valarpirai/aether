@@ -75,12 +75,14 @@ pub enum Value {
 }
 
 /// State of a Promise value
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum PromiseState {
     /// Not yet resolved — holds the async function and pre-evaluated args
     Pending { func: Value, args: Vec<Value> },
     /// Already resolved — holds the result
     Resolved(Value),
+    /// Waiting for an I/O worker to complete (Phase 2 thread pool)
+    IoWaiting(std::sync::mpsc::Receiver<crate::interpreter::io_pool::IoResult>),
 }
 
 /// Iterator state for sequential access to elements
@@ -134,6 +136,11 @@ impl Value {
     /// Helper: Create a pending Promise wrapping a deferred async call
     pub fn promise(func: Value, args: Vec<Value>) -> Self {
         Value::Promise(Rc::new(RefCell::new(PromiseState::Pending { func, args })))
+    }
+
+    /// Helper: Create an I/O-backed Promise (Phase 2 thread pool)
+    pub fn promise_io(rx: std::sync::mpsc::Receiver<crate::interpreter::io_pool::IoResult>) -> Self {
+        Value::Promise(Rc::new(RefCell::new(PromiseState::IoWaiting(rx))))
     }
 
     /// Check if value is hashable (can be used in sets/dict keys)
@@ -289,7 +296,7 @@ impl fmt::Display for Value {
             Value::Iterator(_) => write!(f, "<iterator>"),
             Value::AsyncFunction { params, .. } => write!(f, "<async fn({})>", params.len()),
             Value::Promise(state) => match &*state.borrow() {
-                PromiseState::Pending { .. } => write!(f, "<promise:pending>"),
+                PromiseState::Pending { .. } | PromiseState::IoWaiting(_) => write!(f, "<promise:pending>"),
                 PromiseState::Resolved(v) => write!(f, "<promise:{}>", v),
             },
             Value::StructDef { name, .. } => write!(f, "<struct {}>", name),

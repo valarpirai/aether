@@ -3,6 +3,7 @@
 pub mod builtins;
 pub mod environment;
 pub mod evaluator;
+pub mod io_pool;
 pub mod stdlib;
 pub mod value;
 

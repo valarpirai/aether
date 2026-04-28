@@ -486,6 +486,31 @@ impl Evaluator {
                 Ok(Value::Bool(found))
             }
 
+            // Promise.all([p1, p2, ...]) — await all promises and return array of results
+            (Value::Module { name, .. }, "all") if name.as_str() == "Promise" => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let array_val = self.eval_expr(&args[0])?;
+                match array_val {
+                    Value::Array(promises) => {
+                        let promises_vec: Vec<Value> = promises.iter().cloned().collect();
+                        let mut results = Vec::new();
+                        for p in promises_vec {
+                            results.push(self.await_value(p)?);
+                        }
+                        Ok(Value::array(results))
+                    }
+                    other => Err(RuntimeError::TypeError {
+                        expected: "array of promises".to_string(),
+                        got: other.type_name().to_string(),
+                    }),
+                }
+            }
+
             // Module member call: module.func(args)
             (Value::Module { name, members }, method) => {
                 let func = members.get(method).cloned().ok_or_else(|| {

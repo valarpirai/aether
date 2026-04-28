@@ -1,4 +1,5 @@
 use crate::interpreter::environment::RuntimeError;
+use crate::interpreter::io_pool::IoResult;
 use crate::interpreter::value::{PromiseState, Value};
 use crate::parser::ast::Expr;
 use std::cell::RefCell;
@@ -55,30 +56,7 @@ impl Evaluator {
             }
             Expr::Await(inner) => {
                 let val = self.eval_expr(inner)?;
-                match val {
-                    Value::Promise(state_rc) => {
-                        // Move Pending state out before calling exec_async_body to avoid borrow conflict
-                        let pending = {
-                            let mut state = state_rc.borrow_mut();
-                            match &*state {
-                                PromiseState::Resolved(v) => return Ok(v.clone()),
-                                PromiseState::Pending { .. } => {}
-                            }
-                            std::mem::replace(&mut *state, PromiseState::Resolved(Value::Null))
-                        }; // borrow_mut guard dropped here
-                        match pending {
-                            PromiseState::Pending { func, args } => {
-                                // Execute the async function body directly (not via call_value,
-                                // which would wrap it in another Promise)
-                                let result = self.exec_async_body(func, args)?;
-                                *state_rc.borrow_mut() = PromiseState::Resolved(result.clone());
-                                Ok(result)
-                            }
-                            PromiseState::Resolved(v) => Ok(v),
-                        }
-                    }
-                    other => Ok(other), // await non-Promise is identity
-                }
+                self.await_value(val)
             }
             Expr::StringInterp(parts) => {
                 let mut result = String::new();
@@ -257,6 +235,53 @@ impl Evaluator {
                 "slice not supported on {}",
                 other.type_name()
             ))),
+        }
+    }
+
+    /// Core await logic: resolves a Promise or returns non-Promise values unchanged.
+    /// Used by Expr::Await and Promise.all.
+    pub(super) fn await_value(&mut self, val: Value) -> Result<Value, RuntimeError> {
+        match val {
+            Value::Promise(state_rc) => {
+                // Move state out before any self.* calls to avoid borrow conflicts
+                let pending = {
+                    let mut state = state_rc.borrow_mut();
+                    match &*state {
+                        PromiseState::Resolved(v) => return Ok(v.clone()),
+                        PromiseState::Pending { .. } | PromiseState::IoWaiting(_) => {}
+                    }
+                    std::mem::replace(&mut *state, PromiseState::Resolved(Value::Null))
+                }; // borrow_mut guard dropped here
+                match pending {
+                    PromiseState::Pending { func, args } => {
+                        // Execute the async function body directly (not via call_value,
+                        // which would wrap it in another Promise)
+                        let result = self.exec_async_body(func, args)?;
+                        *state_rc.borrow_mut() = PromiseState::Resolved(result.clone());
+                        Ok(result)
+                    }
+                    PromiseState::IoWaiting(rx) => {
+                        // Block main thread until I/O worker completes
+                        let io_result = rx.recv().map_err(|_| {
+                            RuntimeError::InvalidOperation("I/O channel closed".to_string())
+                        })?;
+                        let value = match io_result {
+                            IoResult::Str(Ok(s)) => Value::string(s),
+                            IoResult::Str(Err(e)) => {
+                                return Err(RuntimeError::InvalidOperation(e))
+                            }
+                            IoResult::Unit(Ok(())) => Value::Null,
+                            IoResult::Unit(Err(e)) => {
+                                return Err(RuntimeError::InvalidOperation(e))
+                            }
+                        };
+                        *state_rc.borrow_mut() = PromiseState::Resolved(value.clone());
+                        Ok(value)
+                    }
+                    PromiseState::Resolved(v) => Ok(v),
+                }
+            }
+            other => Ok(other), // await non-Promise is identity
         }
     }
 }

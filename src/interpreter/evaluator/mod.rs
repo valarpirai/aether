@@ -2,8 +2,10 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use super::environment::{Environment, RuntimeError};
+use super::io_pool::IoPool;
 use super::value::Value;
 use crate::parser::ast::Stmt;
 
@@ -37,6 +39,8 @@ pub struct Evaluator {
     loading_stack: Vec<String>,
     /// Current file being executed (for relative imports)
     current_file: Option<PathBuf>,
+    /// Optional I/O thread pool for async-native builtins (Phase 2)
+    pub(crate) io_pool: Option<Arc<IoPool>>,
 }
 
 impl Evaluator {
@@ -54,6 +58,7 @@ impl Evaluator {
             module_cache: HashMap::new(),
             loading_stack: Vec::new(),
             current_file: None,
+            io_pool: None,
         };
         evaluator.register_builtins();
         evaluator.load_stdlib();
@@ -69,8 +74,16 @@ impl Evaluator {
             module_cache: HashMap::new(),
             loading_stack: Vec::new(),
             current_file: None,
+            io_pool: None,
         };
         evaluator.register_builtins();
+        evaluator
+    }
+
+    /// Create a new evaluator with an I/O thread pool (Phase 2)
+    pub fn new_with_pool(workers: usize) -> Self {
+        let mut evaluator = Self::new_with_stdlib();
+        evaluator.io_pool = Some(Arc::new(IoPool::new(workers)));
         evaluator
     }
 
@@ -245,6 +258,27 @@ impl Evaluator {
                 name: "http_post".to_string(),
                 arity: 2,
                 func: builtins::builtin_http_post,
+            },
+        );
+
+        // set_workers(n) — registered as placeholder; handled by name in eval_call
+        self.environment.define(
+            "set_workers".to_string(),
+            Value::BuiltinFn {
+                name: "set_workers".to_string(),
+                arity: 1,
+                func: |_| Ok(Value::Null), // intercepted in eval_call before reaching here
+            },
+        );
+
+        // Promise module — provides Promise.all([p1, p2]) syntax
+        use std::collections::HashMap as StdHashMap;
+        use std::rc::Rc as StdRc;
+        self.environment.define(
+            "Promise".to_string(),
+            Value::Module {
+                name: "Promise".to_string(),
+                members: StdRc::new(StdHashMap::new()), // all() is handled in eval_method_call
             },
         );
     }
