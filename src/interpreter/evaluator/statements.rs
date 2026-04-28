@@ -69,6 +69,27 @@ impl Evaluator {
             Stmt::For(var, iterable, body) => {
                 let iter_val = self.eval_expr(iterable)?;
 
+                // FileLines is handled lazily to avoid loading the whole file
+                if let Value::FileLines(state) = &iter_val {
+                    loop {
+                        let next = state.borrow_mut().next_line();
+                        match next {
+                            None => break,
+                            Some(line) => {
+                                self.environment.define(var.clone(), Value::string(line));
+                                let flow = self.exec_stmt_internal(body)?;
+                                match flow {
+                                    ControlFlow::Break => break,
+                                    ControlFlow::Continue => continue,
+                                    ControlFlow::Return(val) => return Ok(ControlFlow::Return(val)),
+                                    ControlFlow::None => {}
+                                }
+                            }
+                        }
+                    }
+                    return Ok(ControlFlow::None);
+                }
+
                 let items: Vec<Value> = match iter_val {
                     Value::Array(ref elements) => elements.iter().cloned().collect(),
                     Value::Dict(ref pairs) => pairs.iter().map(|(k, _)| k.clone()).collect(),

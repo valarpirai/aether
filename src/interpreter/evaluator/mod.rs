@@ -206,6 +206,87 @@ impl Evaluator {
         );
 
         self.environment.define(
+            "read_lines".to_string(),
+            Value::BuiltinFn {
+                name: "read_lines".to_string(),
+                arity: 1,
+                func: builtins::builtin_read_lines,
+            },
+        );
+
+        self.environment.define(
+            "append_file".to_string(),
+            Value::BuiltinFn {
+                name: "append_file".to_string(),
+                arity: 2,
+                func: builtins::builtin_append_file,
+            },
+        );
+
+        self.environment.define(
+            "file_exists".to_string(),
+            Value::BuiltinFn {
+                name: "file_exists".to_string(),
+                arity: 1,
+                func: builtins::builtin_file_exists,
+            },
+        );
+
+        self.environment.define(
+            "is_file".to_string(),
+            Value::BuiltinFn {
+                name: "is_file".to_string(),
+                arity: 1,
+                func: builtins::builtin_is_file,
+            },
+        );
+
+        self.environment.define(
+            "is_dir".to_string(),
+            Value::BuiltinFn {
+                name: "is_dir".to_string(),
+                arity: 1,
+                func: builtins::builtin_is_dir,
+            },
+        );
+
+        self.environment.define(
+            "mkdir".to_string(),
+            Value::BuiltinFn {
+                name: "mkdir".to_string(),
+                arity: 1,
+                func: builtins::builtin_mkdir,
+            },
+        );
+
+        self.environment.define(
+            "lines_iter".to_string(),
+            Value::BuiltinFn {
+                name: "lines_iter".to_string(),
+                arity: 1,
+                func: builtins::builtin_lines_iter,
+            },
+        );
+
+        self.environment.define(
+            "read_bytes".to_string(),
+            Value::BuiltinFn {
+                name: "read_bytes".to_string(),
+                arity: 1,
+                func: builtins::builtin_read_bytes,
+            },
+        );
+
+        self.environment.define(
+            "write_bytes".to_string(),
+            Value::BuiltinFn {
+                name: "write_bytes".to_string(),
+                arity: 2,
+                func: builtins::builtin_write_bytes,
+            },
+        );
+
+        self.environment.define(
             "input".to_string(),
             Value::BuiltinFn {
                 name: "input".to_string(),

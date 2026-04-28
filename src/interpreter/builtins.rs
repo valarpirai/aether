@@ -187,6 +187,157 @@ pub fn builtin_write_file(args: &[Value]) -> Result<Value, RuntimeError> {
         .map_err(|e| RuntimeError::InvalidOperation(format!("write_file failed: {}", e)))
 }
 
+/// Built-in function: read_lines(path)
+/// Reads a file and returns an array of strings, one per line (newlines stripped)
+pub fn builtin_read_lines(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+    }
+    let path = match &args[0] {
+        Value::String(s) => s.as_ref().clone(),
+        other => return Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+    };
+    let content = std::fs::read_to_string(&path)
+        .map_err(|e| RuntimeError::InvalidOperation(format!("read_lines failed: {}", e)))?;
+    let lines: Vec<Value> = content
+        .lines()
+        .map(|l| Value::string(l.to_string()))
+        .collect();
+    Ok(Value::array(lines))
+}
+
+/// Built-in function: append_file(path, content)
+/// Appends a string to a file, creating it if it does not exist
+pub fn builtin_append_file(args: &[Value]) -> Result<Value, RuntimeError> {
+    use std::io::Write;
+    if args.len() != 2 {
+        return Err(RuntimeError::ArityMismatch { expected: 2, got: args.len() });
+    }
+    let path = match &args[0] {
+        Value::String(s) => s.as_ref().clone(),
+        other => return Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+    };
+    let content = format!("{}", args[1]);
+    let mut file = std::fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&path)
+        .map_err(|e| RuntimeError::InvalidOperation(format!("append_file failed: {}", e)))?;
+    file.write_all(content.as_bytes())
+        .map(|_| Value::Null)
+        .map_err(|e| RuntimeError::InvalidOperation(format!("append_file write failed: {}", e)))
+}
+
+/// Built-in function: file_exists(path) -> bool
+pub fn builtin_file_exists(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+    }
+    let path = match &args[0] {
+        Value::String(s) => s.as_ref().clone(),
+        other => return Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+    };
+    Ok(Value::Bool(std::path::Path::new(&path).exists()))
+}
+
+/// Built-in function: mkdir(path) — creates directory recursively
+pub fn builtin_mkdir(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+    }
+    let path = match &args[0] {
+        Value::String(s) => s.as_ref().clone(),
+        other => return Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+    };
+    std::fs::create_dir_all(&path)
+        .map(|_| Value::Null)
+        .map_err(|e| RuntimeError::InvalidOperation(format!("mkdir failed: {}", e)))
+}
+
+/// Built-in function: is_file(path) -> bool
+pub fn builtin_is_file(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+    }
+    let path = match &args[0] {
+        Value::String(s) => s.as_ref().clone(),
+        other => return Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+    };
+    Ok(Value::Bool(std::path::Path::new(&path).is_file()))
+}
+
+/// Built-in function: is_dir(path) -> bool
+pub fn builtin_is_dir(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+    }
+    let path = match &args[0] {
+        Value::String(s) => s.as_ref().clone(),
+        other => return Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+    };
+    Ok(Value::Bool(std::path::Path::new(&path).is_dir()))
+}
+
+/// Built-in function: lines_iter(path) -> file_lines iterator
+/// Returns a lazy iterator that reads one line at a time without loading the whole file
+pub fn builtin_lines_iter(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+    }
+    let path = match &args[0] {
+        Value::String(s) => s.as_ref().clone(),
+        other => return Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+    };
+    Value::file_lines(&path)
+}
+
+/// Built-in function: read_bytes(path) -> array of ints (0–255)
+pub fn builtin_read_bytes(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+    }
+    let path = match &args[0] {
+        Value::String(s) => s.as_ref().clone(),
+        other => return Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+    };
+    let bytes = std::fs::read(&path)
+        .map_err(|e| RuntimeError::InvalidOperation(format!("read_bytes failed: {}", e)))?;
+    let arr: Vec<Value> = bytes.iter().map(|&b| Value::Int(b as i64)).collect();
+    Ok(Value::array(arr))
+}
+
+/// Built-in function: write_bytes(path, bytes_array)
+/// Writes an array of ints (0–255) as raw bytes to a file
+pub fn builtin_write_bytes(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 2 {
+        return Err(RuntimeError::ArityMismatch { expected: 2, got: args.len() });
+    }
+    let path = match &args[0] {
+        Value::String(s) => s.as_ref().clone(),
+        other => return Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+    };
+    let elements = match &args[1] {
+        Value::Array(a) => a.clone(),
+        other => return Err(RuntimeError::TypeError { expected: "array".to_string(), got: other.type_name().to_string() }),
+    };
+    let mut bytes = Vec::with_capacity(elements.len());
+    for (i, v) in elements.iter().enumerate() {
+        match v {
+            Value::Int(n) if *n >= 0 && *n <= 255 => bytes.push(*n as u8),
+            Value::Int(n) => return Err(RuntimeError::InvalidOperation(
+                format!("write_bytes: byte at index {} is {} (must be 0–255)", i, n)
+            )),
+            other => return Err(RuntimeError::TypeError {
+                expected: "int (0–255)".to_string(),
+                got: other.type_name().to_string(),
+            }),
+        }
+    }
+    std::fs::write(&path, &bytes)
+        .map(|_| Value::Null)
+        .map_err(|e| RuntimeError::InvalidOperation(format!("write_bytes failed: {}", e)))
+}
+
 /// Built-in function: input(prompt)
 /// Reads a line from stdin, printing an optional prompt first
 pub fn builtin_input(args: &[Value]) -> Result<Value, RuntimeError> {

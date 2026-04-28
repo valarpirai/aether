@@ -77,6 +77,8 @@ pub enum Value {
         message: String,
         stack_trace: String,
     },
+    /// Lazy file-line iterator — reads one line at a time without buffering the whole file
+    FileLines(Rc<RefCell<FileIterState>>),
 }
 
 /// State of a Promise value
@@ -110,6 +112,48 @@ pub enum IteratorSource {
     Set(Vec<Value>), // Convert HashSet to Vec for iteration
 }
 
+/// State for lazy file-line iteration
+pub struct FileIterState {
+    reader: std::io::BufReader<std::fs::File>,
+    /// Pre-fetched next line; None means EOF was reached
+    peeked: Option<String>,
+}
+
+impl FileIterState {
+    pub fn open(path: &str) -> Result<Self, String> {
+        use std::io::BufRead;
+        let file = std::fs::File::open(path).map_err(|e| e.to_string())?;
+        let mut reader = std::io::BufReader::new(file);
+        let mut buf = String::new();
+        let n = reader.read_line(&mut buf).map_err(|e| e.to_string())?;
+        let peeked = if n == 0 { None } else { Some(buf.trim_end_matches('\n').trim_end_matches('\r').to_string()) };
+        Ok(Self { reader, peeked })
+    }
+
+    pub fn has_next(&self) -> bool {
+        self.peeked.is_some()
+    }
+
+    pub fn next_line(&mut self) -> Option<String> {
+        use std::io::BufRead;
+        let current = self.peeked.take();
+        let mut buf = String::new();
+        match self.reader.read_line(&mut buf) {
+            Ok(0) | Err(_) => {}
+            Ok(_) => {
+                self.peeked = Some(buf.trim_end_matches('\n').trim_end_matches('\r').to_string());
+            }
+        }
+        current
+    }
+}
+
+impl std::fmt::Debug for FileIterState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "FileIterState(peeked={:?})", self.peeked)
+    }
+}
+
 impl Value {
     /// Helper: Create a string value (for convenience)
     pub fn string(s: impl Into<String>) -> Self {
@@ -136,6 +180,13 @@ impl Value {
     /// Helper: Create an iterator from a source
     pub fn iterator(source: IteratorSource) -> Self {
         Value::Iterator(Rc::new(RefCell::new(IteratorState { source, index: 0 })))
+    }
+
+    /// Helper: Open a file and create a lazy line iterator
+    pub fn file_lines(path: &str) -> Result<Self, RuntimeError> {
+        FileIterState::open(path)
+            .map(|s| Value::FileLines(Rc::new(RefCell::new(s))))
+            .map_err(|e| RuntimeError::InvalidOperation(format!("lines_iter failed: {}", e)))
     }
 
     /// Helper: Create a pending Promise wrapping a deferred async call
@@ -198,6 +249,7 @@ impl Value {
             Value::AsyncFunction { .. } => "async_function",
             Value::Promise(_) => "promise",
             Value::ErrorVal { .. } => "error",
+            Value::FileLines(_) => "file_lines",
         }
     }
 }
@@ -247,6 +299,7 @@ impl PartialEq for Value {
             (Value::AsyncFunction { .. }, Value::AsyncFunction { .. }) => false,
             (Value::Promise(_), Value::Promise(_)) => false,
             (Value::ErrorVal { message: a, .. }, Value::ErrorVal { message: b, .. }) => a == b,
+            (Value::FileLines(_), Value::FileLines(_)) => false,
             _ => false,
         }
     }
@@ -357,6 +410,10 @@ impl fmt::Display for Value {
                 write!(f, " }}")
             }
             Value::ErrorVal { message, .. } => write!(f, "{}", message),
+            Value::FileLines(state) => {
+                let s = state.borrow();
+                if s.has_next() { write!(f, "<file_lines:open>") } else { write!(f, "<file_lines:eof>") }
+            }
         }
     }
 }

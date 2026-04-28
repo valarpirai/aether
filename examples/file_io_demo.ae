@@ -1,0 +1,90 @@
+// File I/O demo — read_lines, append_file, lines_iter, read_bytes/write_bytes
+
+fn demo_read_write() {
+    println("--- 1. write_file / read_file ---")
+    let path = "/tmp/aether_demo.txt"
+    write_file(path, "Hello from Aether!\nLine 2\nLine 3\n")
+    let content = read_file(path)
+    println("full content:")
+    println(content)
+}
+
+fn demo_read_lines() {
+    println("--- 2. read_lines ---")
+    let path = "/tmp/aether_demo.txt"
+    let lines = read_lines(path)
+    println("line count:", len(lines))
+    println("first line:", lines[0])
+    println("last line:", lines[len(lines) - 1])
+    println()
+}
+
+fn demo_append() {
+    println("--- 3. append_file ---")
+    let log = "/tmp/aether_log.txt"
+    append_file(log, "event: startup\n")
+    append_file(log, "event: ready\n")
+    let lines = read_lines(log)
+    println("log entries:", len(lines))
+    for line in lines {
+        println(" ", line)
+    }
+    println()
+}
+
+fn demo_streaming() {
+    println("--- 4. lines_iter (streaming, one line at a time) ---")
+    let path = "/tmp/aether_demo.txt"
+    let count = 0
+    let longest = ""
+    for line in lines_iter(path) {
+        count = count + 1
+        if (len(line) > len(longest)) {
+            longest = line
+        }
+    }
+    println("lines processed:", count)
+    println("longest line:", longest)
+    println()
+}
+
+fn demo_file_checks() {
+    println("--- 5. file_exists / is_file / is_dir ---")
+    println("demo.txt exists:", file_exists("/tmp/aether_demo.txt"))
+    println("nosuch.txt exists:", file_exists("/tmp/no_such_file.txt"))
+    println("is_file /tmp/aether_demo.txt:", is_file("/tmp/aether_demo.txt"))
+    println("is_dir /tmp:", is_dir("/tmp"))
+    println()
+}
+
+fn demo_mkdir() {
+    println("--- 6. mkdir ---")
+    let dir = "/tmp/aether_demo_dir/sub"
+    mkdir(dir)
+    println("created:", is_dir(dir))
+    println()
+}
+
+fn demo_binary() {
+    println("--- 7. write_bytes / read_bytes ---")
+    let path = "/tmp/aether_demo.bin"
+    write_bytes(path, [65, 69, 84, 72, 69, 82])   // "AETHER" in ASCII
+    let bytes = read_bytes(path)
+    println("bytes written:", len(bytes))
+    println("first byte:", bytes[0])               // 65 = 'A'
+    println("last byte:", bytes[len(bytes) - 1])   // 82 = 'R'
+    println()
+}
+
+fn main() {
+    println("=== File I/O Demo ===")
+    println()
+    demo_read_write()
+    demo_read_lines()
+    demo_append()
+    demo_streaming()
+    demo_file_checks()
+    demo_mkdir()
+    demo_binary()
+    println("Done.")
+}

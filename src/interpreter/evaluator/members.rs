@@ -59,6 +59,8 @@ impl Evaluator {
                 ))),
             },
 
+            (Value::FileLines(state), "has_next") => Ok(Value::Bool(state.borrow().has_next())),
+
             (obj, prop) => Err(RuntimeError::InvalidOperation(format!(
                 "Property '{}' does not exist on type '{}'",
                 prop,
@@ -636,6 +638,23 @@ impl Evaluator {
                     IteratorSource::Set(items) => st.index < items.len(),
                 };
                 Ok(Value::Bool(has))
+            }
+
+            // FileLines methods
+            (Value::FileLines(state), "has_next") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch { expected: 0, got: args.len() });
+                }
+                Ok(Value::Bool(state.borrow().has_next()))
+            }
+            (Value::FileLines(state), "next") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch { expected: 0, got: args.len() });
+                }
+                match state.borrow_mut().next_line() {
+                    Some(line) => Ok(Value::string(line)),
+                    None => Ok(Value::Null),
+                }
             }
 
             // iterator() factory methods on collections
