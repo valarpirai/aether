@@ -331,10 +331,9 @@ impl Evaluator {
                 Ok(Value::Array(Rc::new(values)))
             }
             Expr::FunctionExpr(params, body) => {
-                // Create function value with current environment as closure
                 Ok(Value::Function {
                     params: params.clone(),
-                    body: body.clone(),
+                    body: Rc::clone(body),
                     closure: Rc::new(self.environment.clone()),
                 })
             }
@@ -821,17 +820,18 @@ impl Evaluator {
                 while padded.len() < params.len() {
                     padded.push(Value::Null);
                 }
-                let saved_env = self.environment.clone();
-                self.environment = Environment::with_parent((*closure).clone());
+                // Swap instead of clone — O(1) vs O(n) environment copy
+                let mut call_env = Environment::with_parent((*closure).clone());
                 for (param, value) in params.iter().zip(padded) {
-                    self.environment.define(param.clone(), value);
+                    call_env.define(param.clone(), value);
                 }
+                std::mem::swap(&mut self.environment, &mut call_env);
                 let result = match self.exec_stmt_internal(&body) {
                     Ok(ControlFlow::Return(val)) => Ok(val),
                     Ok(_) => Ok(Value::Null),
                     Err(e) => Err(e),
                 };
-                self.environment = saved_env;
+                std::mem::swap(&mut self.environment, &mut call_env);
                 self.call_depth -= 1;
                 result
             }
@@ -871,10 +871,10 @@ impl Evaluator {
                 }
                 let item = self.eval_expr(&args[0])?;
 
-                // Clone the inner Vec, mutate it, wrap in new Rc
-                let mut new_elements = (**elements).to_vec();
-                new_elements.push(item);
-                let new_array = Value::Array(Rc::new(new_elements));
+                // Use make_mut: mutates in-place if only one Rc owner, clones only if shared
+                let mut new_elements = Rc::clone(elements);
+                Rc::make_mut(&mut new_elements).push(item);
+                let new_array = Value::Array(new_elements);
 
                 // Update in environment: direct identifier or struct field
                 if let Expr::Identifier(name) = object {
@@ -896,12 +896,9 @@ impl Evaluator {
                     });
                 }
 
-                // Clone the inner Vec, mutate it, wrap in new Rc
-                let mut new_elements = (**elements).to_vec();
-                let popped = new_elements.pop();
-
-                // Update in environment: direct identifier or struct field
-                let new_array = Value::Array(Rc::new(new_elements));
+                let mut new_elements = Rc::clone(elements);
+                let popped = Rc::make_mut(&mut new_elements).pop();
+                let new_array = Value::Array(new_elements);
                 if let Expr::Identifier(name) = object {
                     self.environment.set(name, new_array)?;
                 } else if let Expr::Member(obj_expr, field) = object {
@@ -1336,8 +1333,10 @@ impl Evaluator {
                         limit: self.max_call_depth,
                     });
                 }
-                let saved_env = self.environment.clone();
-                self.environment = Environment::with_parent(self.environment.clone());
+                // Swap instead of clone — O(1) vs O(n) environment copy
+                let mut call_env = Environment::new();
+                std::mem::swap(&mut self.environment, &mut call_env);
+                self.environment = Environment::with_parent(call_env);
                 // Bind 'self' as first param
                 self.environment.define("self".to_string(), instance);
                 // Bind remaining params (skip first if it is 'self')
@@ -1358,7 +1357,9 @@ impl Evaluator {
                     Ok(_) => Ok(Value::Null),
                     Err(e) => Err(e),
                 };
-                self.environment = saved_env;
+                // Restore caller environment from the parent
+                let parent = self.environment.take_parent().unwrap_or_default();
+                self.environment = parent;
                 self.call_depth -= 1;
                 result
             }
@@ -1573,7 +1574,7 @@ impl Evaluator {
             Stmt::Function(name, params, body) => {
                 let func = Value::Function {
                     params: params.clone(),
-                    body: body.clone(),
+                    body: Rc::clone(body),
                     closure: Rc::new(self.environment.clone()),
                 };
                 self.environment.define(name.clone(), func);

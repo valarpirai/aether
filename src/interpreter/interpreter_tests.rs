@@ -318,6 +318,7 @@ fn test_eval_index_out_of_bounds() {
 
 // Statement execution tests
 use crate::parser::ast::Stmt;
+use std::rc::Rc;
 
 #[test]
 fn test_exec_let_statement() {
@@ -476,7 +477,7 @@ fn test_function_declaration() {
     let stmt = Stmt::Function(
         "add".to_string(),
         vec!["a".to_string(), "b".to_string()],
-        Box::new(Stmt::Return(Some(Expr::Binary(
+        Rc::new(Stmt::Return(Some(Expr::Binary(
             Box::new(Expr::Identifier("a".to_string())),
             BinaryOp::Add,
             Box::new(Expr::Identifier("b".to_string())),
@@ -499,7 +500,7 @@ fn test_function_call() {
     let func_stmt = Stmt::Function(
         "add".to_string(),
         vec!["a".to_string(), "b".to_string()],
-        Box::new(Stmt::Return(Some(Expr::Binary(
+        Rc::new(Stmt::Return(Some(Expr::Binary(
             Box::new(Expr::Identifier("a".to_string())),
             BinaryOp::Add,
             Box::new(Expr::Identifier("b".to_string())),

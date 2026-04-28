@@ -104,6 +104,11 @@ impl Environment {
         &self.values
     }
 
+    /// Take the parent environment, leaving None in its place
+    pub fn take_parent(&mut self) -> Option<Environment> {
+        self.parent.take().map(|b| *b)
+    }
+
     /// Set an existing variable's value (searches parent scopes)
     pub fn set(&mut self, name: &str, value: Value) -> Result<(), RuntimeError> {
         if self.values.contains_key(name) {

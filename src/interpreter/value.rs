@@ -29,10 +29,10 @@ pub enum Value {
     Null,
     /// Array of values (reference counted for GC)
     Array(Rc<Vec<Value>>),
-    /// Function with closure
+    /// Function with closure (body is Rc to avoid deep-cloning AST on env clone)
     Function {
         params: Vec<String>,
-        body: Box<crate::parser::ast::Stmt>,
+        body: Rc<crate::parser::ast::Stmt>,
         closure: Rc<super::environment::Environment>,
     },
     /// Built-in function

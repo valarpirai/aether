@@ -3,6 +3,7 @@
 use super::ast::*;
 use crate::lexer::{Token, TokenKind};
 use std::fmt;
+use std::rc::Rc;
 
 /// Parse error types
 #[derive(Debug, Clone, PartialEq)]
@@ -199,7 +200,7 @@ impl Parser {
         self.consume(TokenKind::LeftBrace, "{")?;
         let body = self.block_statement()?;
 
-        Ok(Stmt::Function(name, params, Box::new(body)))
+        Ok(Stmt::Function(name, params, Rc::new(body)))
     }
 
     // Parse statements
@@ -670,7 +671,7 @@ impl Parser {
         self.consume(TokenKind::LeftBrace, "{")?;
         let body = self.block_statement()?;
 
-        Ok(Expr::FunctionExpr(params, Box::new(body)))
+        Ok(Expr::FunctionExpr(params, Rc::new(body)))
     }
 
     // Returns true if the upcoming '{' begins a struct init (identifier ':' or just '}')

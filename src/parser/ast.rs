@@ -1,5 +1,7 @@
 //! Abstract Syntax Tree node definitions
 
+use std::rc::Rc;
+
 /// Expression AST node
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
@@ -34,7 +36,7 @@ pub enum Expr {
     /// Member access (object, member)
     Member(Box<Expr>, String),
     /// Function expression (parameters, body)
-    FunctionExpr(Vec<String>, Box<Stmt>),
+    FunctionExpr(Vec<String>, Rc<Stmt>),
     /// String interpolation: parts are alternating literals and expressions
     StringInterp(Vec<Expr>),
     /// Struct instantiation: StructName { field: value, ... }
@@ -100,7 +102,7 @@ pub enum Stmt {
     /// Continue statement
     Continue,
     /// Function declaration (name, parameters, body)
-    Function(String, Vec<String>, Box<Stmt>),
+    Function(String, Vec<String>, Rc<Stmt>),
     /// Import statement (module_name)
     Import(String),
     /// Import with alias (module_name, alias)
