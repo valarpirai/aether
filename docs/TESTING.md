@@ -1,8 +1,3 @@
----
-layout: default
-title: Aether Testing Guide
----
-
 # Aether Testing Guide
 
 This document provides comprehensive guidance on testing the Aether interpreter.
@@ -517,7 +512,7 @@ jobs:
 ## Resources
 
 ### Internal Documentation
-- **[DEVELOPMENT.md](DEVELOPMENT.html)** - Development workflow
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Development workflow
 - **[CLAUDE.md](../CLAUDE.md)** - Project overview
 - Component docs: LEXER.md, PARSER.md, INTERPRETER.md
 

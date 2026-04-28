@@ -1,8 +1,3 @@
----
-layout: default
-title: Time Functions in Aether
----
-
 # Time Functions in Aether
 
 **Status**: ✅ Complete  
@@ -234,7 +229,7 @@ fn cancellable_wait(seconds, should_cancel) {
 
 ## See Also
 
-- [DESIGN.md](DESIGN.html) - Language specification
+- [DESIGN.md](DESIGN.md) - Language specification
 - [examples/](../examples/) - Usage examples
 
 ---

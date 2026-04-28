@@ -1,8 +1,3 @@
----
-layout: default
-title: Aether Parser Documentation
----
-
 # Aether Parser Documentation
 
 ## Overview

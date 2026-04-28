@@ -1,8 +1,3 @@
----
-layout: default
-title: Garbage Collection Design
----
-
 # Garbage Collection Design
 
 **Status**: ✅ Complete

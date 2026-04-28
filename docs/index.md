@@ -5,158 +5,161 @@ title: Aether: General purpose programming language
 
 # Aether Programming Language
 
-A general-purpose, dynamically typed programming language with automatic memory management, combining the familiarity of C-like syntax with the ease of use of modern interpreted languages.
+A general-purpose, dynamically typed programming language implemented in Rust — a fully-working tree-walking interpreter with async I/O, structs, iterators, and a self-hosted standard library.
 
 ## Features
 
-- **Dynamic Typing** - Runtime type checking for flexibility
-- **Automatic Memory Management** - Reference-counted garbage collection
-- **First-Class Functions** - Functions with closures and recursion
-- **User-Defined Types** - Structs with fields and methods
-- **Error Handling** - Structured `try/catch/throw` exception handling
-- **Module System** - Import and organize code across files
-- **Rich Standard Library** - 35+ functions written in Aether itself
-- **Interactive REPL** - Rapid development and testing
+- **Dynamic Typing** — Runtime type checking with clear error messages
+- **Automatic Memory Management** — Reference-counted garbage collection (no GC pauses)
+- **Async/Await** — `async fn`, `await`, `Promise.all`, configurable I/O thread pool
+- **First-Class Functions** — Closures, optional parameters, function expressions
+- **User-Defined Types** — Structs with fields, methods, and `self` binding
+- **Error Handling** — `try/catch/throw` with `e.message` and `e.stack_trace`
+- **Module System** — `import`, `from ... import`, aliases, filesystem resolution
+- **Collections** — Arrays, dicts, sets with comprehensive methods
+- **File I/O** — Read/write files, line-by-line streaming, binary I/O
+- **Rich Standard Library** — 40+ functions written in Aether itself
+- **Interactive REPL** — Line editing with history and tab-completion
 
 ## Quick Example
 
 ```aether
-// Functional programming with stdlib
-fn square(x) { return x * x }
-fn is_even(x) { return x % 2 == 0 }
-
 fn main() {
+    // Functional stdlib
     let numbers = range(1, 11)
-    let squares = map(numbers, square)
-    let even_squares = filter(squares, is_even)
-    let total = sum(even_squares)
-    
-    println("Sum of even squares:", total)  // 220
+    let total = sum(filter(map(numbers, fn(x) { return x * x }), fn(x) { return x % 2 == 0 }))
+    println("sum of even squares:", total)   // 220
+
+    // File I/O
+    let lines = read_lines("data.csv")
+    println("rows:", len(lines))
+
+    // Error handling with stack traces
+    try {
+        throw "something went wrong"
+    } catch(e) {
+        println("caught:", e.message)
+        println(e.stack_trace)
+    }
 }
 ```
 
 ## Status
 
-- **Phase**: 5 Sprint 2 Complete ✅
-- **Tests**: 505 passing (99 unit + 406 integration)
+- **Phase**: 5 Complete ✅
+- **Tests**: ~564 passing (99 unit + ~465 integration)
 - **Code Quality**: 0 clippy warnings
-- **Documentation**: 15 comprehensive guides
+- **Documentation**: 20+ comprehensive guides
 
 ## Quick Start
 
 ### Building from Source
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/aether.git
+git clone https://github.com/valarpirai/aether.git
 cd aether
-
-# Build the project
 cargo build --release
-
-# Run the REPL
-./target/release/aether
-
-# Run a program
-./target/release/aether examples/hello.ae
+./target/release/aether          # REPL
+./target/release/aether hello.ae # run a file
 ```
 
 ### Your First Program
 
-Create `hello.ae`:
-
 ```aether
 fn main() {
-    println("Hello, Aether!")
-    
     let name = "World"
     println("Hello, ${name}!")
+
+    let nums = range(1, 6)
+    for n in nums {
+        println(n, "squared =", n * n)
+    }
 }
 ```
 
-Run it:
+### Async I/O
 
-```bash
-cargo run hello.ae
+```aether
+fn main() {
+    set_workers(4)
+    let p1 = http_get("https://httpbin.org/get")
+    let p2 = http_get("https://httpbin.org/ip")
+    let results = await Promise.all([p1, p2])
+    println(results[0])
+}
 ```
 
 ## Documentation
 
-### Getting Started
-- [Language Design](DESIGN.html) - Complete language specification
-- [Architecture](ARCHITECTURE.html) - System design and roadmap
-- [Development Guide](DEVELOPMENT.html) - Contributing and best practices
-- [Testing Guide](TESTING.html) - Test-driven development workflow
+### Language Reference
+- [Language Design](DESIGN.html) — Types, syntax, operators, all features
+- [Architecture](ARCHITECTURE.html) — System design and roadmap
+- [Configuration](CONFIGURATION.html) — Env vars, runtime knobs, compile-time constants
+- [Backlog](BACKLOG.html) — Planned features (6 tiers, ~30 items)
 
-### Core Implementation
-- [Lexer](LEXER.html) - Tokenization (14 tests)
-- [Parser](PARSER.html) - Recursive descent parsing (53 tests)
-- [Interpreter](INTERPRETER.html) - Tree-walking interpreter (82 tests)
-- [REPL](REPL.html) - Interactive mode
-- [Standard Library](STDLIB.html) - Self-hosted stdlib
-- [Garbage Collection](GC_DESIGN.html) - Rc-based memory management
-- [Module System](MODULE_SYSTEM.html) - Import mechanism
+### Implementation Guides
+- [Lexer](LEXER.html) — Tokenization (14 tests)
+- [Parser](PARSER.html) — Recursive descent parsing (53 tests)
+- [Interpreter](INTERPRETER.html) — Tree-walking evaluator
+- [REPL](REPL.html) — Interactive mode
+- [Standard Library](STDLIB.html) — Self-hosted stdlib
+- [Garbage Collection](GC_DESIGN.html) — Rc-based memory management
+- [Module System](MODULE_SYSTEM.html) — Import mechanism
 
 ### Language Features
-- [Structs](STRUCT.html) - User-defined types with methods
-- [Error Handling](ERROR_HANDLING.html) - Try/catch/throw
-- [String Features](STRING_FEATURES.html) - Indexing, interpolation, slicing
-- [JSON Support](JSON.html) - Parsing and serialization
-- [Time Functions](TIME.html) - clock(), sleep()
-- [HTTP Client](HTTP.html) - http_get(), http_post()
+- [Async/Await](ASYNC.html) — Promises, `async fn`, I/O thread pool
+- [Iterators](ITERATOR_PROTOCOL.html) — `has_next()` / `next()` protocol
+- [Structs](STRUCT.html) — User-defined types with methods
+- [Error Handling](ERROR_HANDLING.html) — Try/catch/throw with stack traces
+- [String Features](STRING_FEATURES.html) — Indexing, interpolation, slicing, methods
+- [JSON](JSON.html) — Parsing and serialization
+- [HTTP](HTTP.html) — `http_get()`, `http_post()`
+- [Time](TIME.html) — `clock()`, `sleep()`
 
-## What Works
+### Contributing
+- [Development Guide](DEVELOPMENT.html) — Post-feature checklist, TDD workflow, memory leak detection
+- [Testing Guide](TESTING.html) — Test organisation and patterns
 
-✅ **Complete Interpreter** - Tree-walking interpreter with full language support  
-✅ **505 Tests Passing** - 100% success rate  
-✅ **Garbage Collection** - Reference-counted memory management  
-✅ **Standard Library** - 35+ functions written in Aether  
-✅ **Built-in Functions** - I/O, type introspection, conversions, JSON, time, HTTP  
-✅ **Collection Types** - Arrays, dicts, and sets with comprehensive methods  
-✅ **Structs** - User-defined types with fields and methods  
-✅ **Error Handling** - Try/catch/throw exception handling  
-✅ **Module System** - Import and organize code  
-✅ **Interactive REPL** - Line editing with history
+## What's Working
+
+| Area | Features |
+|------|---------|
+| **Core language** | int, float, string, bool, null, array, dict, set; all operators; let, if/else, while, for, break, continue, return |
+| **Functions** | declarations, expressions, closures, optional params, recursion |
+| **Strings** | indexing, interpolation `${expr}`, slicing, `contains`, `index_of`, `replace`, `upper`/`lower`/`trim`/`split` |
+| **Collections** | array (push/pop/sort/slice/spread), dict (keys/values/contains), set (union/intersection/difference) |
+| **File I/O** | `read_file`, `write_file`, `read_lines`, `append_file`, `lines_iter` (streaming), `read_bytes`, `write_bytes`, `file_exists`, `is_file`, `is_dir`, `mkdir` |
+| **Error handling** | try/catch/throw; `e.message`, `e.stack_trace`; frames include filename and line |
+| **Modules** | `import mod`, `from mod import fn`, `import mod as alias` |
+| **Structs** | fields, methods, `self` binding, mutable fields |
+| **Iterators** | `has_next()`, `next()`, for-in over array/dict/set/string/iterator |
+| **Async/await** | `async fn`, `await expr`, Promise caching, `Promise.all` |
+| **I/O thread pool** | `set_workers(n)`, `AETHER_WORKERS`; async http, sleep, file I/O |
+| **JSON** | `json_parse()`, `json_stringify()` |
+| **HTTP** | `http_get(url)`, `http_post(url, body)` |
+| **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, join, repeat, reverse, starts_with, ends_with |
+| **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
+| **REPL** | rustyline with history, tab-completion, `_help`/`_env`/`_exit` |
 
 ## Examples
 
-Browse [example programs](https://github.com/yourusername/aether/tree/main/examples):
+Browse the [examples directory](EXAMPLES.html) or jump straight to a topic:
 
-- `hello.ae` - Hello World
-- `set_demo.ae` - Set operations
-- `dict_demo.ae` - Dictionary usage
-- `error_handling.ae` - Exception handling
-- `shapes.ae` - Structs and methods
-- `http_demo.ae` - HTTP requests
-- `stdlib_demo.ae` - Standard library showcase
-
-## Community
-
-- **GitHub**: [github.com/yourusername/aether](https://github.com/yourusername/aether)
-- **Issues**: [Report bugs and request features](https://github.com/yourusername/aether/issues)
-- **Discussions**: [Join the conversation](https://github.com/yourusername/aether/discussions)
+| Example | What it shows |
+|---------|--------------|
+| [Hello World](EXAMPLES.html#hello) | First program, interpolation |
+| [File Utilities](EXAMPLES.html#file-utilities) | basename, grep, head/tail, CSV reader |
+| [String Utilities](EXAMPLES.html#string-utilities) | All string operations |
+| [Shapes (Structs)](EXAMPLES.html#shapes) | User-defined types with methods |
+| [Error Context](EXAMPLES.html#error-context) | Stack traces in catch blocks |
+| [Async / Concurrent I/O](EXAMPLES.html#async) | Promise.all, thread pool |
+| [Data Processing](EXAMPLES.html#data-processing) | Functional pipeline |
+| [Task Manager](EXAMPLES.html#task-manager) | Real-world struct usage |
+| [Collections](EXAMPLES.html#collections) | Arrays, dicts, sets |
 
 ## License
 
-MIT License - see [LICENSE](https://github.com/yourusername/aether/blob/main/LICENSE) for details
-
-## Development Status
-
-**Current Phase**: Phase 5 Sprint 2 Complete
-
-### Recent Achievements
-- ✅ User-defined structs with methods
-- ✅ Set type with set operations
-- ✅ Dict methods (keys, values, contains)
-- ✅ Comprehensive documentation (15 guides)
-- ✅ 505 tests passing
-- ✅ 0 clippy warnings
-
-### Up Next
-- Iterator protocol
-- Async/await support
-- Performance optimizations
-- Community building
+MIT License — see [LICENSE](https://github.com/valarpirai/aether/blob/main/LICENSE)
 
 ---
 
@@ -164,5 +167,5 @@ MIT License - see [LICENSE](https://github.com/yourusername/aether/blob/main/LIC
 **Version**: 0.1.0  
 **Status**: Active Development
 
-[Get Started](DESIGN.html){: .btn .btn-primary}
-[View on GitHub](https://github.com/yourusername/aether){: .btn .btn-outline}
+[Language Reference](DESIGN.html){: .btn .btn-primary}
+[View on GitHub](https://github.com/valarpirai/aether){: .btn .btn-outline}

@@ -1,8 +1,3 @@
----
-layout: default
-title: Aether Architecture & Roadmap
----
-
 # Aether Architecture & Roadmap
 
 This document provides a high-level overview of Aether's architecture, current status, and future roadmap.
@@ -20,7 +15,7 @@ This document provides a high-level overview of Aether's architecture, current s
 >
 > For day-to-day development guidance, see:
 > - **[CLAUDE.md](../CLAUDE.md)** - Quick reference, project status, where to add features
-> - **[DEVELOPMENT.md](DEVELOPMENT.html)** - TDD workflow, testing strategy, code style, common pitfalls
+> - **[DEVELOPMENT.md](DEVELOPMENT.md)** - TDD workflow, testing strategy, code style, common pitfalls
 
 ---
 
@@ -42,12 +37,12 @@ Source Code (.ae)
 
 | Component | Status | Purpose | Details |
 |-----------|--------|---------|---------|
-| **Lexer** | ✅ Complete | Tokenization | See [LEXER.md](LEXER.html) |
-| **Parser** | ✅ Complete | Syntax analysis | See [PARSER.md](PARSER.html) |
-| **Interpreter** | ✅ Complete | AST execution | See [INTERPRETER.md](INTERPRETER.html) |
-| **REPL** | ✅ Complete | Interactive mode | See [REPL.md](REPL.html) |
-| **Standard Library** | ✅ Complete | Core functions | See [STDLIB.md](STDLIB.html) |
-| **Garbage Collection** | ✅ Complete | Memory management | See [GC_DESIGN.md](GC_DESIGN.html) |
+| **Lexer** | ✅ Complete | Tokenization | See [LEXER.md](LEXER.md) |
+| **Parser** | ✅ Complete | Syntax analysis | See [PARSER.md](PARSER.md) |
+| **Interpreter** | ✅ Complete | AST execution | See [INTERPRETER.md](INTERPRETER.md) |
+| **REPL** | ✅ Complete | Interactive mode | See [REPL.md](REPL.md) |
+| **Standard Library** | ✅ Complete | Core functions | See [STDLIB.md](STDLIB.md) |
+| **Garbage Collection** | ✅ Complete | Memory management | See [GC_DESIGN.md](GC_DESIGN.md) |
 
 ### Project Structure
 
@@ -272,23 +267,23 @@ Integration Tests (234):
 ### Documentation
 
 **Core Implementation:**
-- **[DESIGN.md](DESIGN.html)** - Complete language specification
-- **[DEVELOPMENT.md](DEVELOPMENT.html)** - Development guidelines and best practices
-- **[LEXER.md](LEXER.html)** - Tokenization implementation
-- **[PARSER.md](PARSER.html)** - Syntax analysis implementation
-- **[INTERPRETER.md](INTERPRETER.html)** - Execution engine implementation
-- **[REPL.md](REPL.html)** - Interactive mode implementation
-- **[STDLIB.md](STDLIB.html)** - Standard library design
-- **[GC_DESIGN.md](GC_DESIGN.html)** - Garbage collection architecture
+- **[DESIGN.md](DESIGN.md)** - Complete language specification
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Development guidelines and best practices
+- **[LEXER.md](LEXER.md)** - Tokenization implementation
+- **[PARSER.md](PARSER.md)** - Syntax analysis implementation
+- **[INTERPRETER.md](INTERPRETER.md)** - Execution engine implementation
+- **[REPL.md](REPL.md)** - Interactive mode implementation
+- **[STDLIB.md](STDLIB.md)** - Standard library design
+- **[GC_DESIGN.md](GC_DESIGN.md)** - Garbage collection architecture
 
 **Language Features:**
-- **[STRUCT.md](STRUCT.html)** - User-defined types with fields and methods
-- **[ERROR_HANDLING.md](ERROR_HANDLING.html)** - Try/catch/throw exception handling
-- **[STRING_FEATURES.md](STRING_FEATURES.html)** - String indexing, interpolation, slicing
-- **[JSON.md](JSON.html)** - JSON parsing and serialization
-- **[TIME.md](TIME.html)** - Time functions (clock, sleep)
-- **[HTTP.md](HTTP.html)** - HTTP client functions
-- **[MODULE_SYSTEM.md](MODULE_SYSTEM.html)** - Import and module loading
+- **[STRUCT.md](STRUCT.md)** - User-defined types with fields and methods
+- **[ERROR_HANDLING.md](ERROR_HANDLING.md)** - Try/catch/throw exception handling
+- **[STRING_FEATURES.md](STRING_FEATURES.md)** - String indexing, interpolation, slicing
+- **[JSON.md](JSON.md)** - JSON parsing and serialization
+- **[TIME.md](TIME.md)** - Time functions (clock, sleep)
+- **[HTTP.md](HTTP.md)** - HTTP client functions
+- **[MODULE_SYSTEM.md](MODULE_SYSTEM.md)** - Import and module loading
 
 ### External Resources
 - [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom

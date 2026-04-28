@@ -1,8 +1,3 @@
----
-layout: default
-title: Advanced String Features in Aether
----
-
 # Advanced String Features in Aether
 
 **Status**: ✅ Complete  
@@ -274,8 +269,8 @@ let fields = csv_line.split(",")
 
 ## See Also
 
-- [DESIGN.md](DESIGN.html) - Language specification
-- [STDLIB.md](STDLIB.html) - String utility functions
+- [DESIGN.md](DESIGN.md) - Language specification
+- [STDLIB.md](STDLIB.md) - String utility functions
 - [examples/string_demo.ae](../examples/string_demo.ae) - String examples
 
 ---

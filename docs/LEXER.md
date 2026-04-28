@@ -1,8 +1,3 @@
----
-layout: default
-title: Aether Lexer Documentation
----
-
 # Aether Lexer Documentation
 
 ## Overview

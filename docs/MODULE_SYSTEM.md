@@ -1,8 +1,3 @@
----
-layout: default
-title: Module System Design
----
-
 # Module System Design
 
 ## Syntax
