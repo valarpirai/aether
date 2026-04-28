@@ -237,7 +237,7 @@ EXAMPLES:
 
 ### What's Working
 - ✅ **Complete Interpreter** - Tree-walking interpreter with full language support
-- ✅ **444 Tests Passing** - 100% success rate (99 unit + 345 integration)
+- ✅ **485 Tests Passing** - 100% success rate (99 unit + 386 integration)
 - ✅ **Garbage Collection** - Reference-counted memory management (Rc-based)
 - ✅ **Standard Library** - 28+ functions written in Aether itself
   - Core: `range()`, `enumerate()`
@@ -252,9 +252,9 @@ EXAMPLES:
 - ✅ **First-class Functions** - Functions with closures and recursion
 
 ### Test Coverage
-- **444 tests passing** ✅
+- **485 tests passing** ✅
   - 99 unit tests
-  - 345 integration tests
+  - 386 integration tests
 - **0 clippy warnings**
 - **100% success rate**
 
@@ -266,8 +266,8 @@ EXAMPLES:
 ### Up Next (Phase 5 continued)
 - ⏳ Iterator protocol
 - ⏳ Async/await support
-- ⏳ Dict methods (keys, values, contains)
 - ⏳ Performance optimizations
+- ⏳ Feature documentation (structs, error handling, JSON, HTTP, etc.)
 
 See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed roadmap and [CLAUDE.md](CLAUDE.md) for complete project status.
 

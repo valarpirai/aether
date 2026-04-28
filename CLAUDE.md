@@ -232,7 +232,7 @@ All planned features for Phase 1 have been implemented and tested.
 - ✅ All expressions and statements
 - ✅ Functions with closures, optional parameters, and function expressions
 - ✅ Arrays with methods (push, pop, length, contains, sort, concat)
-- ✅ Dicts with literals (keys, values, contains methods - TBD)
+- ✅ Dicts with literals and methods (keys, values, contains, size/length)
 - ✅ Sets with methods (add, remove, contains, clear, to_array, union, intersection, difference, is_subset)
 - ✅ Strings with methods (upper, lower, trim, split) and indexing
 - ✅ String interpolation: `"Hello ${name}"`
@@ -249,7 +249,7 @@ All planned features for Phase 1 have been implemented and tested.
   - String: join(), repeat(), reverse(), starts_with(), ends_with()
   - Testing: assert_eq(), assert_true(), assert_false(), assert_null(), assert_not_null(), expect_error(), test(), test_summary()
 - ✅ Structs with fields, methods, and `self` binding
-- ✅ **444 tests passing** (99 unit + 345 integration, 1 ignored)
+- ✅ **485 tests passing** (99 unit + 386 integration, 1 ignored)
 
 ### Completed Milestones
 1. ✅ Phase 1: Core Interpreter (102 tests)
@@ -277,8 +277,8 @@ All planned features for Phase 1 have been implemented and tested.
 
 ### Test Coverage (Last Updated: 2026-04-28)
 
-- **Total**: 444 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test; 5 http tests ignored — require network)
-- **Code Quality**: 0 clippy warnings
+- **Total**: 485 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test; 5 http tests ignored — require network)
+- **Code Quality**: 5 clippy warnings (mutable key type in HashSet - acceptable)
 
 **Breakdown by Category:**
 
@@ -288,7 +288,7 @@ All planned features for Phase 1 have been implemented and tested.
 - Interpreter: 17 tests
 - Built-ins: 15 tests
 
-**Integration Tests (345):**
+**Integration Tests (386):**
 - Core features: 29 tests
 - Member access: 8 tests
 - Array methods: 22 tests
@@ -297,7 +297,7 @@ All planned features for Phase 1 have been implemented and tested.
 - String interpolation: 9 tests
 - Function expressions: 13 tests
 - Closures: 4 tests
-- Dict literals: 10 tests
+- **Dict literals & methods: 27 tests** (10 existing + 17 new) ✨
 - Error handling: 10 tests
 - Module system: 13 tests
 - IO builtins: 5 tests
