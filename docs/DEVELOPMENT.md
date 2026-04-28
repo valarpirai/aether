@@ -3,8 +3,10 @@
 This document provides comprehensive development guidelines for contributing to the Aether programming language interpreter.
 
 ## Table of Contents
+- [Post-Feature Checklist](#post-feature-checklist)
 - [Code Organization](#code-organization)
 - [Testing Strategy](#testing-strategy)
+- [Memory Leak Detection](#memory-leak-detection)
 - [Error Handling](#error-handling)
 - [Code Style](#code-style)
 - [Incremental Development](#incremental-development)
@@ -13,6 +15,46 @@ This document provides comprehensive development guidelines for contributing to 
 - [Debugging](#debugging)
 - [Documentation](#documentation)
 - [Dependencies](#dependencies)
+
+## Post-Feature Checklist
+
+Every feature — no matter how small — must pass this checklist before committing.
+
+### 1. Tests
+
+- [ ] **Integration test file exists** — `tests/<feature>_test.rs` with at minimum:
+  - Happy path (normal usage)
+  - Edge cases (empty input, zero, null, large values)
+  - Error cases (wrong type, wrong arity, out-of-bounds)
+- [ ] **All existing tests still pass**: `cargo test -- --test-threads=1`
+- [ ] Test count in CLAUDE.md is updated if the suite total changes significantly
+
+### 2. Example Program
+
+- [ ] **`examples/<feature>_demo.ae` exists** and covers every function/method added
+- [ ] Example runs cleanly: `cargo run -- examples/<feature>_demo.ae`
+- [ ] Each demo section is labeled (`--- 1. feature_name ---`) for easy reading
+
+### 3. Documentation
+
+- [ ] **Component doc updated** — the relevant doc in `docs/` (e.g. `INTERPRETER.md`, `STDLIB.md`) mentions the new function/syntax
+- [ ] **CLAUDE.md updated** — add the new function to the feature summary table and the relevant test count if it changed
+- [ ] **`docs/BACKLOG.md` updated** — mark the item done or add any new items discovered during implementation
+- [ ] If the feature introduces a new env var or config knob: **`docs/CONFIGURATION.md` updated**
+
+### 4. Memory Leak Check
+
+- [ ] Run `cargo test --test gc_test -- --test-threads=1` — all GC tests pass
+- [ ] For features that add a new `Value` variant or struct with `Rc<T>`: add a GC test that verifies no cycle is introduced (see [Memory Leak Detection](#memory-leak-detection))
+- [ ] On macOS, spot-check with `leaks`: `leaks --atExit -- ./target/debug/aether examples/<feature>_demo.ae`
+
+### 5. Code Quality
+
+- [ ] `cargo fmt` — no formatting changes needed
+- [ ] `cargo clippy` — zero new warnings
+- [ ] Commit is atomic and message explains the *why*
+
+---
 
 ## Code Organization
 
@@ -192,6 +234,89 @@ cargo test -- --nocapture     # Show output during tests
 cargo test -- --test-threads=1 # Run tests sequentially
 ```
 
+## Memory Leak Detection
+
+Aether uses `Rc<T>` for garbage collection. `Rc` cannot collect reference cycles — if object A holds an `Rc` to B and B holds an `Rc` back to A, both will leak. This section describes how to detect and prevent leaks.
+
+### When to Run a Memory Check
+
+Run a memory check whenever you:
+- Add a new `Value` variant that contains `Rc<T>` or `RefCell<T>`
+- Add a struct that holds back-references to the environment or another value
+- Implement a feature where a closure or instance can reference itself
+
+### Option 1: GC Test Suite (always)
+
+```bash
+cargo test --test gc_test -- --test-threads=1
+```
+
+`tests/gc_test.rs` contains Rc-cycle and drop tests. Add a new test for each new `Value` variant:
+
+```rust
+#[test]
+fn test_file_lines_drops_cleanly() {
+    // FileLines should not hold a cycle — just a BufReader<File>
+    let src = r#"let it = lines_iter("/tmp/small.txt")"#;
+    // If this completes without OOM / leak, the value drops cleanly
+    run(src).unwrap();
+}
+```
+
+### Option 2: macOS `leaks` tool (quick spot-check)
+
+macOS ships a `leaks` command that attaches to a process at exit and reports memory leaks:
+
+```bash
+# Build first
+cargo build
+
+# Run with leak detection
+leaks --atExit -- ./target/debug/aether examples/file_io_demo.ae
+
+# Expected output (clean):
+# Process 12345: 0 leaks for 0 total leaked bytes
+```
+
+If leaks are reported, the output shows the allocation call stack. A single "leaked" allocation from Rust's global allocator at startup is normal and can be ignored; leaked `Value`/`Rc` allocations are real bugs.
+
+### Option 3: Valgrind (Linux CI)
+
+```bash
+# Install valgrind, then:
+valgrind --leak-check=full --error-exitcode=1 \
+    ./target/debug/aether examples/file_io_demo.ae
+```
+
+### Preventing Rc Cycles — Rules
+
+| Pattern | Safe? | Fix |
+|---------|-------|-----|
+| `Rc<Environment>` in closure | ✅ Closure captures env *before* the fn is defined, so no cycle | — |
+| `Instance` holding a method that closes over `self` | ⚠️ Potential cycle | Use `Weak<T>` for the self-reference |
+| New `Value` variant holding `Rc<Value>` | ⚠️ Review carefully | Ensure no path where `v` contains `Rc<v>` |
+| `FileLines(Rc<RefCell<FileIterState>>)` | ✅ No Value references | — |
+
+**Rule**: If a `Value` variant can transitively point back to itself through `Rc` chains, break the cycle with `Weak<T>` on the back-pointer.
+
+### Checking Rc Strong Counts in Tests
+
+For precise control, use `Rc::strong_count` in unit tests:
+
+```rust
+use std::rc::Rc;
+
+#[test]
+fn test_no_cycle_after_scope_exit() {
+    let arr = Rc::new(vec![1i64, 2, 3]);
+    let weak = Rc::downgrade(&arr);
+    drop(arr); // Only owner dropped
+    assert!(weak.upgrade().is_none(), "Rc was not freed — possible cycle");
+}
+```
+
+---
+
 ## Error Handling
 
 ### Use Result Types
@@ -299,11 +424,14 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, LexerError> {
 ### Before Committing
 
 ```bash
-cargo fmt               # Format code
-cargo clippy            # Run linter
-cargo test              # Run all tests
-cargo build --release   # Ensure release build works
+cargo fmt                              # Format code
+cargo clippy                           # Run linter
+cargo test -- --test-threads=1        # Run all tests sequentially
+cargo test --test gc_test -- --test-threads=1  # Memory/GC tests
+cargo build --release                  # Ensure release build works
 ```
+
+See the [Post-Feature Checklist](#post-feature-checklist) for the full per-feature gate.
 
 ### Clippy Warnings
 
@@ -313,10 +441,11 @@ cargo build --release   # Ensure release build works
 
 ### Code Review Checklist
 
-- [ ] All tests pass
-- [ ] New code has tests
+- [ ] All tests pass (`--test-threads=1`)
+- [ ] New code has tests AND an example program
+- [ ] GC / memory leak check done (see [Memory Leak Detection](#memory-leak-detection))
+- [ ] Relevant docs updated (CLAUDE.md, component doc, BACKLOG.md)
 - [ ] Error handling is robust
-- [ ] Documentation is clear
 - [ ] No clippy warnings
 - [ ] Code follows Rust idioms
 - [ ] Commit messages are descriptive

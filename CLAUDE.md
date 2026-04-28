@@ -131,6 +131,12 @@ cargo test -- --test-threads=1
 cargo test -- --test-threads=1 --nocapture   # show output
 cargo test --test error_context_test -- --test-threads=1  # single file
 
+# Memory / GC tests
+cargo test --test gc_test -- --test-threads=1
+
+# macOS leak check (spot-check after adding new Value variants)
+leaks --atExit -- ./target/debug/aether examples/<feature>_demo.ae
+
 # Run
 cargo run -- examples/error_context.ae
 AETHER_WORKERS=4 cargo run -- examples/concurrent_io.ae
@@ -139,6 +145,18 @@ AETHER_WORKERS=4 cargo run -- examples/concurrent_io.ae
 cargo fmt
 cargo clippy
 ```
+
+## Post-Feature Checklist
+
+After implementing any feature, before committing:
+
+1. **Tests** — `tests/<feature>_test.rs` with happy path, edge cases, and error cases
+2. **Example program** — `examples/<feature>_demo.ae` covering all new functions/syntax
+3. **Docs** — update the relevant component doc + CLAUDE.md feature table + BACKLOG.md
+4. **Memory check** — run `cargo test --test gc_test`; for new `Value` variants also run `leaks --atExit`
+5. **Code quality** — `cargo fmt && cargo clippy && cargo test -- --test-threads=1`
+
+Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/DEVELOPMENT.md#post-feature-checklist)**
 
 ## Project Status
 
