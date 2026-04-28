@@ -50,6 +50,15 @@ impl Evaluator {
                 })
             }
 
+            (Value::ErrorVal { message, stack_trace }, prop) => match prop {
+                "message" => Ok(Value::string(message.clone())),
+                "stack_trace" => Ok(Value::string(stack_trace.clone())),
+                other => Err(RuntimeError::InvalidOperation(format!(
+                    "error has no property '{}'",
+                    other
+                ))),
+            },
+
             (obj, prop) => Err(RuntimeError::InvalidOperation(format!(
                 "Property '{}' does not exist on type '{}'",
                 prop,

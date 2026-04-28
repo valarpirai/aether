@@ -6,7 +6,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
-use super::RuntimeError;
+use super::environment::{RuntimeError, StackFrame};
 
 /// Type for built-in function implementations
 pub type BuiltinFn = fn(&[Value]) -> Result<Value, RuntimeError>;
@@ -72,6 +72,11 @@ pub enum Value {
     },
     /// Deferred result of calling an async function
     Promise(Rc<RefCell<PromiseState>>),
+    /// Runtime error object bound in catch blocks — e.message, e.stack_trace
+    ErrorVal {
+        message: String,
+        stack_trace: String,
+    },
 }
 
 /// State of a Promise value
@@ -138,6 +143,14 @@ impl Value {
         Value::Promise(Rc::new(RefCell::new(PromiseState::Pending { func, args })))
     }
 
+    /// Build an ErrorVal from a RuntimeError message and a call-stack snapshot.
+    pub fn error_val(message: String, stack: &[StackFrame], error_line: usize) -> Self {
+        Value::ErrorVal {
+            message,
+            stack_trace: format_stack_trace(stack, error_line),
+        }
+    }
+
     /// Helper: Create an I/O-backed Promise (Phase 2 thread pool)
     pub fn promise_io(rx: std::sync::mpsc::Receiver<crate::interpreter::io_pool::IoResult>) -> Self {
         Value::Promise(Rc::new(RefCell::new(PromiseState::IoWaiting(rx))))
@@ -184,8 +197,35 @@ impl Value {
             Value::Iterator(_) => "iterator",
             Value::AsyncFunction { .. } => "async_function",
             Value::Promise(_) => "promise",
+            Value::ErrorVal { .. } => "error",
         }
     }
+}
+
+/// Format a location string as "file.ae:N" or just "line N" when no file is known.
+fn fmt_location(file: Option<&str>, line: usize) -> String {
+    match file {
+        Some(f) => format!("{}:{}", f, line),
+        None => format!("line {}", line),
+    }
+}
+
+/// Format a call-stack snapshot into a human-readable string.
+/// The innermost frame is listed first (the function where the error occurred).
+fn format_stack_trace(stack: &[StackFrame], error_line: usize) -> String {
+    if stack.is_empty() {
+        return String::new();
+    }
+    let mut lines = Vec::new();
+    let innermost = &stack[stack.len() - 1];
+    let inner_loc = fmt_location(innermost.call_site_file.as_deref(), error_line);
+    lines.push(format!("  at {} ({})", innermost.fn_name, inner_loc));
+    for i in (0..stack.len() - 1).rev() {
+        let called_at_line = stack[i + 1].call_site_line;
+        let loc = fmt_location(stack[i + 1].call_site_file.as_deref(), called_at_line);
+        lines.push(format!("  at {} ({})", stack[i].fn_name, loc));
+    }
+    lines.join("\n")
 }
 
 impl PartialEq for Value {
@@ -206,6 +246,7 @@ impl PartialEq for Value {
             (Value::Iterator(_), Value::Iterator(_)) => false,
             (Value::AsyncFunction { .. }, Value::AsyncFunction { .. }) => false,
             (Value::Promise(_), Value::Promise(_)) => false,
+            (Value::ErrorVal { message: a, .. }, Value::ErrorVal { message: b, .. }) => a == b,
             _ => false,
         }
     }
@@ -315,6 +356,7 @@ impl fmt::Display for Value {
                 }
                 write!(f, " }}")
             }
+            Value::ErrorVal { message, .. } => write!(f, "{}", message),
         }
     }
 }

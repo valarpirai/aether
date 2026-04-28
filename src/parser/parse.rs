@@ -249,6 +249,8 @@ impl Parser {
         let mut statements = Vec::new();
 
         while !self.check(&TokenKind::RightBrace) && !self.is_at_end() {
+            let line = self.peek().line;
+            statements.push(Stmt::Line(line));
             statements.push(self.declaration()?);
         }
 

@@ -1,4 +1,4 @@
-use crate::interpreter::environment::{Environment, RuntimeError};
+use crate::interpreter::environment::{Environment, RuntimeError, StackFrame};
 use crate::interpreter::io_pool::{IoPool, IoTask};
 use crate::interpreter::value::Value;
 use crate::parser::ast::Expr;
@@ -31,6 +31,7 @@ impl Evaluator {
                 while padded.len() < params.len() {
                     padded.push(Value::Null);
                 }
+                self.call_stack.push(StackFrame { fn_name: "<anonymous>".to_string(), call_site_line: self.current_line, call_site_file: self.current_file_name() });
                 // Swap instead of clone — O(1) vs O(n) environment copy
                 let mut call_env = Environment::with_parent((*closure).clone());
                 for (param, value) in params.iter().zip(padded) {
@@ -40,9 +41,15 @@ impl Evaluator {
                 let result = match self.exec_stmt_internal(&body) {
                     Ok(ControlFlow::Return(val)) => Ok(val),
                     Ok(_) => Ok(Value::Null),
-                    Err(e) => Err(e),
+                    Err(e) => {
+                        std::mem::swap(&mut self.environment, &mut call_env);
+                        // Don't pop call_stack on error — TryCatch captures the snapshot first
+                        self.call_depth -= 1;
+                        return Err(e);
+                    }
                 };
                 std::mem::swap(&mut self.environment, &mut call_env);
+                self.call_stack.pop();
                 self.call_depth -= 1;
                 result
             }
@@ -135,11 +142,11 @@ impl Evaluator {
             return self.eval_method_call(object, method, args);
         }
 
-        // Remember the function name for recursion support
+        // Remember the function name for recursion support and stack traces
         let func_name = if let Expr::Identifier(name) = callee {
-            Some(name.clone())
+            name.clone()
         } else {
-            None
+            "<anonymous>".to_string()
         };
 
         let func_val = self.eval_expr(callee)?;
@@ -179,12 +186,13 @@ impl Evaluator {
                     arg_values.push(Value::Null);
                 }
 
+                self.call_stack.push(StackFrame { fn_name: func_name.clone(), call_site_line: self.current_line, call_site_file: self.current_file_name() });
                 let saved_env = self.environment.clone();
                 self.environment = Environment::with_parent((*closure).clone());
 
                 // Define function in its own scope for recursion
-                if let Some(name) = func_name {
-                    self.environment.define(name, func_val_clone);
+                if func_name != "<anonymous>" {
+                    self.environment.define(func_name, func_val_clone);
                 }
 
                 for (param, value) in params.iter().zip(arg_values) {
@@ -196,12 +204,14 @@ impl Evaluator {
                     Ok(_) => Ok(Value::Null),
                     Err(e) => {
                         self.environment = saved_env;
+                        // Don't pop call_stack on error — TryCatch captures the snapshot first
                         self.call_depth -= 1;
                         return Err(e);
                     }
                 };
 
                 self.environment = saved_env;
+                self.call_stack.pop();
                 self.call_depth -= 1;
 
                 result

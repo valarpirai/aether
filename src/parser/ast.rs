@@ -127,6 +127,8 @@ pub enum Stmt {
         fields: Vec<String>,
         methods: Vec<(String, Vec<String>, Box<Stmt>)>,
     },
+    /// Line number marker — injected by the parser, updates evaluator's current_line
+    Line(usize),
 }
 
 /// Program (top-level statements)

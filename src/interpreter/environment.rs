@@ -57,6 +57,17 @@ impl std::fmt::Display for RuntimeError {
 
 impl std::error::Error for RuntimeError {}
 
+/// One frame in the call stack — captured when building error objects
+#[derive(Debug, Clone)]
+pub struct StackFrame {
+    /// Name of the function being called (or "<anonymous>")
+    pub fn_name: String,
+    /// Line in the caller where this call was made
+    pub call_site_line: usize,
+    /// File (and module) where the call was made, if known
+    pub call_site_file: Option<String>,
+}
+
 /// Variable environment with lexical scoping
 #[derive(Debug, Clone)]
 pub struct Environment {

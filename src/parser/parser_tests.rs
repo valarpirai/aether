@@ -283,7 +283,8 @@ fn test_parse_block() {
 
     match &program.statements[0] {
         Stmt::Block(statements) => {
-            assert_eq!(statements.len(), 1);
+            let real: Vec<_> = statements.iter().filter(|s| !matches!(s, Stmt::Line(_))).collect();
+            assert_eq!(real.len(), 1);
         }
         _ => panic!("Expected block statement"),
     }
@@ -708,7 +709,8 @@ fn test_parse_nested_function_expressions() {
             assert_eq!(params[0], "x");
             // Check that body contains a return with a function expression
             if let Stmt::Block(stmts) = &**body {
-                if let Stmt::Return(Some(Expr::FunctionExpr(inner_params, _))) = &stmts[0] {
+                let real: Vec<_> = stmts.iter().filter(|s| !matches!(s, Stmt::Line(_))).collect();
+                if let Stmt::Return(Some(Expr::FunctionExpr(inner_params, _))) = real[0] {
                     assert_eq!(inner_params.len(), 1);
                     assert_eq!(inner_params[0], "y");
                 } else {

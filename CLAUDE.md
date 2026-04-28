@@ -35,6 +35,7 @@ Aether is a general-purpose programming language implementation written in Rust.
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, roadmap, and feature checklist | ✅ Complete |
 | [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guidelines and best practices | ✅ Complete |
 | [TESTING.md](docs/TESTING.md) | Testing guide: TDD workflow, running tests, debugging | ✅ Complete |
+| [CONFIGURATION.md](docs/CONFIGURATION.md) | All env vars, runtime builtins, and compile-time constants | ✅ Complete |
 | **Components** | | |
 | [LEXER.md](docs/LEXER.md) | Lexer implementation (tokenization, 14 tests) | ✅ Complete |
 | [PARSER.md](docs/PARSER.md) | Parser implementation (recursive descent, 53 tests) | ✅ Complete |
@@ -276,16 +277,22 @@ All planned features for Phase 1 have been implemented and tested.
 5. ✅ Iterator protocol — array/dict/set/string iterators, has_next/next, for-in
 6. ✅ Async/await — Promise-based, async fn, await, AsyncFunctionExpr (Phase 1)
 7. ✅ I/O thread pool — configurable workers, async http/sleep/file builtins, Promise.all (Phase 2)
+8. ✅ Runtime error context — line numbers, call-stack traces, `e.message` / `e.stack_trace` in catch blocks
+9. ✅ `AETHER_CALL_DEPTH` env var — configurable recursion depth limit at startup
 
 ### Backlog
 - ✅ Array slice syntax: `arr[1:3]`
 - ✅ Array spread operator: `[...arr1, ...arr2]`
 - ✅ Array `sort()` method
 - ✅ Array `concat()` method
+- Bytecode compiler (deferred — Phase 6)
+- String formatting / `format()` builtin
+- Multi-line strings / heredocs
+- Named/keyword arguments
 
 ### Test Coverage (Last Updated: 2026-04-28)
 
-- **Total**: ~525 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test; 5 http tests ignored — require network)
+- **Total**: ~536 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test; 5 http tests ignored — require network)
 - **Code Quality**: 5 clippy warnings (mutable key type in HashSet - acceptable)
 
 **Breakdown by Category:**

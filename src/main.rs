@@ -32,6 +32,14 @@ fn main() {
     }
 }
 
+fn format_runtime_error(msg: String, line: usize) -> String {
+    if line > 0 {
+        format!("[line {}] {}", line, msg)
+    } else {
+        msg
+    }
+}
+
 fn run_file(filename: &str) -> Result<(), String> {
     // Read file
     let source = fs::read_to_string(filename)
@@ -55,12 +63,27 @@ fn run_file(filename: &str) -> Result<(), String> {
     } else {
         Evaluator::new()
     };
+
+    // Record the script file path for stack traces
+    evaluator.current_file = Some(std::path::PathBuf::from(filename));
+
+    // Override recursion depth limit if AETHER_CALL_DEPTH is set
+    if let Some(depth) = std::env::var("AETHER_CALL_DEPTH")
+        .ok()
+        .and_then(|s| s.parse::<usize>().ok())
+        .filter(|&n| n > 0)
+    {
+        evaluator.set_max_call_depth(depth);
+    }
+
     evaluator
         .execute_program(&program.statements)
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format_runtime_error(e.to_string(), evaluator.current_line))?;
 
     // Auto-call main()
-    evaluator.call_main().map_err(|e| e.to_string())?;
+    evaluator
+        .call_main()
+        .map_err(|e| format_runtime_error(e.to_string(), evaluator.current_line))?;
 
     Ok(())
 }

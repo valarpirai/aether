@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use super::environment::{Environment, RuntimeError};
+use super::environment::{Environment, RuntimeError, StackFrame};
 use super::io_pool::IoPool;
 use super::value::Value;
 use crate::parser::ast::Stmt;
@@ -37,10 +37,14 @@ pub struct Evaluator {
     module_cache: HashMap<String, Environment>,
     /// Tracks modules currently being loaded (for circular dependency detection)
     loading_stack: Vec<String>,
-    /// Current file being executed (for relative imports)
-    current_file: Option<PathBuf>,
+    /// Current file being executed (for relative imports and stack traces)
+    pub current_file: Option<PathBuf>,
     /// Optional I/O thread pool for async-native builtins (Phase 2)
     pub(crate) io_pool: Option<Arc<IoPool>>,
+    /// Most recently seen line number (updated by Stmt::Line markers)
+    pub current_line: usize,
+    /// Call stack for stack-trace generation in error objects
+    pub(crate) call_stack: Vec<StackFrame>,
 }
 
 impl Evaluator {
@@ -59,6 +63,8 @@ impl Evaluator {
             loading_stack: Vec::new(),
             current_file: None,
             io_pool: None,
+            current_line: 0,
+            call_stack: Vec::new(),
         };
         evaluator.register_builtins();
         evaluator.load_stdlib();
@@ -75,6 +81,8 @@ impl Evaluator {
             loading_stack: Vec::new(),
             current_file: None,
             io_pool: None,
+            current_line: 0,
+            call_stack: Vec::new(),
         };
         evaluator.register_builtins();
         evaluator
@@ -85,6 +93,18 @@ impl Evaluator {
         let mut evaluator = Self::new_with_stdlib();
         evaluator.io_pool = Some(Arc::new(IoPool::new(workers)));
         evaluator
+    }
+
+    /// Override the maximum recursion depth (used by AETHER_CALL_DEPTH env var)
+    pub fn set_max_call_depth(&mut self, depth: usize) {
+        self.max_call_depth = depth;
+    }
+
+    /// Return the current file's name (e.g. "main.ae") for stack frames, or None.
+    pub(crate) fn current_file_name(&self) -> Option<String> {
+        self.current_file.as_ref().and_then(|p| {
+            p.file_name().map(|n| n.to_string_lossy().into_owned())
+        })
     }
 
     /// Register all built-in functions in the environment
@@ -367,6 +387,11 @@ impl Evaluator {
                     ));
                 }
                 self.call_depth += 1;
+                self.call_stack.push(StackFrame {
+                    fn_name: "main".to_string(),
+                    call_site_line: 0,
+                    call_site_file: self.current_file_name(),
+                });
                 let saved_env = self.environment.clone();
                 self.environment = Environment::with_parent((*closure).clone());
                 let result = match self.exec_stmt_internal(&body) {
@@ -374,6 +399,7 @@ impl Evaluator {
                     Err(e) => Err(e),
                 };
                 self.environment = saved_env;
+                self.call_stack.pop();
                 self.call_depth -= 1;
                 result
             }
