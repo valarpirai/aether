@@ -16,7 +16,7 @@ Aether is a general-purpose programming language implementation written in Rust.
 
 ### Key Features
 - Primitive types: `int`, `float`, `string` (UTF-8), `bool`, `null`
-- Collections: `array`, `dict`, `set`
+- Collections: `array`, `dict`, `set` (unique, unordered)
 - First-class functions with closures and function expressions
 - Block-scoped variables using `let` keyword
 - Range-based and for-each loops
@@ -58,7 +58,9 @@ Aether is a general-purpose programming language implementation written in Rust.
 - `Value::string(s)` - Create Rc-wrapped string
 - `Value::array(vec)` - Create Rc-wrapped array
 - `Value::dict(map)` - Create Rc-wrapped dict
+- `Value::set(hashset)` - Create Rc-wrapped set
 - `Value::is_truthy()` - Boolean coercion for conditionals
+- `Value::is_hashable()` - Check if value can be in a set
 - `Environment::with_parent()` - Create nested scope
 
 ### Stdlib Module Locations
@@ -229,8 +231,9 @@ All planned features for Phase 1 have been implemented and tested.
 - ✅ Full lexer, parser, and interpreter
 - ✅ All expressions and statements
 - ✅ Functions with closures, optional parameters, and function expressions
-- ✅ Arrays with methods (push, pop, length)
-- ✅ Dicts with literals and methods (keys, values, contains)
+- ✅ Arrays with methods (push, pop, length, contains, sort, concat)
+- ✅ Dicts with literals (keys, values, contains methods - TBD)
+- ✅ Sets with methods (add, remove, contains, clear, to_array, union, intersection, difference, is_subset)
 - ✅ Strings with methods (upper, lower, trim, split) and indexing
 - ✅ String interpolation: `"Hello ${name}"`
 - ✅ Member access (obj.property)
@@ -246,7 +249,7 @@ All planned features for Phase 1 have been implemented and tested.
   - String: join(), repeat(), reverse(), starts_with(), ends_with()
   - Testing: assert_eq(), assert_true(), assert_false(), assert_null(), assert_not_null(), expect_error(), test(), test_summary()
 - ✅ Structs with fields, methods, and `self` binding
-- ✅ **420 tests passing** (99 unit + 321 integration, 1 ignored)
+- ✅ **444 tests passing** (99 unit + 345 integration, 1 ignored)
 
 ### Completed Milestones
 1. ✅ Phase 1: Core Interpreter (102 tests)
@@ -272,9 +275,9 @@ All planned features for Phase 1 have been implemented and tested.
 - ✅ Array `sort()` method
 - ✅ Array `concat()` method
 
-### Test Coverage (Last Updated: 2026-04-02)
+### Test Coverage (Last Updated: 2026-04-28)
 
-- **Total**: 420 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test; 5 http tests ignored — require network)
+- **Total**: 444 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test; 5 http tests ignored — require network)
 - **Code Quality**: 0 clippy warnings
 
 **Breakdown by Category:**
@@ -285,15 +288,15 @@ All planned features for Phase 1 have been implemented and tested.
 - Interpreter: 17 tests
 - Built-ins: 15 tests
 
-**Integration Tests (215):**
+**Integration Tests (345):**
 - Core features: 29 tests
 - Member access: 8 tests
-- Array methods: 8 tests
+- Array methods: 22 tests
 - String methods: 8 tests
 - String indexing: 16 tests
 - String interpolation: 9 tests
 - Function expressions: 13 tests
-- Closures: 3 tests
+- Closures: 4 tests
 - Dict literals: 10 tests
 - Error handling: 10 tests
 - Module system: 13 tests
@@ -308,6 +311,8 @@ All planned features for Phase 1 have been implemented and tested.
 - JSON builtins: 25 tests
 - Time builtins: 10 tests
 - Structs: 14 tests
+- **Set type: 24 tests** ✨
+- GC tests: 7 tests
 
 ## Development Resources
 

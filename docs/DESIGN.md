@@ -56,7 +56,9 @@ fn main() {
 |------|-------------|---------|
 | `array` | Ordered, mutable collection | `[1, 2, 3]` |
 | `dict` | Key-value pairs | `{"name": "Alice", "age": 30}` |
-| `set` | Unique, unordered collection | `{1, 2, 3}` |
+| `set` | Unique, unordered collection (hashable values only) | `set([1, 2, 3])` |
+
+**Note**: Sets are created using `set(array)` function. Only hashable types (int, float, string, bool, null) can be set elements. Arrays, dicts, functions, and other sets cannot be elements.
 
 #### 3.3 Type Characteristics
 - **Dynamic typing**: Variables can hold values of any type

@@ -233,26 +233,28 @@ EXAMPLES:
 
 ## Development Status
 
-**Current Phase**: Phase 3 - Standard Library (Complete ✅)
+**Current Phase**: Phase 5 Sprint 2 - Advanced Types (Complete ✅)
 
 ### What's Working
 - ✅ **Complete Interpreter** - Tree-walking interpreter with full language support
-- ✅ **230 Tests Passing** - 100% success rate
+- ✅ **444 Tests Passing** - 100% success rate (99 unit + 345 integration)
 - ✅ **Garbage Collection** - Reference-counted memory management (Rc-based)
 - ✅ **Standard Library** - 28+ functions written in Aether itself
   - Core: `range()`, `enumerate()`
   - Collections: `map()`, `filter()`, `reduce()`, `find()`, `every()`, `some()`
   - Math: `abs()`, `min()`, `max()`, `sum()`, `clamp()`, `sign()`
   - String: `join()`, `repeat()`, `reverse()`, `starts_with()`, `ends_with()`
-- ✅ **Built-in Functions** - `print()`, `println()`, `type()`, `len()`, type conversions
-- ✅ **Collection Methods** - Array (`push`, `pop`, `length`) and String (`upper`, `lower`, `trim`, `split`)
+- ✅ **Built-in Functions** - I/O, type introspection, conversions, JSON, time, HTTP
+- ✅ **Collection Methods** - Array, Dict, Set with comprehensive operations
+- ✅ **Set Type** - Unique collections with union, intersection, difference operations
+- ✅ **Structs** - User-defined types with fields and methods
 - ✅ **Interactive REPL** - Line editing with history
-- ✅ **First-class Functions** - Functions with closures
+- ✅ **First-class Functions** - Functions with closures and recursion
 
 ### Test Coverage
-- **230 tests passing** ✅
-  - 94 unit tests
-  - 136 integration tests
+- **444 tests passing** ✅
+  - 99 unit tests
+  - 345 integration tests
 - **0 clippy warnings**
 - **100% success rate**
 
@@ -261,12 +263,11 @@ EXAMPLES:
 - 🎉 **Stdlib Bootstrapping** - Standard library written in Aether, not Rust
 - 🎉 **Zero Deployment** - Stdlib embedded in binary using `include_str!()`
 
-### Up Next (Phase 4+)
-- ⏳ Function expressions (inline anonymous functions)
-- ⏳ Module system (import/from statements)
-- ⏳ Error handling (try/catch)
-- ⏳ String indexing (direct character access)
-- ⏳ Stdlib expansion (io, json, http, time)
+### Up Next (Phase 5 continued)
+- ⏳ Iterator protocol
+- ⏳ Async/await support
+- ⏳ Dict methods (keys, values, contains)
+- ⏳ Performance optimizations
 
 See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed roadmap and [CLAUDE.md](CLAUDE.md) for complete project status.
 
