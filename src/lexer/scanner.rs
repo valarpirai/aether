@@ -186,6 +186,11 @@ impl Scanner {
                     return Err(LexerError::UnexpectedCharacter(c, self.line, start_column));
                 }
             }
+            '"' if self.peek() == '"' && self.peek_next() == '"' => {
+                self.advance(); // second "
+                self.advance(); // third "
+                self.scan_triple_string(start_column)?;
+            }
             '"' => self.scan_string(start_column)?,
             _ => {
                 if c.is_ascii_digit() {
@@ -214,6 +219,46 @@ impl Scanner {
             }
             self.advance();
         }
+        Ok(())
+    }
+
+    // Triple-quoted string: """...""" — raw content, no escape sequences, no interpolation.
+    // A single leading newline immediately after """ is stripped.
+    fn scan_triple_string(&mut self, start_column: usize) -> Result<(), LexerError> {
+        let mut content = String::new();
+        loop {
+            if self.is_at_end() {
+                return Err(LexerError::UnterminatedString(self.line, start_column));
+            }
+            // Check for closing """
+            if self.peek() == '"' && self.peek_next() == '"' {
+                // Need to check the character after peek_next
+                let after = if self.current + 2 < self.source.len() {
+                    self.source[self.current + 2]
+                } else {
+                    '\0'
+                };
+                if after == '"' {
+                    self.advance(); // first "
+                    self.advance(); // second "
+                    self.advance(); // third "
+                    break;
+                }
+            }
+            let c = self.advance();
+            if c == '\n' {
+                self.line += 1;
+                self.column = 0;
+            }
+            content.push(c);
+        }
+        // Strip a single leading newline
+        let stripped = if let Some(s) = content.strip_prefix('\n') {
+            s.to_string()
+        } else {
+            content
+        };
+        self.add_token(TokenKind::String(stripped), start_column);
         Ok(())
     }
 
