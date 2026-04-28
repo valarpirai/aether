@@ -49,121 +49,13 @@ impl Evaluator {
                     Ok(ControlFlow::None)
                 }
             }
-            Stmt::While(condition, body) => {
-                loop {
-                    let cond_val = self.eval_expr(condition)?;
-                    if !cond_val.is_truthy() {
-                        break;
-                    }
-
-                    let flow = self.exec_stmt_internal(body)?;
-                    match flow {
-                        ControlFlow::Break => break,
-                        ControlFlow::Continue => continue,
-                        ControlFlow::Return(val) => return Ok(ControlFlow::Return(val)),
-                        ControlFlow::None => {}
-                    }
-                }
-                Ok(ControlFlow::None)
-            }
-            Stmt::For(var, iterable, body) => {
-                let iter_val = self.eval_expr(iterable)?;
-
-                // FileLines is handled lazily to avoid loading the whole file
-                if let Value::FileLines(state) = &iter_val {
-                    loop {
-                        let next = state
-                            .borrow_mut()
-                            .next_line()
-                            .map_err(RuntimeError::InvalidOperation)?;
-                        match next {
-                            None => break,
-                            Some(line) => {
-                                self.environment.define(var.clone(), Value::string(line));
-                                let flow = self.exec_stmt_internal(body)?;
-                                match flow {
-                                    ControlFlow::Break => break,
-                                    ControlFlow::Continue => continue,
-                                    ControlFlow::Return(val) => {
-                                        return Ok(ControlFlow::Return(val))
-                                    }
-                                    ControlFlow::None => {}
-                                }
-                            }
-                        }
-                    }
-                    return Ok(ControlFlow::None);
-                }
-
-                let items: Vec<Value> = match iter_val {
-                    Value::Array(ref elements) => elements.iter().cloned().collect(),
-                    Value::Dict(ref pairs) => pairs.iter().map(|(k, _)| k.clone()).collect(),
-                    Value::Set(ref elements) => elements.iter().cloned().collect(),
-                    Value::String(ref s) => {
-                        s.chars().map(|c| Value::string(c.to_string())).collect()
-                    }
-                    Value::Iterator(ref state) => {
-                        let mut result = Vec::new();
-                        loop {
-                            let mut st = state.borrow_mut();
-                            let val = match &st.source {
-                                IteratorSource::Array(arr) => {
-                                    if st.index < arr.len() {
-                                        let v = arr[st.index].clone();
-                                        st.index += 1;
-                                        Some(v)
-                                    } else {
-                                        None
-                                    }
-                                }
-                                IteratorSource::DictKeys(pairs) => {
-                                    if st.index < pairs.len() {
-                                        let v = pairs[st.index].0.clone();
-                                        st.index += 1;
-                                        Some(v)
-                                    } else {
-                                        None
-                                    }
-                                }
-                                IteratorSource::Set(items) => {
-                                    if st.index < items.len() {
-                                        let v = items[st.index].clone();
-                                        st.index += 1;
-                                        Some(v)
-                                    } else {
-                                        None
-                                    }
-                                }
-                            };
-                            drop(st);
-                            match val {
-                                Some(v) => result.push(v),
-                                None => break,
-                            }
-                        }
-                        result
-                    }
-                    _ => {
-                        return Err(RuntimeError::TypeError {
-                            expected: "iterable (array, dict, set, string, or iterator)"
-                                .to_string(),
-                            got: iter_val.type_name().to_string(),
-                        })
-                    }
-                };
-
-                for element in items {
-                    self.environment.define(var.clone(), element);
-                    let flow = self.exec_stmt_internal(body)?;
-                    match flow {
-                        ControlFlow::Break => break,
-                        ControlFlow::Continue => continue,
-                        ControlFlow::Return(val) => return Ok(ControlFlow::Return(val)),
-                        ControlFlow::None => {}
-                    }
-                }
-                Ok(ControlFlow::None)
-            }
+            Stmt::While(condition, body) => self.exec_while(None, condition, body),
+            Stmt::For(var, iterable, body) => self.exec_for(None, var, iterable, body),
+            Stmt::Labeled(label, inner) => match inner.as_ref() {
+                Stmt::While(condition, body) => self.exec_while(Some(label), condition, body),
+                Stmt::For(var, iterable, body) => self.exec_for(Some(label), var, iterable, body),
+                other => self.exec_stmt_internal(other),
+            },
             Stmt::Return(expr) => {
                 let value = if let Some(e) = expr {
                     self.eval_expr(e)?
@@ -172,8 +64,8 @@ impl Evaluator {
                 };
                 Ok(ControlFlow::Return(value))
             }
-            Stmt::Break => Ok(ControlFlow::Break),
-            Stmt::Continue => Ok(ControlFlow::Continue),
+            Stmt::Break(label) => Ok(ControlFlow::Break(label.clone())),
+            Stmt::Continue(label) => Ok(ControlFlow::Continue(label.clone())),
             Stmt::Function(name, params, body) => {
                 let func = Value::Function {
                     params: params.clone(),
@@ -253,5 +145,143 @@ impl Evaluator {
                 Ok(ControlFlow::None)
             }
         }
+    }
+
+    fn exec_while(
+        &mut self,
+        label: Option<&String>,
+        condition: &crate::parser::ast::Expr,
+        body: &Stmt,
+    ) -> Result<ControlFlow, RuntimeError> {
+        loop {
+            let cond_val = self.eval_expr(condition)?;
+            if !cond_val.is_truthy() {
+                break;
+            }
+            match self.exec_stmt_internal(body)? {
+                ControlFlow::Break(ref lbl) if lbl.as_deref() == label.map(|s| s.as_str()) => break,
+                ControlFlow::Break(lbl) => return Ok(ControlFlow::Break(lbl)),
+                ControlFlow::Continue(ref lbl) if lbl.as_deref() == label.map(|s| s.as_str()) => {
+                    continue
+                }
+                ControlFlow::Continue(lbl) => return Ok(ControlFlow::Continue(lbl)),
+                ControlFlow::Return(val) => return Ok(ControlFlow::Return(val)),
+                ControlFlow::None => {}
+            }
+        }
+        Ok(ControlFlow::None)
+    }
+
+    fn exec_for(
+        &mut self,
+        label: Option<&String>,
+        var: &str,
+        iterable: &crate::parser::ast::Expr,
+        body: &Stmt,
+    ) -> Result<ControlFlow, RuntimeError> {
+        let iter_val = self.eval_expr(iterable)?;
+
+        // FileLines is handled lazily to avoid loading the whole file
+        if let Value::FileLines(state) = &iter_val {
+            loop {
+                let next = state
+                    .borrow_mut()
+                    .next_line()
+                    .map_err(RuntimeError::InvalidOperation)?;
+                match next {
+                    None => break,
+                    Some(line) => {
+                        self.environment
+                            .define(var.to_string(), Value::string(line));
+                        match self.exec_stmt_internal(body)? {
+                            ControlFlow::Break(ref lbl)
+                                if lbl.as_deref() == label.map(|s| s.as_str()) =>
+                            {
+                                break
+                            }
+                            ControlFlow::Break(lbl) => return Ok(ControlFlow::Break(lbl)),
+                            ControlFlow::Continue(ref lbl)
+                                if lbl.as_deref() == label.map(|s| s.as_str()) =>
+                            {
+                                continue
+                            }
+                            ControlFlow::Continue(lbl) => return Ok(ControlFlow::Continue(lbl)),
+                            ControlFlow::Return(val) => return Ok(ControlFlow::Return(val)),
+                            ControlFlow::None => {}
+                        }
+                    }
+                }
+            }
+            return Ok(ControlFlow::None);
+        }
+
+        let items: Vec<Value> = match iter_val {
+            Value::Array(ref elements) => elements.iter().cloned().collect(),
+            Value::Dict(ref pairs) => pairs.iter().map(|(k, _)| k.clone()).collect(),
+            Value::Set(ref elements) => elements.iter().cloned().collect(),
+            Value::String(ref s) => s.chars().map(|c| Value::string(c.to_string())).collect(),
+            Value::Iterator(ref state) => {
+                let mut result = Vec::new();
+                loop {
+                    let mut st = state.borrow_mut();
+                    let val = match &st.source {
+                        IteratorSource::Array(arr) => {
+                            if st.index < arr.len() {
+                                let v = arr[st.index].clone();
+                                st.index += 1;
+                                Some(v)
+                            } else {
+                                None
+                            }
+                        }
+                        IteratorSource::DictKeys(pairs) => {
+                            if st.index < pairs.len() {
+                                let v = pairs[st.index].0.clone();
+                                st.index += 1;
+                                Some(v)
+                            } else {
+                                None
+                            }
+                        }
+                        IteratorSource::Set(items) => {
+                            if st.index < items.len() {
+                                let v = items[st.index].clone();
+                                st.index += 1;
+                                Some(v)
+                            } else {
+                                None
+                            }
+                        }
+                    };
+                    drop(st);
+                    match val {
+                        Some(v) => result.push(v),
+                        None => break,
+                    }
+                }
+                result
+            }
+            _ => {
+                return Err(RuntimeError::TypeError {
+                    expected: "iterable (array, dict, set, string, or iterator)".to_string(),
+                    got: iter_val.type_name().to_string(),
+                })
+            }
+        };
+
+        for element in items {
+            self.environment.define(var.to_string(), element);
+            match self.exec_stmt_internal(body)? {
+                ControlFlow::Break(ref lbl) if lbl.as_deref() == label.map(|s| s.as_str()) => break,
+                ControlFlow::Break(lbl) => return Ok(ControlFlow::Break(lbl)),
+                ControlFlow::Continue(ref lbl) if lbl.as_deref() == label.map(|s| s.as_str()) => {
+                    continue
+                }
+                ControlFlow::Continue(lbl) => return Ok(ControlFlow::Continue(lbl)),
+                ControlFlow::Return(val) => return Ok(ControlFlow::Return(val)),
+                ControlFlow::None => {}
+            }
+        }
+        Ok(ControlFlow::None)
     }
 }

@@ -556,7 +556,7 @@ fn test_value_is_hashable() {
     assert!(!Value::array(vec![]).is_hashable());
     assert!(!Value::Function {
         params: vec![],
-        body: Rc::new(Stmt::Break),
+        body: Rc::new(Stmt::Break(None)),
         closure: Rc::new(Environment::new())
     }
     .is_hashable());
@@ -663,7 +663,7 @@ fn test_while_break() {
                         BinaryOp::Equal,
                         Box::new(Expr::Integer(3)),
                     ),
-                    Box::new(Stmt::Break),
+                    Box::new(Stmt::Break(None)),
                     None,
                 ),
                 Stmt::Assign(

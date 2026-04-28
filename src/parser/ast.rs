@@ -101,10 +101,12 @@ pub enum Stmt {
     For(String, Expr, Box<Stmt>),
     /// Return statement
     Return(Option<Expr>),
-    /// Break statement
-    Break,
-    /// Continue statement
-    Continue,
+    /// Break statement (optional label)
+    Break(Option<String>),
+    /// Continue statement (optional label)
+    Continue(Option<String>),
+    /// Labeled loop — wraps a While or For with a label name
+    Labeled(String, Box<Stmt>),
     /// Function declaration (name, parameters, body)
     Function(String, Vec<String>, Rc<Stmt>),
     /// Async function declaration (name, parameters, body)

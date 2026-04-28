@@ -147,6 +147,18 @@ impl Parser {
             }
             // Otherwise, it's a function expression, fall through to statement parsing
         }
+        // Detect labeled loop: identifier ':' for/while
+        if let TokenKind::Identifier(name) = &self.peek().kind {
+            if matches!(self.peek_at(1).kind, TokenKind::Colon)
+                && matches!(self.peek_at(2).kind, TokenKind::For | TokenKind::While)
+            {
+                let label = name.clone();
+                self.advance(); // consume identifier
+                self.advance(); // consume ':'
+                let inner = self.statement()?;
+                return Ok(Stmt::Labeled(label, Box::new(inner)));
+            }
+        }
         self.statement()
     }
 
@@ -227,10 +239,26 @@ impl Parser {
             return self.return_statement();
         }
         if self.match_token(&[TokenKind::Break]) {
-            return Ok(Stmt::Break);
+            // Optional label: break outer
+            let label = if let TokenKind::Identifier(name) = &self.peek().kind {
+                let name = name.clone();
+                self.advance();
+                Some(name)
+            } else {
+                None
+            };
+            return Ok(Stmt::Break(label));
         }
         if self.match_token(&[TokenKind::Continue]) {
-            return Ok(Stmt::Continue);
+            // Optional label: continue outer
+            let label = if let TokenKind::Identifier(name) = &self.peek().kind {
+                let name = name.clone();
+                self.advance();
+                Some(name)
+            } else {
+                None
+            };
+            return Ok(Stmt::Continue(label));
         }
         if self.match_token(&[TokenKind::LeftBrace]) {
             return self.block_statement();

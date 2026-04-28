@@ -21,8 +21,10 @@ mod statements;
 enum ControlFlow {
     None,
     Return(Value),
-    Break,
-    Continue,
+    /// Break, with optional target label
+    Break(Option<String>),
+    /// Continue, with optional target label
+    Continue(Option<String>),
 }
 
 /// Tree-walking interpreter for Aether programs
