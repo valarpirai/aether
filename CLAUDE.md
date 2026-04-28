@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Aether is a general-purpose programming language implementation written in Rust. The project is currently in initial setup phase.
+Aether is a general-purpose programming language implemented in Rust — a fully-working tree-walking interpreter with a rich standard library, async I/O, structs, and a module system.
 
 ### Language Characteristics
 - **Execution**: Interpreted (tree-walking interpreter)
 - **Typing**: Dynamic with runtime type checking
-- **Memory**: Automatic memory management (garbage collection)
+- **Memory**: Rc-based reference counting (GC)
 - **Syntax**: C-like with curly braces, no semicolons
 - **File Extension**: `.ae`
 - **Entry Point**: Required `main()` function
@@ -17,38 +17,44 @@ Aether is a general-purpose programming language implementation written in Rust.
 ### Key Features
 - Primitive types: `int`, `float`, `string` (UTF-8), `bool`, `null`
 - Collections: `array`, `dict`, `set` (unique, unordered)
-- First-class functions with closures and function expressions
+- First-class functions with closures, optional parameters, function expressions
 - Block-scoped variables using `let` keyword
 - Range-based and for-each loops
-- String interpolation: `"Hello ${name}"`
-- String indexing: `str[0]`
-- Error handling: `try/catch/throw`
-- Module system: `import`, `from ... import`
-- REPL support
+- String interpolation: `"Hello ${name}"`, string indexing: `str[0]`
+- Error handling: `try/catch/throw` with `e.message` and `e.stack_trace`
+- Module system: `import`, `from ... import`, aliases
+- Structs with fields, methods, and `self` binding
+- Async/await — `async fn`, `await`, `Promise.all`, I/O thread pool
+- REPL with history and tab-completion
 
 ## Documentation Index
 
 | Document | Description | Status |
 |----------|-------------|--------|
 | **Language & Project** | | |
-| [DESIGN.md](docs/DESIGN.md) | Complete language specification (types, syntax, features) | ✅ Complete |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, roadmap, and feature checklist | ✅ Complete |
-| [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guidelines and best practices | ✅ Complete |
-| [TESTING.md](docs/TESTING.md) | Testing guide: TDD workflow, running tests, debugging | ✅ Complete |
-| [CONFIGURATION.md](docs/CONFIGURATION.md) | All env vars, runtime builtins, and compile-time constants | ✅ Complete |
-| [BACKLOG.md](docs/BACKLOG.md) | Prioritised feature backlog (6 tiers, ~30 features) | ✅ Complete |
+| [DESIGN.md](docs/DESIGN.md) | Complete language specification (types, syntax, features) | ✅ |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, roadmap, and feature checklist | ✅ |
+| [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guidelines and best practices | ✅ |
+| [TESTING.md](docs/TESTING.md) | Testing guide: TDD workflow, running tests, debugging | ✅ |
+| [CONFIGURATION.md](docs/CONFIGURATION.md) | All env vars, runtime builtins, and compile-time constants | ✅ |
+| [BACKLOG.md](docs/BACKLOG.md) | Prioritised feature backlog (6 tiers, ~30 features) | ✅ |
 | **Components** | | |
-| [LEXER.md](docs/LEXER.md) | Lexer implementation (tokenization, 14 tests) | ✅ Complete |
-| [PARSER.md](docs/PARSER.md) | Parser implementation (recursive descent, 53 tests) | ✅ Complete |
-| [INTERPRETER.md](docs/INTERPRETER.md) | Interpreter implementation (82 tests, 2 ignored) | ✅ Complete |
-| [REPL.md](docs/REPL.md) | REPL and file execution | ✅ Complete |
+| [LEXER.md](docs/LEXER.md) | Lexer implementation (tokenization, 14 tests) | ✅ |
+| [PARSER.md](docs/PARSER.md) | Parser implementation (recursive descent, 53 tests) | ✅ |
+| [INTERPRETER.md](docs/INTERPRETER.md) | Interpreter / evaluator split into sub-modules | ✅ |
+| [REPL.md](docs/REPL.md) | REPL and file execution | ✅ |
+| [STDLIB.md](docs/STDLIB.md) | Standard library written in Aether | ✅ |
+| [GC_DESIGN.md](docs/GC_DESIGN.md) | Rc-based garbage collection design | ✅ |
 | **Features** | | |
-| [STRUCT.md](docs/STRUCT.md) | User-defined types with fields and methods | ✅ Complete |
-| [ERROR_HANDLING.md](docs/ERROR_HANDLING.md) | Try/catch/throw exception handling | ✅ Complete |
-| [STRING_FEATURES.md](docs/STRING_FEATURES.md) | Indexing, interpolation, slicing, spread | ✅ Complete |
-| [JSON.md](docs/JSON.md) | JSON parsing and serialization (25 tests) | ✅ Complete |
-| [TIME.md](docs/TIME.md) | Time functions: clock(), sleep() (10 tests) | ✅ Complete |
-| [HTTP.md](docs/HTTP.md) | HTTP client: http_get(), http_post() | ✅ Complete |
+| [STRUCT.md](docs/STRUCT.md) | User-defined types with fields and methods | ✅ |
+| [ERROR_HANDLING.md](docs/ERROR_HANDLING.md) | Try/catch/throw with stack traces | ✅ |
+| [STRING_FEATURES.md](docs/STRING_FEATURES.md) | Indexing, interpolation, slicing, spread | ✅ |
+| [ASYNC.md](docs/ASYNC.md) | Async/await and I/O thread pool | ✅ |
+| [ITERATOR_PROTOCOL.md](docs/ITERATOR_PROTOCOL.md) | Iterator protocol for collections | ✅ |
+| [MODULE_SYSTEM.md](docs/MODULE_SYSTEM.md) | Module imports and filesystem resolution | ✅ |
+| [JSON.md](docs/JSON.md) | JSON parsing and serialization | ✅ |
+| [TIME.md](docs/TIME.md) | Time functions: clock(), sleep() | ✅ |
+| [HTTP.md](docs/HTTP.md) | HTTP client: http_get(), http_post() | ✅ |
 
 ## Quick Reference for Claude Code
 
@@ -60,284 +66,186 @@ Aether is a general-purpose programming language implementation written in Rust.
 | Add syntax/AST node | `src/parser/ast.rs` | `src/parser/parser_tests.rs` |
 | Add built-in function | `src/interpreter/builtins.rs` | `tests/integration_test.rs` |
 | Add stdlib function | `stdlib/*.ae` | `tests/stdlib_test.rs` |
-| Add GC-managed type | `src/interpreter/value.rs` (use Rc) | - |
-| Add member method | `src/interpreter/evaluator.rs` (eval_member_access) | - |
+| Add GC-managed value type | `src/interpreter/value.rs` (use Rc) | — |
+| Add member property/method | `src/interpreter/evaluator/members.rs` | — |
+| Add statement execution | `src/interpreter/evaluator/statements.rs` | — |
+| Add expression evaluation | `src/interpreter/evaluator/expressions.rs` | — |
+| Add I/O async builtin | `src/interpreter/evaluator/functions.rs` (`try_submit_io_task`) | `tests/io_pool_test.rs` |
+
+### Evaluator Sub-module Layout
+
+```
+src/interpreter/evaluator/
+  mod.rs          — Evaluator struct, constructors, public API, call_main
+  expressions.rs  — eval_expr, eval_index, eval_slice, await_value
+  statements.rs   — exec_stmt_internal (all Stmt variants)
+  functions.rs    — eval_call, call_value, exec_async_body, try_submit_io_task
+  members.rs      — eval_member, eval_method_call (all collection/struct methods)
+  modules.rs      — load_module, import_from, resolve_module_path
+  operators.rs    — eval_unary, eval_binary, arithmetic, comparison
+```
 
 ### Key Helper Functions
-- `Value::string(s)` - Create Rc-wrapped string
-- `Value::array(vec)` - Create Rc-wrapped array
-- `Value::dict(map)` - Create Rc-wrapped dict
-- `Value::set(hashset)` - Create Rc-wrapped set
-- `Value::is_truthy()` - Boolean coercion for conditionals
-- `Value::is_hashable()` - Check if value can be in a set
-- `Environment::with_parent()` - Create nested scope
+- `Value::string(s)` — create Rc-wrapped string
+- `Value::array(vec)` — create Rc-wrapped array
+- `Value::dict(map)` — create Rc-wrapped dict
+- `Value::set(hashset)` — create Rc-wrapped set
+- `Value::promise(func, args)` — create a pending Promise
+- `Value::promise_io(rx)` — create a channel-backed I/O Promise
+- `Value::error_val(msg, stack, line)` — create an error object for catch blocks
+- `Value::is_truthy()` — boolean coercion for conditionals
+- `Value::is_hashable()` — check if value can be used as a set/dict key
+- `Environment::with_parent()` — create nested scope
+- `Evaluator::await_value(val)` — resolve a Promise (handles Pending and IoWaiting)
 
 ### Stdlib Module Locations
-- **Core**: `stdlib/core.ae` (range, enumerate)
-- **Collections**: `stdlib/collections.ae` (map, filter, reduce, find, every, some)
-- **Math**: `stdlib/math.ae` (abs, min, max, sum, clamp, sign)
-- **String**: `stdlib/string.ae` (join, repeat, reverse, starts_with, ends_with)
-- **Testing**: `stdlib/testing.ae` (assert_eq, assert_true, assert_false, assert_null, assert_not_null, expect_error, test, test_summary)
+- **Core**: `stdlib/core.ae` — `range()`, `enumerate()`
+- **Collections**: `stdlib/collections.ae` — `map()`, `filter()`, `reduce()`, `find()`, `every()`, `some()`
+- **Math**: `stdlib/math.ae` — `abs()`, `min()`, `max()`, `sum()`, `clamp()`, `sign()`
+- **String**: `stdlib/string.ae` — `join()`, `repeat()`, `reverse()`, `starts_with()`, `ends_with()`
+- **Testing**: `stdlib/testing.ae` — `assert_eq()`, `assert_true()`, `assert_false()`, `assert_null()`, `assert_not_null()`, `expect_error()`, `test()`, `test_summary()`
 
 ### Built-in vs Stdlib Decision Tree
 
-**Built-in (Rust)** if:
-- Requires interpreter internals (type(), len())
-- Performance critical (operators, indexing)
-- Core I/O operations (print, println)
+**Built-in (Rust)** if the function:
+- Requires interpreter internals (`type()`, `len()`, `await`)
+- Is performance-critical (operators, indexing)
+- Performs native I/O (`print`, `read_file`, `http_get`, `sleep`)
 
 **Stdlib (Aether)** if:
 - Can be written in Aether
 - Built on existing primitives
-- User-modifiable logic (map, filter, range)
+- User-modifiable logic (`map`, `filter`, `range`)
 
-**Rule of thumb**: If you can write it in Aether, put it in stdlib!
+**Rule of thumb**: If you can write it in Aether, put it in stdlib.
 
 ## Development Commands
 
-Once the Rust project is initialized, refer [DEVELOPMENT.md](docs/DEVELOPMENT.md) and use these commands:
-
-### Build
 ```bash
-cargo build          # Debug build
-cargo build --release # Release build
-```
+# Build
+cargo build               # debug
+cargo build --release     # optimised
 
-### Test
-```bash
-cargo test           # Run all tests
-cargo test -- --test-threads=1  # IMPORTANT: Reduces memory pressure (recommended)
-cargo test -- --nocapture # Show println! output during tests
-cargo test -- --nocapture --test-threads=1 # With output, sequential execution
-```
+# Test (always use --test-threads=1)
+cargo test -- --test-threads=1
+cargo test -- --test-threads=1 --nocapture   # show output
+cargo test --test error_context_test -- --test-threads=1  # single file
 
-### Run
-```bash
-cargo run            # Run the main binary
-cargo run -- [args]  # Run with arguments
-```
+# Run
+cargo run -- examples/error_context.ae
+AETHER_WORKERS=4 cargo run -- examples/concurrent_io.ae
 
-### Code Quality
-```bash
-cargo fmt            # Format code
-cargo clippy         # Run linter
+# Code quality
+cargo fmt
+cargo clippy
 ```
 
 ## Project Status
 
-**Current Phase**: Phase 5 - Stdlib Expansion & Polish
+**Phase**: 5 complete — language is fully functional with async I/O and rich stdlib.
 
-### Completed
-- ✅ Language design specification (see `docs/DESIGN.md`)
-- ✅ Type system design
-- ✅ Syntax and grammar decisions
-- ✅ Development environment setup
-- ✅ **Lexer (Complete)** - Full tokenization with 14 tests
-  - All token types (integers, floats, strings, keywords, operators)
-  - String escape sequences
-  - Single-line and multi-line comments
-  - Error handling with proper error types
-- ✅ **Parser (Complete)** - Recursive descent parser with 53 tests
-  - All expressions (literals, identifiers, operators)
-  - Proper operator precedence
-  - All statements (let, blocks, if/else, loops)
-  - Function declarations
-  - Function calls
-  - Arrays and indexing
-  - Assignment statements
-  - Member access syntax
+### Completed Feature Summary
 
-- ✅ **Interpreter (Complete)** - Tree-walking interpreter with 82 tests
-  - Value types (int, float, string, bool, null, array, function)
-  - Environment with lexical scoping
-  - Expression evaluation (all operators)
-  - Statement execution (let, assign, if/else, return)
-  - Function declarations and calls
-  - Closures
-  - Type checking and error handling
-  - Note: 2 loop tests ignored (infinite loop bugs to fix later)
-
-- ✅ **Integration Tests** - 20 end-to-end tests
-  - Complete programs from source to execution
-  - Error handling verification
-  - Functions, closures, arrays
-  - All features working together
-
-- ✅ **REPL** - Interactive interpreter
-  - Line editing with history (rustyline)
-  - Special commands (_help, _env, _exit)
-  - File execution mode (aether file.ae)
-  - REPL mode (just 'aether')
-
-### Phase 1 Status: ✅ COMPLETE!
-
-All planned features for Phase 1 have been implemented and tested.
-
-### Phase 2 Status: ✅ COMPLETE! (Essential Features)
-
-**Sprint 1**: Loop fixes + Core I/O
-- ✅ Fixed while/for loops (tests un-ignored)
-- ✅ Implemented print() and println()
-
-**Sprint 2**: Type System Built-ins
-- ✅ Implemented type(), len()
-- ✅ Type conversions: int(), float(), str(), bool()
-
-**Sprint 3**: Member Access (TDD)
-- ✅ array.length, string.length properties
-- ✅ Proper error handling for undefined properties
-
-**Sprint 4**: Collection Methods (TDD)
-- ✅ Array methods: push(), pop()
-- ✅ String methods: upper(), lower(), trim(), split()
-
-### Phase 3 Status: ✅ COMPLETE! (Standard Library)
-
-**Sprint 1**: ✅ Stdlib Foundation (+9 tests)
-- ✅ Embedded module system (compiled into binary)
-- ✅ stdlib/core.ae with range() and enumerate()
-- ✅ Optional function parameters support
-- ✅ Stdlib auto-loads at startup
-
-**Sprint 2**: ✅ Collections Module (+24 tests)
-- ✅ map(), filter(), reduce()
-- ✅ find(), every(), some()
-- ✅ All written in Aether!
-
-**Sprint 3**: ✅ Math & String Utilities (+50 tests)
-- ✅ Math: abs(), min(), max(), sum(), clamp(), sign()
-- ✅ String: join(), repeat(), reverse(), starts_with(), ends_with()
-- ✅ Function overloading (min/max with 2 args or array)
-
-### Phase 4 Status: ✅ COMPLETE! (Advanced Language Features)
-
-**Sprint 1**: ✅ Function Expressions & Recursion (+16 tests)
-- ✅ Function expressions: `fn(params) { body }` - assignable and passable
-- ✅ Recursive functions with stack overflow protection (limit: 100 calls)
-- ✅ Closures fully working (memory leak fixed)
-
-**Sprint 2**: ✅ String Indexing & Interpolation (+25 tests)
-- ✅ String indexing: `str[0]`, `str[i]` - direct character access
-- ✅ String interpolation: `"Hello ${name}"`, `"${a + b}"`
-
-**Sprint 3**: ✅ Module System (+13 tests)
-- ✅ `import module` - namespace import
-- ✅ `from module import fn1, fn2` - selective import
-- ✅ `import module as alias` - aliased import
-- ✅ User-defined `.ae` modules from filesystem
-
-**Sprint 4**: ✅ Error Handling (+10 tests)
-- ✅ `try { ... } catch(e) { ... }` - structured exception handling
-- ✅ `throw value` - throw any value as an error
-- ✅ Error propagation across function calls
-
-**Sprint 5**: ✅ Dict Literals & IO Builtins (+15 tests)
-- ✅ Dict literals: `{"key": value, ...}`
-- ✅ Dict methods: `keys()`, `values()`, `contains()`
-- ✅ IO builtins: `input()`, `read_file()`, `write_file()`
-
-### What Works Now
-- ✅ Full lexer, parser, and interpreter
-- ✅ All expressions and statements
-- ✅ Functions with closures, optional parameters, and function expressions
-- ✅ Arrays with methods (push, pop, length, contains, sort, concat)
-- ✅ Dicts with literals and methods (keys, values, contains, size/length)
-- ✅ Sets with methods (add, remove, contains, clear, to_array, union, intersection, difference, is_subset)
-- ✅ Strings with methods (upper, lower, trim, split) and indexing
-- ✅ String interpolation: `"Hello ${name}"`
-- ✅ Member access (obj.property)
-- ✅ Error handling (try/catch/throw)
-- ✅ Module system (import, from...import, aliases)
-- ✅ Interactive REPL with history
-- ✅ File execution
-- ✅ Built-in functions (print, println, input, read_file, write_file, type, len, conversions)
-- ✅ **Complete Standard Library** - Written in Aether!
-  - Core: range(), enumerate()
-  - Collections: map(), filter(), reduce(), find(), every(), some()
-  - Math: abs(), min(), max(), sum(), clamp(), sign()
-  - String: join(), repeat(), reverse(), starts_with(), ends_with()
-  - Testing: assert_eq(), assert_true(), assert_false(), assert_null(), assert_not_null(), expect_error(), test(), test_summary()
-- ✅ Structs with fields, methods, and `self` binding
-- ✅ **485 tests passing** (99 unit + 386 integration, 1 ignored)
+| Area | Features |
+|------|---------|
+| **Core language** | int, float, string, bool, null, array, dict, set; all operators; let, if/else, while, for, break, continue, return |
+| **Functions** | declarations, expressions, closures, optional params, recursion (depth limit 100) |
+| **Strings** | indexing, interpolation `${expr}`, slicing `str[1:3]`, spread `[...arr]`, upper/lower/trim/split |
+| **Collections** | array (push/pop/sort/concat/slice/spread), dict (keys/values/contains), set (union/intersection/difference/subset) |
+| **Error handling** | try/catch/throw; `e.message`, `e.stack_trace`; stack frames include filename and line number |
+| **Modules** | `import mod`, `from mod import fn`, `import mod as alias`; filesystem + embedded stdlib |
+| **Structs** | fields, methods, `self` binding, mutable fields via RefCell |
+| **Iterators** | `has_next()`, `next()`, for-in over array/dict/set/string/iterator |
+| **Async/await** | `async fn`, `await expr`, Promise caching; `Promise.all([p1, p2])` |
+| **I/O thread pool** | `set_workers(n)`, `AETHER_WORKERS` env var; async `http_get`, `sleep`, `read_file`, `write_file`, `http_post` |
+| **JSON** | `json_parse()`, `json_stringify()` via serde_json |
+| **HTTP** | `http_get(url)`, `http_post(url, body)` via reqwest (blocking or async) |
+| **Time** | `clock()` (Unix epoch float), `sleep(secs)` |
+| **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, sign, join, repeat, reverse, starts_with, ends_with |
+| **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
+| **REPL** | rustyline with history (`~/.aether_history`), tab-completion, `_help`/`_env`/`_exit` |
+| **Configuration** | `AETHER_WORKERS`, `AETHER_CALL_DEPTH`, `HOME` (see [CONFIGURATION.md](docs/CONFIGURATION.md)) |
 
 ### Completed Milestones
-1. ✅ Phase 1: Core Interpreter (102 tests)
-2. ✅ Phase 2: Essential Features (+45 tests → 147 total)
-3. ✅ Phase 3: Standard Library (+83 tests → 230 total)
-4. ✅ Phase 4: Advanced Language Features (+84 tests → 314 total)
-5. ✅ Phase 5 Sprint 1: Testing Framework (+19 tests → 333 total)
-6. ✅ Phase 5 Sprint 2: Advanced Types (+87 tests → 420 total)
 
-**Development Time**: ~15 hours total across 5 phases
+| Milestone | Tests at completion |
+|-----------|-------------------|
+| Phase 1: Core Interpreter | 102 |
+| Phase 2: Essential Features | 147 |
+| Phase 3: Standard Library | 230 |
+| Phase 4: Advanced Language Features | 314 |
+| Phase 5 Sprint 1: Testing Framework | 333 |
+| Phase 5 Sprint 2: Advanced Types (structs, sets, iterators) | 420 |
+| Phase 5 Sprint 3: Async/await + I/O pool | 476 |
+| Phase 5 Sprint 4: Error context + stack traces | ~547 |
 
-### Future Work (Phase 5 continued)
-1. ✅ `json_parse()`, `json_stringify()` — via serde_json
-2. ✅ `clock()`, `sleep()` — Unix epoch float, thread sleep
-3. ✅ `http` module — http_get(), http_post() via reqwest (blocking)
-4. ✅ User-defined structs — fields, methods, `self` binding, mutation via RefCell
-5. ✅ Iterator protocol — array/dict/set/string iterators, has_next/next, for-in
-6. ✅ Async/await — Promise-based, async fn, await, AsyncFunctionExpr (Phase 1)
-7. ✅ I/O thread pool — configurable workers, async http/sleep/file builtins, Promise.all (Phase 2)
-8. ✅ Runtime error context — line numbers, call-stack traces, `e.message` / `e.stack_trace` in catch blocks
-9. ✅ `AETHER_CALL_DEPTH` env var — configurable recursion depth limit at startup
+### Test Coverage (2026-04-28)
+
+- **Total**: ~547 tests passing (99 unit + ~448 integration)
+- **Ignored/skipped**: 5 http tests (require network), 1 known recursion stack-overflow
+- **Code quality**: cargo clippy clean (5 acceptable `mutable_key_type` warnings for HashSet)
+
+**Unit tests (99):**
+
+| Suite | Count |
+|-------|-------|
+| Lexer | 14 |
+| Parser | 53 |
+| Interpreter | 17 |
+| Built-ins | 15 |
+
+**Integration tests (~448):**
+
+| Suite | Count |
+|-------|-------|
+| `stdlib_collections_test` | 38 |
+| `integration_test` | 29 |
+| `dict_test` | 27 |
+| `stdlib_math_test` | 26 |
+| `json_test` | 25 |
+| `stdlib_string_test` | 24 |
+| `set_test` | 24 |
+| `iterator_test` | 22 |
+| `array_methods_test` | 22 |
+| `async_test` | 21 |
+| `clippy_fix_regression_test` | 20 |
+| `stdlib_testing_test` | 19 |
+| `string_indexing_test` | 16 |
+| `slice_test` | 15 |
+| `struct_test` | 14 |
+| `io_pool_test` | 14 |
+| `module_test` | 13 |
+| `function_expr_test` | 13 |
+| `error_context_test` | 11 |
+| `time_test` | 10 |
+| `error_handling_test` | 10 |
+| `string_interp_test` | 9 |
+| `stdlib_test` | 9 |
+| `spread_test` | 9 |
+| `string_methods_test` | 8 |
+| `member_access_test` | 8 |
+| `gc_test` | 7 |
+| `io_test` | 5 |
+| `http_test` | 5 (ignored — network) |
+| `closure_leak_test` | 4 |
+| `small_recursion_test` | 2 |
+| `recursion_limit_test` | 2 |
 
 ### Backlog
-- ✅ Array slice syntax: `arr[1:3]`
-- ✅ Array spread operator: `[...arr1, ...arr2]`
-- ✅ Array `sort()` method
-- ✅ Array `concat()` method
 
 See **[docs/BACKLOG.md](docs/BACKLOG.md)** for the full prioritised backlog (~30 features across 6 tiers).
 
-### Test Coverage (Last Updated: 2026-04-28)
-
-- **Total**: ~536 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test; 5 http tests ignored — require network)
-- **Code Quality**: 5 clippy warnings (mutable key type in HashSet - acceptable)
-
-**Breakdown by Category:**
-
-**Unit Tests (99):**
-- Lexer: 14 tests
-- Parser: 53 tests
-- Interpreter: 17 tests
-- Built-ins: 15 tests
-
-**Integration Tests (386):**
-- Core features: 29 tests
-- Member access: 8 tests
-- Array methods: 22 tests
-- String methods: 8 tests
-- String indexing: 16 tests
-- String interpolation: 9 tests
-- Function expressions: 13 tests
-- Closures: 4 tests
-- **Dict literals & methods: 27 tests** (10 existing + 17 new) ✨
-- Error handling: 10 tests
-- Module system: 13 tests
-- IO builtins: 5 tests
-- Stdlib core: 9 tests
-- Stdlib testing: 19 tests
-- Stdlib collections: 38 tests
-- Stdlib math: 26 tests
-- Stdlib string: 24 tests
-- Slice syntax: 15 tests
-- Spread operator: 9 tests
-- JSON builtins: 25 tests
-- Time builtins: 10 tests
-- Structs: 14 tests
-- **Set type: 24 tests** ✨
-- GC tests: 7 tests
-- **Async/await: 21 tests** ✨
-- **I/O pool (Phase 2): 14 tests** ✨
+Top-of-backlog highlights: `match` statement, `finally` block, `??`/`?.` operators, destructuring, `format()`, multi-line strings, variadic args, enums.
 
 ## Development Resources
 
-For contributing or extending Aether, see:
-- **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Guidelines, TDD workflow, code organization
-- **[TESTING.md](docs/TESTING.md)** - Comprehensive testing guide with examples
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design and roadmap
+- **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** — guidelines, TDD workflow, file-size limits (max 1000 lines), code organisation
+- **[TESTING.md](docs/TESTING.md)** — comprehensive testing guide with examples
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** — system design and roadmap
+- **[BACKLOG.md](docs/BACKLOG.md)** — feature backlog
+- **[CONFIGURATION.md](docs/CONFIGURATION.md)** — all knobs and env vars
 - Component docs: LEXER.md, PARSER.md, INTERPRETER.md, REPL.md, STDLIB.md, GC_DESIGN.md
 
 ## Documentation
-- Update the docs in the gh-pages branch
-- gh-pages is used for deploying github pages website
+- gh-pages branch is used for the GitHub Pages website
+- Update docs in gh-pages when adding new user-facing features
