@@ -36,6 +36,7 @@ Aether is a general-purpose programming language implementation written in Rust.
 | [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guidelines and best practices | ✅ Complete |
 | [TESTING.md](docs/TESTING.md) | Testing guide: TDD workflow, running tests, debugging | ✅ Complete |
 | [CONFIGURATION.md](docs/CONFIGURATION.md) | All env vars, runtime builtins, and compile-time constants | ✅ Complete |
+| [BACKLOG.md](docs/BACKLOG.md) | Prioritised feature backlog (6 tiers, ~30 features) | ✅ Complete |
 | **Components** | | |
 | [LEXER.md](docs/LEXER.md) | Lexer implementation (tokenization, 14 tests) | ✅ Complete |
 | [PARSER.md](docs/PARSER.md) | Parser implementation (recursive descent, 53 tests) | ✅ Complete |
@@ -285,10 +286,8 @@ All planned features for Phase 1 have been implemented and tested.
 - ✅ Array spread operator: `[...arr1, ...arr2]`
 - ✅ Array `sort()` method
 - ✅ Array `concat()` method
-- Bytecode compiler (deferred — Phase 6)
-- String formatting / `format()` builtin
-- Multi-line strings / heredocs
-- Named/keyword arguments
+
+See **[docs/BACKLOG.md](docs/BACKLOG.md)** for the full prioritised backlog (~30 features across 6 tiers).
 
 ### Test Coverage (Last Updated: 2026-04-28)
 
