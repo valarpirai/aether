@@ -102,9 +102,9 @@ impl Evaluator {
 
     /// Return the current file's name (e.g. "main.ae") for stack frames, or None.
     pub(crate) fn current_file_name(&self) -> Option<String> {
-        self.current_file.as_ref().and_then(|p| {
-            p.file_name().map(|n| n.to_string_lossy().into_owned())
-        })
+        self.current_file
+            .as_ref()
+            .and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
     }
 
     /// Register all built-in functions in the environment
@@ -285,6 +285,38 @@ impl Evaluator {
                 func: builtins::builtin_write_bytes,
             },
         );
+        self.environment.define(
+            "list_dir".to_string(),
+            Value::BuiltinFn {
+                name: "list_dir".to_string(),
+                arity: 1,
+                func: builtins::builtin_list_dir,
+            },
+        );
+        self.environment.define(
+            "path_join".to_string(),
+            Value::BuiltinFn {
+                name: "path_join".to_string(),
+                arity: usize::MAX,
+                func: builtins::builtin_path_join,
+            },
+        );
+        self.environment.define(
+            "rename".to_string(),
+            Value::BuiltinFn {
+                name: "rename".to_string(),
+                arity: 2,
+                func: builtins::builtin_rename,
+            },
+        );
+        self.environment.define(
+            "rm".to_string(),
+            Value::BuiltinFn {
+                name: "rm".to_string(),
+                arity: 1,
+                func: builtins::builtin_rm,
+            },
+        );
 
         self.environment.define(
             "input".to_string(),
@@ -461,7 +493,11 @@ impl Evaluator {
         })?;
 
         match main_val {
-            Value::Function { params, body, closure } => {
+            Value::Function {
+                params,
+                body,
+                closure,
+            } => {
                 if !params.is_empty() {
                     return Err(RuntimeError::InvalidOperation(
                         "main() must take no arguments".to_string(),

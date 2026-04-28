@@ -43,7 +43,7 @@ fn test_write_and_read_file() {
 fn test_read_file_not_found() {
     let result = run(r#"read_file("/tmp/aether_nonexistent_file_xyz.txt")"#);
     assert!(result.is_err());
-    assert!(result.unwrap_err().contains("read_file failed"));
+    assert!(result.unwrap_err().contains("read_file"));
 }
 
 #[test]

@@ -8,7 +8,9 @@ fn run(src: &str) -> Result<Evaluator, String> {
     let mut parser = Parser::new(tokens);
     let program = parser.parse().map_err(|e| e.to_string())?;
     let mut evaluator = Evaluator::new_without_stdlib();
-    evaluator.execute_program(&program.statements).map_err(|e| e.to_string())?;
+    evaluator
+        .execute_program(&program.statements)
+        .map_err(|e| e.to_string())?;
     Ok(evaluator)
 }
 
@@ -18,8 +20,13 @@ fn run_with_result(src: &str) -> Result<String, String> {
     let mut parser = Parser::new(tokens);
     let program = parser.parse().map_err(|e| e.to_string())?;
     let mut evaluator = Evaluator::new_without_stdlib();
-    evaluator.execute_program(&program.statements).map_err(|e| e.to_string())?;
-    let val = evaluator.environment.get("result").map_err(|e| e.to_string())?;
+    evaluator
+        .execute_program(&program.statements)
+        .map_err(|e| e.to_string())?;
+    let val = evaluator
+        .environment
+        .get("result")
+        .map_err(|e| e.to_string())?;
     Ok(format!("{}", val))
 }
 
@@ -219,4 +226,97 @@ fn test_write_bytes_out_of_range_errors() {
     let src = format!(r#"write_bytes("{}", [100, 300])"#, path);
     assert!(run(&src).is_err());
     let _ = std::fs::remove_file(&path);
+}
+
+// --- list_dir ---
+
+#[test]
+fn test_list_dir_returns_sorted_names() {
+    let dir = format!("/tmp/aether_lsdir_{}", std::process::id());
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(format!("{}/b.txt", dir), "").unwrap();
+    std::fs::write(format!("{}/a.txt", dir), "").unwrap();
+    std::fs::write(format!("{}/c.txt", dir), "").unwrap();
+    let src = format!(r#"let result = list_dir("{}")"#, dir);
+    let result = run_with_result(&src).unwrap();
+    assert_eq!(result, "[a.txt, b.txt, c.txt]");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn test_list_dir_missing_path_errors() {
+    let src = r#"list_dir("/nonexistent_aether_dir_xyz")"#;
+    let err = run(src).err().unwrap();
+    assert!(
+        err.contains("list_dir"),
+        "error should mention list_dir: {}",
+        err
+    );
+    assert!(
+        err.contains("nonexistent_aether_dir_xyz"),
+        "error should contain path: {}",
+        err
+    );
+}
+
+// --- path_join ---
+
+#[test]
+fn test_path_join_two_parts() {
+    let src = r#"let result = path_join("/tmp", "file.txt")"#;
+    assert_eq!(run_with_result(src).unwrap(), "/tmp/file.txt");
+}
+
+#[test]
+fn test_path_join_three_parts() {
+    let src = r#"let result = path_join("/home", "user", "docs")"#;
+    assert_eq!(run_with_result(src).unwrap(), "/home/user/docs");
+}
+
+// --- rename ---
+
+#[test]
+fn test_rename_moves_file() {
+    let src_path = format!("/tmp/aether_rename_src_{}.txt", std::process::id());
+    let dst_path = format!("/tmp/aether_rename_dst_{}.txt", std::process::id());
+    std::fs::write(&src_path, "hello").unwrap();
+    let code = format!(r#"rename("{}", "{}")"#, src_path, dst_path);
+    run(&code).unwrap();
+    assert!(!std::path::Path::new(&src_path).exists());
+    assert_eq!(std::fs::read_to_string(&dst_path).unwrap(), "hello");
+    let _ = std::fs::remove_file(&dst_path);
+}
+
+#[test]
+fn test_rename_missing_src_errors() {
+    let src = r#"rename("/nonexistent_src_xyz.txt", "/tmp/dst.txt")"#;
+    let err = run(src).err().unwrap();
+    assert!(
+        err.contains("rename"),
+        "error should mention rename: {}",
+        err
+    );
+}
+
+// --- rm ---
+
+#[test]
+fn test_rm_removes_file() {
+    let path = format!("/tmp/aether_rm_{}.txt", std::process::id());
+    std::fs::write(&path, "bye").unwrap();
+    let code = format!(r#"rm("{}")"#, path);
+    run(&code).unwrap();
+    assert!(!std::path::Path::new(&path).exists());
+}
+
+#[test]
+fn test_rm_missing_file_errors() {
+    let src = r#"rm("/nonexistent_aether_file_xyz.txt")"#;
+    let err = run(src).err().unwrap();
+    assert!(err.contains("rm"), "error should mention rm: {}", err);
+    assert!(
+        err.contains("nonexistent_aether_file_xyz"),
+        "error should contain path: {}",
+        err
+    );
 }

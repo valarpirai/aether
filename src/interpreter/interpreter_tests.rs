@@ -517,3 +517,193 @@ fn test_function_call() {
 
     assert_eq!(result, Value::Int(30));
 }
+
+// --- Value hashing and equality ---
+
+#[test]
+fn test_value_hash_equality() {
+    use std::collections::HashSet;
+    let mut set = HashSet::new();
+    set.insert(Value::Int(1));
+    set.insert(Value::Int(1));
+    set.insert(Value::string("a"));
+    set.insert(Value::string("a"));
+    assert_eq!(set.len(), 2);
+}
+
+#[test]
+fn test_value_bool_truthy_all_cases() {
+    assert!(Value::Bool(true).is_truthy());
+    assert!(!Value::Bool(false).is_truthy());
+    assert!(!Value::Null.is_truthy());
+    assert!(!Value::Int(0).is_truthy());
+    assert!(Value::Int(1).is_truthy());
+    assert!(!Value::Float(0.0).is_truthy());
+    assert!(Value::Float(0.1).is_truthy());
+    assert!(!Value::string("").is_truthy());
+    assert!(Value::string("x").is_truthy());
+    assert!(!Value::array(vec![]).is_truthy());
+    assert!(Value::array(vec![Value::Int(1)]).is_truthy());
+}
+
+#[test]
+fn test_value_is_hashable() {
+    assert!(Value::Int(1).is_hashable());
+    assert!(Value::Float(1.0).is_hashable());
+    assert!(Value::string("s").is_hashable());
+    assert!(Value::Bool(true).is_hashable());
+    assert!(Value::Null.is_hashable());
+    assert!(!Value::array(vec![]).is_hashable());
+    assert!(!Value::Function {
+        params: vec![],
+        body: Rc::new(Stmt::Break),
+        closure: Rc::new(Environment::new())
+    }
+    .is_hashable());
+}
+
+// --- struct declaration ---
+
+#[test]
+fn test_struct_declaration() {
+    use std::collections::HashMap;
+    let mut eval = Evaluator::new();
+    let stmt = Stmt::StructDecl {
+        name: "Point".to_string(),
+        fields: vec!["x".to_string(), "y".to_string()],
+        methods: vec![],
+    };
+    eval.exec_stmt(&stmt).unwrap();
+    assert!(matches!(
+        eval.environment.get("Point").unwrap(),
+        Value::StructDef { .. }
+    ));
+}
+
+// --- try/catch ---
+
+#[test]
+fn test_try_catch_catches_error() {
+    let mut eval = Evaluator::new();
+    let stmt = Stmt::TryCatch(
+        Box::new(Stmt::Throw(Expr::String("boom".to_string()))),
+        "e".to_string(),
+        Box::new(Stmt::Let(
+            "caught".to_string(),
+            Expr::Identifier("e".to_string()),
+        )),
+    );
+    eval.exec_stmt(&stmt).unwrap();
+    let caught = eval.environment.get("caught").unwrap();
+    assert!(matches!(caught, Value::ErrorVal { message, .. } if message.contains("boom")));
+}
+
+#[test]
+fn test_try_no_error_skips_catch() {
+    let mut eval = Evaluator::new();
+    let stmt = Stmt::TryCatch(
+        Box::new(Stmt::Let("ok".to_string(), Expr::Integer(1))),
+        "e".to_string(),
+        Box::new(Stmt::Let("ok".to_string(), Expr::Integer(99))),
+    );
+    eval.exec_stmt(&stmt).unwrap();
+    assert_eq!(eval.environment.get("ok").unwrap(), Value::Int(1));
+}
+
+// --- async function ---
+
+#[test]
+fn test_async_function_declaration() {
+    let mut eval = Evaluator::new();
+    let stmt = Stmt::AsyncFunction(
+        "fetch".to_string(),
+        vec!["url".to_string()],
+        Rc::new(Stmt::Return(Some(Expr::String("data".to_string())))),
+    );
+    eval.exec_stmt(&stmt).unwrap();
+    assert!(matches!(
+        eval.environment.get("fetch").unwrap(),
+        Value::AsyncFunction { .. }
+    ));
+}
+
+#[test]
+fn test_calling_async_fn_returns_promise() {
+    let mut eval = Evaluator::new();
+    let func_stmt = Stmt::AsyncFunction(
+        "fetch".to_string(),
+        vec![],
+        Rc::new(Stmt::Return(Some(Expr::Integer(42)))),
+    );
+    eval.exec_stmt(&func_stmt).unwrap();
+    let call = Expr::Call(Box::new(Expr::Identifier("fetch".to_string())), vec![]);
+    let result = eval.eval_expr(&call).unwrap();
+    assert!(matches!(result, Value::Promise(_)));
+}
+
+// --- break/continue in while ---
+
+#[test]
+fn test_while_break() {
+    let mut eval = Evaluator::new();
+    // let i = 0; while (i < 10) { if i == 3 { break } i = i + 1 }
+    let stmts = vec![
+        Stmt::Let("i".to_string(), Expr::Integer(0)),
+        Stmt::While(
+            Expr::Binary(
+                Box::new(Expr::Identifier("i".to_string())),
+                BinaryOp::Less,
+                Box::new(Expr::Integer(10)),
+            ),
+            Box::new(Stmt::Block(vec![
+                Stmt::If(
+                    Expr::Binary(
+                        Box::new(Expr::Identifier("i".to_string())),
+                        BinaryOp::Equal,
+                        Box::new(Expr::Integer(3)),
+                    ),
+                    Box::new(Stmt::Break),
+                    None,
+                ),
+                Stmt::Assign(
+                    Expr::Identifier("i".to_string()),
+                    Expr::Binary(
+                        Box::new(Expr::Identifier("i".to_string())),
+                        BinaryOp::Add,
+                        Box::new(Expr::Integer(1)),
+                    ),
+                ),
+            ])),
+        ),
+    ];
+    for s in &stmts {
+        eval.exec_stmt(s).unwrap();
+    }
+    assert_eq!(eval.environment.get("i").unwrap(), Value::Int(3));
+}
+
+// --- division by zero ---
+
+#[test]
+fn test_division_by_zero_int() {
+    let mut eval = Evaluator::new();
+    let expr = Expr::Binary(
+        Box::new(Expr::Integer(5)),
+        BinaryOp::Divide,
+        Box::new(Expr::Integer(0)),
+    );
+    let err = eval.eval_expr(&expr).unwrap_err();
+    assert!(matches!(err, RuntimeError::DivisionByZero));
+}
+
+#[test]
+fn test_modulo_by_zero() {
+    let mut eval = Evaluator::new();
+    let expr = Expr::Binary(
+        Box::new(Expr::Integer(5)),
+        BinaryOp::Modulo,
+        Box::new(Expr::Integer(0)),
+    );
+    let err = eval.eval_expr(&expr).unwrap_err();
+    assert!(matches!(err, RuntimeError::DivisionByZero));
+}
