@@ -1487,11 +1487,11 @@ impl Evaluator {
                 Ok(ControlFlow::None)
             }
             Stmt::FromImport(module_name, items) => {
-                self.from_import(module_name, items)?;
+                self.import_from(module_name, items)?;
                 Ok(ControlFlow::None)
             }
             Stmt::FromImportAs(module_name, aliased_items) => {
-                self.from_import_as(module_name, aliased_items)?;
+                self.import_from_as(module_name, aliased_items)?;
                 Ok(ControlFlow::None)
             }
             Stmt::Throw(expr) => {
@@ -1858,7 +1858,7 @@ impl Evaluator {
     }
 
     /// Import specific items from a module
-    fn from_import(&mut self, module_name: &str, items: &[String]) -> Result<(), RuntimeError> {
+    fn import_from(&mut self, module_name: &str, items: &[String]) -> Result<(), RuntimeError> {
         // Check if already loaded
         if !self.module_cache.contains_key(module_name) {
             // Resolve and load module
@@ -1889,7 +1889,7 @@ impl Evaluator {
     }
 
     /// Import specific items from a module with optional aliases.
-    fn from_import_as(
+    fn import_from_as(
         &mut self,
         module_name: &str,
         items: &[(String, String)],

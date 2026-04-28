@@ -122,7 +122,7 @@ impl Parser {
             return self.import_statement();
         }
         if self.match_token(&[TokenKind::From]) {
-            return self.from_import_statement();
+            return self.parse_from_import_statement();
         }
         // Check if this is a function declaration (fn identifier) or function expression (fn()
         if self.check(&TokenKind::Fn) {
@@ -828,7 +828,7 @@ impl Parser {
     }
 
     // Parse from import statement: from module import item1, item2, ...
-    fn from_import_statement(&mut self) -> Result<Stmt, ParseError> {
+    fn parse_from_import_statement(&mut self) -> Result<Stmt, ParseError> {
         let module_name = if let TokenKind::Identifier(name) = &self.peek().kind {
             name.clone()
         } else {
