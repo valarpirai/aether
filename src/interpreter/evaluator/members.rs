@@ -287,6 +287,43 @@ impl Evaluator {
                 }
             }
 
+            (Value::String(s), "contains") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+                }
+                let needle = self.eval_expr(&args[0])?;
+                match needle {
+                    Value::String(n) => Ok(Value::Bool(s.contains(n.as_str()))),
+                    other => Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+                }
+            }
+            (Value::String(s), "index_of") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+                }
+                let needle = self.eval_expr(&args[0])?;
+                match needle {
+                    Value::String(n) => {
+                        match s.find(n.as_str()) {
+                            Some(i) => Ok(Value::Int(i as i64)),
+                            None => Ok(Value::Int(-1)),
+                        }
+                    }
+                    other => Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+                }
+            }
+            (Value::String(s), "replace") => {
+                if args.len() != 2 {
+                    return Err(RuntimeError::ArityMismatch { expected: 2, got: args.len() });
+                }
+                let from = self.eval_expr(&args[0])?;
+                let to = self.eval_expr(&args[1])?;
+                match (from, to) {
+                    (Value::String(f), Value::String(t)) => Ok(Value::string(s.replace(f.as_str(), t.as_str()))),
+                    (other, _) => Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+                }
+            }
+
             // Set methods
             // Note: clippy::mutable_key_type warnings are false positives - see value.rs
             (Value::Set(elements), "add") => {

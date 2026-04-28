@@ -1,0 +1,172 @@
+// String utilities — built-in methods and stdlib functions
+
+fn demo_case() {
+    println("--- Case conversion ---")
+    let s = "Hello, World!"
+    println("original :", s)
+    println("upper    :", s.upper())
+    println("lower    :", s.lower())
+    println()
+}
+
+fn demo_trim() {
+    println("--- Trim ---")
+    let s = "   spaces around   "
+    println("original : '", s, "'")
+    println("trimmed  : '", s.trim(), "'")
+    println()
+}
+
+fn demo_split_join() {
+    println("--- Split / join ---")
+    let csv = "alice,bob,carol,dave"
+    let names = csv.split(",")
+    println("split    :", names)
+    println("join     :", join(names, " | "))
+    println("join+    :", join(names, ", "))
+
+    let path = "src/interpreter/value.rs"
+    let parts = path.split("/")
+    println("path parts:", parts)
+    println()
+}
+
+fn demo_search() {
+    println("--- Search ---")
+    let s = "the quick brown fox jumps over the lazy dog"
+    println("contains 'fox'     :", s.contains("fox"))
+    println("contains 'cat'     :", s.contains("cat"))
+    println("index_of 'fox'     :", s.index_of("fox"))
+    println("index_of 'cat'     :", s.index_of("cat"))
+    println("starts_with 'the'  :", starts_with(s, "the"))
+    println("ends_with 'dog'    :", ends_with(s, "dog"))
+    println("ends_with 'fox'    :", ends_with(s, "fox"))
+    println()
+}
+
+fn demo_replace() {
+    println("--- Replace ---")
+    let s = "I like cats and cats like me"
+    println("original :", s)
+    println("replaced :", s.replace("cats", "dogs"))
+    let template = "Hello, {name}! You have {count} messages."
+    let result = template.replace("{name}", "Alice").replace("{count}", "3")
+    println("template :", result)
+    println()
+}
+
+fn demo_slice_index() {
+    println("--- Slice / index ---")
+    let s = "Aether language"
+    println("s[0]     :", s[0])
+    println("s[7]     :", s[7])
+    println("s[0:6]   :", s[0:6])
+    println("s[7:]    :", s[7:len(s)])
+    println("last char:", s[len(s) - 1])
+    println()
+}
+
+fn demo_interpolation() {
+    println("--- Interpolation ---")
+    let name = "Alice"
+    let score = 42
+    let msg = "Player ${name} scored ${score} points"
+    println(msg)
+    let expr = "Result: ${score * 2 + 1}"
+    println(expr)
+    println()
+}
+
+fn demo_repeat_reverse() {
+    println("--- Repeat / reverse ---")
+    println("repeat   :", repeat("ab", 4))
+    println("reverse  :", reverse("Aether"))
+    let sep = repeat("-", 30)
+    println(sep)
+    println()
+}
+
+fn demo_build_string() {
+    println("--- Build strings ---")
+    let words = ["one", "two", "three", "four", "five"]
+
+    // Concatenation
+    let result = ""
+    let i = 0
+    while (i < len(words)) {
+        if (i > 0) { result = result + ", " }
+        result = result + words[i]
+        i = i + 1
+    }
+    println("concat   :", result)
+
+    // join from stdlib
+    println("join     :", join(words, " + "))
+
+    // Build padded table
+    println()
+    println("padded table:")
+    for w in words {
+        let pad = repeat(" ", 10 - len(w))
+        println(" |", w, pad, "|")
+    }
+    println()
+}
+
+fn demo_parse_numbers() {
+    println("--- Parse / convert ---")
+    let int_tokens = ["42", "100", "-7"]
+    for t in int_tokens {
+        println("int('", t, "') =", int(t))
+    }
+    let float_tokens = ["3.14", "2.718", "0.5"]
+    for t in float_tokens {
+        println("float('", t, "') =", float(t))
+    }
+    println("str(255)  :", str(255))
+    println("str(3.14) :", str(3.14))
+    println("str(true) :", str(true))
+    println()
+}
+
+fn demo_tokenize() {
+    println("--- Simple tokenizer ---")
+    let expr = "x + y * 2 - z"
+    let tokens = expr.split(" ")
+    println("expression :", expr)
+    println("tokens     :", tokens)
+    let ops = []
+    let nums = []
+    let vars = []
+    for t in tokens {
+        if (t == "+" || t == "-" || t == "*" || t == "/") {
+            ops.push(t)
+        } else if (t.contains("0") || t.contains("1") || t.contains("2") ||
+                   t.contains("3") || t.contains("4") || t.contains("5")) {
+            nums.push(t)
+        } else {
+            vars.push(t)
+        }
+    }
+    println("operators  :", ops)
+    println("numbers    :", nums)
+    println("variables  :", vars)
+    println()
+}
+
+fn main() {
+    println("=== String Utilities Demo ===")
+    println()
+    demo_case()
+    demo_trim()
+    demo_split_join()
+    demo_search()
+    demo_replace()
+    demo_slice_index()
+    demo_interpolation()
+    demo_repeat_reverse()
+    demo_build_string()
+    demo_parse_numbers()
+    demo_tokenize()
+    println("Done.")
+}

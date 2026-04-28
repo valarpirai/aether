@@ -1,0 +1,246 @@
+// File utilities — practical examples using the file I/O builtins
+
+// ── 1. Path helpers ─────────────────────────────────────────────────────────
+
+fn basename(path) {
+    let parts = path.split("/")
+    return parts[len(parts) - 1]
+}
+
+fn dirname(path) {
+    let parts = path.split("/")
+    if (len(parts) <= 1) { return "." }
+    let dir = ""
+    let i = 0
+    while (i < len(parts) - 1) {
+        if (i > 0) { dir = dir + "/" }
+        dir = dir + parts[i]
+        i = i + 1
+    }
+    if (dir == "") { return "/" }
+    return dir
+}
+
+fn file_extension(path) {
+    let name = basename(path)
+    let parts = name.split(".")
+    if (len(parts) < 2) { return "" }
+    return "." + parts[len(parts) - 1]
+}
+
+fn file_stem(path) {
+    let name = basename(path)
+    let ext = file_extension(path)
+    if (ext == "") { return name }
+    return name[0:len(name) - len(ext)]
+}
+
+// ── 2. Key=value config reader ───────────────────────────────────────────────
+
+fn read_config(path) {
+    let config = {}
+    if (!file_exists(path)) { return config }
+    for line in lines_iter(path) {
+        let trimmed = line.trim()
+        if (len(trimmed) == 0)        { continue }
+        if (trimmed[0] == "#")        { continue }   // comment
+        let eq = trimmed.index_of("=")
+        if (eq < 0)                   { continue }   // no = sign
+        let key = trimmed[0:eq].trim()
+        let val = trimmed[eq + 1:len(trimmed)].trim()
+        config[key] = val
+    }
+    return config
+}
+
+// ── 3. Line counter ──────────────────────────────────────────────────────────
+
+fn count_lines(path) {
+    let n = 0
+    for line in lines_iter(path) {
+        n = n + 1
+    }
+    return n
+}
+
+fn count_words(path) {
+    let total = 0
+    for line in lines_iter(path) {
+        let parts = line.split(" ")
+        for w in parts {
+            if (len(w.trim()) > 0) { total = total + 1 }
+        }
+    }
+    return total
+}
+
+// ── 4. Search in file (grep-like) ────────────────────────────────────────────
+
+fn grep(path, pattern) {
+    let matches = []
+    let n = 0
+    for line in lines_iter(path) {
+        n = n + 1
+        if (line.contains(pattern)) {
+            matches.push(str(n) + ": " + line)
+        }
+    }
+    return matches
+}
+
+// ── 5. Tail — last N lines ───────────────────────────────────────────────────
+
+fn tail(path, n) {
+    let lines = read_lines(path)
+    let start = len(lines) - n
+    if (start < 0) { start = 0 }
+    return lines[start:len(lines)]
+}
+
+// ── 6. Head — first N lines ──────────────────────────────────────────────────
+
+fn head(path, n) {
+    let result = []
+    let count = 0
+    for line in lines_iter(path) {
+        if (count >= n) { break }
+        result.push(line)
+        count = count + 1
+    }
+    return result
+}
+
+// ── 7. Ensure directory + write with parent creation ─────────────────────────
+
+fn write_safe(path, content) {
+    let dir = dirname(path)
+    if (!is_dir(dir)) {
+        mkdir(dir)
+    }
+    write_file(path, content)
+}
+
+// ── 8. Copy file ─────────────────────────────────────────────────────────────
+
+fn copy_file(src, dst) {
+    if (!file_exists(src)) {
+        throw "copy_file: source not found: " + src
+    }
+    let content = read_bytes(src)
+    write_bytes(dst, content)
+}
+
+// ── 9. Simple CSV reader (returns array of arrays) ───────────────────────────
+
+fn read_csv(path) {
+    let rows = []
+    let header = null
+    for line in lines_iter(path) {
+        if (len(line.trim()) == 0) { continue }
+        let cols = line.split(",")
+        if (header == null) {
+            header = cols
+        } else {
+            rows.push(cols)
+        }
+    }
+    return {"header": header, "rows": rows}
+}
+
+// ── Demo ─────────────────────────────────────────────────────────────────────
+
+fn demo_path_helpers() {
+    println("--- Path helpers ---")
+    let path = "/home/user/projects/aether/src/main.ae"
+    println("path      :", path)
+    println("basename  :", basename(path))
+    println("dirname   :", dirname(path))
+    println("extension :", file_extension(path))
+    println("stem      :", file_stem(path))
+    println()
+}
+
+fn demo_config() {
+    println("--- Config reader ---")
+    let cfg_path = "/tmp/aether_demo.cfg"
+    write_file(cfg_path, "# Aether demo config\nhost=localhost\nport=8080\ndebug=true\n")
+    let cfg = read_config(cfg_path)
+    println("host  :", cfg["host"])
+    println("port  :", cfg["port"])
+    println("debug :", cfg["debug"])
+    println()
+}
+
+fn demo_line_ops() {
+    println("--- Line / word count ---")
+    let path = "/tmp/aether_sample.txt"
+    write_file(path, "the quick brown fox\njumps over the lazy dog\npack my box with\nfive dozen liquor jugs\n")
+    println("lines :", count_lines(path))
+    println("words :", count_words(path))
+    println()
+}
+
+fn demo_grep() {
+    println("--- grep ---")
+    let path = "/tmp/aether_sample.txt"
+    let results = grep(path, "the")
+    println("lines containing 'the':")
+    for r in results {
+        println(" ", r)
+    }
+    println()
+}
+
+fn demo_head_tail() {
+    println("--- head / tail ---")
+    let path = "/tmp/aether_sample.txt"
+    println("head(2):", head(path, 2))
+    println("tail(2):", tail(path, 2))
+    println()
+}
+
+fn demo_write_safe() {
+    println("--- write_safe (auto mkdir) ---")
+    let path = "/tmp/aether_out/reports/summary.txt"
+    write_safe(path, "Report generated by Aether\n")
+    println("written:", file_exists(path))
+    println()
+}
+
+fn demo_copy() {
+    println("--- copy_file ---")
+    let src = "/tmp/aether_sample.txt"
+    let dst = "/tmp/aether_sample_copy.txt"
+    copy_file(src, dst)
+    println("copy exists      :", file_exists(dst))
+    println("copy line count  :", count_lines(dst))
+    println()
+}
+
+fn demo_csv() {
+    println("--- CSV reader ---")
+    let path = "/tmp/aether_data.csv"
+    write_file(path, "name,age,city\nAlice,30,London\nBob,25,Paris\nCarol,35,Berlin\n")
+    let data = read_csv(path)
+    println("columns:", data["header"])
+    println("rows   :", len(data["rows"]))
+
+    for row in data["rows"] {
+        println(" ", row[0], "|", row[1], "|", row[2])
+    }
+    println()
+}
+
+fn main() {
+    println("=== File Utilities Demo ===")
+    println()
+    demo_path_helpers()
+    demo_config()
+    demo_line_ops()
+    demo_grep()
+    demo_head_tail()
+    demo_write_safe()
+    demo_copy()
+    demo_csv()
+    println("Done.")
+}
