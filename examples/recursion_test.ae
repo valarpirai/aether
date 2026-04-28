@@ -7,3 +7,5 @@ fn countdown(n) {
 
 let result = countdown(5)
 println(result)
+
+fn main() {}

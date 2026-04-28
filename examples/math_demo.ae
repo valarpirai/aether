@@ -67,3 +67,5 @@ println("Mean:", sum(data) / len(data))
 println()
 
 println("Done!")
+
+fn main() {}

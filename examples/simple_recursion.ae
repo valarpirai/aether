@@ -11,3 +11,5 @@ println("Starting...")
 let result = fact(3)
 println("Result:")
 println(result)
+
+fn main() {}

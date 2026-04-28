@@ -47,3 +47,5 @@ for pair in enumerate(["red", "green", "blue"]) {
     let color = pair[1]
     println("Color", index, "is", color)
 }
+
+fn main() {}

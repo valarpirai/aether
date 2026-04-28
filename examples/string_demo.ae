@@ -78,3 +78,5 @@ for file in files {
 println()
 
 println("Done!")
+
+fn main() {}

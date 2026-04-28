@@ -74,3 +74,5 @@ println()
 
 println("=== GC Stress Test Complete ===")
 println("If memory stayed low, GC is working! 🎉")
+
+fn main() {}

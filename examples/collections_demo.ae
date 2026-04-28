@@ -97,3 +97,5 @@ fn has_e(s) {
 
 println()
 println("Done!")
+
+fn main() {}
