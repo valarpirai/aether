@@ -45,6 +45,50 @@ src/
 
 **Test File Convention**: Use `<module>_tests.rs` naming pattern for test files.
 
+### File Size Limit: 1000 Lines
+
+**Rule:** When any source file (`.rs`) grows beyond **1000 lines**, split it into a sub-module directory.
+
+**For source files** — convert `foo.rs` into `foo/mod.rs` and extract logical groups into sibling files:
+
+```
+# Before (foo.rs exceeds 1000 lines)
+src/interpreter/evaluator.rs
+
+# After (split into module)
+src/interpreter/evaluator/
+├── mod.rs          # Struct definition, constructors, public API
+├── expressions.rs  # eval_expr and sub-expression handlers
+├── operators.rs    # Arithmetic, comparison, logical operators
+├── statements.rs   # exec_stmt_internal, all statement handlers
+├── functions.rs    # eval_call, call_value, exec_async_body
+├── members.rs      # eval_member, method dispatch, collection methods
+└── modules.rs      # Module loading and import resolution
+```
+
+Each sub-file is part of the same module — all `impl Foo { ... }` blocks work together. Use `pub(super)` for shared types (e.g. `ControlFlow`) and `use super::*;` or explicit imports in sub-files.
+
+**For test files** — when an integration test file exceeds 1000 lines, create a sub-directory:
+
+```
+# Before (array_methods_test.rs approaches 1000 lines)
+tests/array_methods_test.rs
+
+# After
+tests/array_methods/
+├── push_pop_test.rs
+├── sort_concat_test.rs
+└── slice_spread_test.rs
+```
+
+Integration tests in sub-directories require a wrapper file or use `#[path]` to include them.
+
+**Why 1000 lines?**
+- Files beyond this size are hard to navigate and review
+- Logical splits make it easier to find where to add new functionality
+- Smaller files have faster incremental compile times
+- Split boundaries become natural documentation of responsibility
+
 ### Module Responsibilities
 
 - **Lexer**: Converts source code into tokens
