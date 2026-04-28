@@ -7,7 +7,11 @@ use std::rc::Rc;
 use super::{ControlFlow, Evaluator};
 
 impl Evaluator {
-    pub(super) fn eval_member(&mut self, object: &Expr, member: &str) -> Result<Value, RuntimeError> {
+    pub(super) fn eval_member(
+        &mut self,
+        object: &Expr,
+        member: &str,
+    ) -> Result<Value, RuntimeError> {
         let obj_val = self.eval_expr(object)?;
 
         match (&obj_val, member) {
@@ -40,7 +44,12 @@ impl Evaluator {
                 })
             }
 
-            (Value::Instance { type_name, fields, .. }, prop) => {
+            (
+                Value::Instance {
+                    type_name, fields, ..
+                },
+                prop,
+            ) => {
                 let map = fields.borrow();
                 map.get(prop).cloned().ok_or_else(|| {
                     RuntimeError::InvalidOperation(format!(
@@ -50,7 +59,13 @@ impl Evaluator {
                 })
             }
 
-            (Value::ErrorVal { message, stack_trace }, prop) => match prop {
+            (
+                Value::ErrorVal {
+                    message,
+                    stack_trace,
+                },
+                prop,
+            ) => match prop {
                 "message" => Ok(Value::string(message.clone())),
                 "stack_trace" => Ok(Value::string(stack_trace.clone())),
                 other => Err(RuntimeError::InvalidOperation(format!(
@@ -155,12 +170,12 @@ impl Evaluator {
                             (Value::Float(x), Value::Float(y)) => {
                                 x.partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal)
                             }
-                            (Value::Int(x), Value::Float(y)) => {
-                                (*x as f64).partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal)
-                            }
-                            (Value::Float(x), Value::Int(y)) => {
-                                x.partial_cmp(&(*y as f64)).unwrap_or(std::cmp::Ordering::Equal)
-                            }
+                            (Value::Int(x), Value::Float(y)) => (*x as f64)
+                                .partial_cmp(y)
+                                .unwrap_or(std::cmp::Ordering::Equal),
+                            (Value::Float(x), Value::Int(y)) => x
+                                .partial_cmp(&(*y as f64))
+                                .unwrap_or(std::cmp::Ordering::Equal),
                             (Value::String(x), Value::String(y)) => x.cmp(y),
                             _ => a.type_name().cmp(b.type_name()),
                         }
@@ -289,38 +304,56 @@ impl Evaluator {
 
             (Value::String(s), "contains") => {
                 if args.len() != 1 {
-                    return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
                 }
                 let needle = self.eval_expr(&args[0])?;
                 match needle {
                     Value::String(n) => Ok(Value::Bool(s.contains(n.as_str()))),
-                    other => Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+                    other => Err(RuntimeError::TypeError {
+                        expected: "string".to_string(),
+                        got: other.type_name().to_string(),
+                    }),
                 }
             }
             (Value::String(s), "index_of") => {
                 if args.len() != 1 {
-                    return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
                 }
                 let needle = self.eval_expr(&args[0])?;
                 match needle {
-                    Value::String(n) => {
-                        match s.find(n.as_str()) {
-                            Some(i) => Ok(Value::Int(i as i64)),
-                            None => Ok(Value::Int(-1)),
-                        }
-                    }
-                    other => Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+                    Value::String(n) => match s.find(n.as_str()) {
+                        Some(i) => Ok(Value::Int(i as i64)),
+                        None => Ok(Value::Int(-1)),
+                    },
+                    other => Err(RuntimeError::TypeError {
+                        expected: "string".to_string(),
+                        got: other.type_name().to_string(),
+                    }),
                 }
             }
             (Value::String(s), "replace") => {
                 if args.len() != 2 {
-                    return Err(RuntimeError::ArityMismatch { expected: 2, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 2,
+                        got: args.len(),
+                    });
                 }
                 let from = self.eval_expr(&args[0])?;
                 let to = self.eval_expr(&args[1])?;
                 match (from, to) {
-                    (Value::String(f), Value::String(t)) => Ok(Value::string(s.replace(f.as_str(), t.as_str()))),
-                    (other, _) => Err(RuntimeError::TypeError { expected: "string".to_string(), got: other.type_name().to_string() }),
+                    (Value::String(f), Value::String(t)) => {
+                        Ok(Value::string(s.replace(f.as_str(), t.as_str())))
+                    }
+                    (other, _) => Err(RuntimeError::TypeError {
+                        expected: "string".to_string(),
+                        got: other.type_name().to_string(),
+                    }),
                 }
             }
 
@@ -473,8 +506,7 @@ impl Evaluator {
                 let other = self.eval_expr(&args[0])?;
                 if let Value::Set(other_set) = other {
                     #[allow(clippy::mutable_key_type)]
-                    let diff: HashSet<Value> =
-                        elements.difference(&other_set).cloned().collect();
+                    let diff: HashSet<Value> = elements.difference(&other_set).cloned().collect();
                     Ok(Value::set(diff))
                 } else {
                     Err(RuntimeError::TypeError {
@@ -575,7 +607,14 @@ impl Evaluator {
             }
 
             // Instance method call: instance.method(args)
-            (Value::Instance { type_name, fields, methods }, meth) => {
+            (
+                Value::Instance {
+                    type_name,
+                    fields,
+                    methods,
+                },
+                meth,
+            ) => {
                 let method = methods.get(meth).cloned().ok_or_else(|| {
                     RuntimeError::InvalidOperation(format!(
                         "Method '{}' does not exist on '{}'",
@@ -630,7 +669,10 @@ impl Evaluator {
             // Iterator methods
             (Value::Iterator(state), "next") => {
                 if !args.is_empty() {
-                    return Err(RuntimeError::ArityMismatch { expected: 0, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
                 }
                 let mut st = state.borrow_mut();
                 let result = match &st.source {
@@ -666,7 +708,10 @@ impl Evaluator {
             }
             (Value::Iterator(state), "has_next") => {
                 if !args.is_empty() {
-                    return Err(RuntimeError::ArityMismatch { expected: 0, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
                 }
                 let st = state.borrow();
                 let has = match &st.source {
@@ -680,15 +725,25 @@ impl Evaluator {
             // FileLines methods
             (Value::FileLines(state), "has_next") => {
                 if !args.is_empty() {
-                    return Err(RuntimeError::ArityMismatch { expected: 0, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
                 }
                 Ok(Value::Bool(state.borrow().has_next()))
             }
             (Value::FileLines(state), "next") => {
                 if !args.is_empty() {
-                    return Err(RuntimeError::ArityMismatch { expected: 0, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
                 }
-                match state.borrow_mut().next_line() {
+                match state
+                    .borrow_mut()
+                    .next_line()
+                    .map_err(RuntimeError::InvalidOperation)?
+                {
                     Some(line) => Ok(Value::string(line)),
                     None => Ok(Value::Null),
                 }
@@ -697,19 +752,28 @@ impl Evaluator {
             // iterator() factory methods on collections
             (Value::Array(elements), "iterator") => {
                 if !args.is_empty() {
-                    return Err(RuntimeError::ArityMismatch { expected: 0, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
                 }
                 Ok(Value::iterator(IteratorSource::Array(Rc::clone(elements))))
             }
             (Value::Dict(pairs), "iterator") => {
                 if !args.is_empty() {
-                    return Err(RuntimeError::ArityMismatch { expected: 0, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
                 }
                 Ok(Value::iterator(IteratorSource::DictKeys(Rc::clone(pairs))))
             }
             (Value::Set(elements), "iterator") => {
                 if !args.is_empty() {
-                    return Err(RuntimeError::ArityMismatch { expected: 0, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
                 }
                 let items: Vec<Value> = elements.iter().cloned().collect();
                 Ok(Value::iterator(IteratorSource::Set(items)))

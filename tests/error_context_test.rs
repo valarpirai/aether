@@ -88,7 +88,11 @@ try {
 trace
 "#;
     let result = run(src).unwrap();
-    assert!(result.contains("boom"), "trace should mention 'boom', got: {}", result);
+    assert!(
+        result.contains("boom"),
+        "trace should mention 'boom', got: {}",
+        result
+    );
 }
 
 #[test]
@@ -106,7 +110,11 @@ try {
 trace
 "#;
     let result = run(src).unwrap();
-    assert!(result.contains("line"), "trace should contain 'line', got: {}", result);
+    assert!(
+        result.contains("line"),
+        "trace should contain 'line', got: {}",
+        result
+    );
 }
 
 #[test]
@@ -127,8 +135,16 @@ try {
 trace
 "#;
     let result = run(src).unwrap();
-    assert!(result.contains("inner"), "trace should mention 'inner', got: {}", result);
-    assert!(result.contains("outer"), "trace should mention 'outer', got: {}", result);
+    assert!(
+        result.contains("inner"),
+        "trace should mention 'inner', got: {}",
+        result
+    );
+    assert!(
+        result.contains("outer"),
+        "trace should mention 'outer', got: {}",
+        result
+    );
 }
 
 // ── e as string (backward compat) ───────────────────────────────────────────

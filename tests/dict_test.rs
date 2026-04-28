@@ -219,11 +219,17 @@ fn test_dict_keys_with_args() {
 #[test]
 fn test_dict_values_with_args() {
     let result = run(r#"let d = {"a": 1}  d.values(42)"#);
-    assert!(result.is_err(), "Expected error for values() with arguments");
+    assert!(
+        result.is_err(),
+        "Expected error for values() with arguments"
+    );
 }
 
 #[test]
 fn test_dict_contains_no_args() {
     let result = run(r#"let d = {"a": 1}  d.contains()"#);
-    assert!(result.is_err(), "Expected error for contains() without arguments");
+    assert!(
+        result.is_err(),
+        "Expected error for contains() without arguments"
+    );
 }

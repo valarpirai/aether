@@ -126,7 +126,15 @@ impl FileIterState {
         let mut reader = std::io::BufReader::new(file);
         let mut buf = String::new();
         let n = reader.read_line(&mut buf).map_err(|e| e.to_string())?;
-        let peeked = if n == 0 { None } else { Some(buf.trim_end_matches('\n').trim_end_matches('\r').to_string()) };
+        let peeked = if n == 0 {
+            None
+        } else {
+            Some(
+                buf.trim_end_matches('\n')
+                    .trim_end_matches('\r')
+                    .to_string(),
+            )
+        };
         Ok(Self { reader, peeked })
     }
 
@@ -134,17 +142,24 @@ impl FileIterState {
         self.peeked.is_some()
     }
 
-    pub fn next_line(&mut self) -> Option<String> {
+    /// Returns Ok(Some(line)) for the next line, Ok(None) at EOF,
+    /// or Err(msg) if a read error occurs mid-iteration.
+    pub fn next_line(&mut self) -> Result<Option<String>, String> {
         use std::io::BufRead;
         let current = self.peeked.take();
         let mut buf = String::new();
         match self.reader.read_line(&mut buf) {
-            Ok(0) | Err(_) => {}
+            Ok(0) => {}
             Ok(_) => {
-                self.peeked = Some(buf.trim_end_matches('\n').trim_end_matches('\r').to_string());
+                self.peeked = Some(
+                    buf.trim_end_matches('\n')
+                        .trim_end_matches('\r')
+                        .to_string(),
+                );
             }
+            Err(e) => return Err(format!("lines_iter read error: {}", e)),
         }
-        current
+        Ok(current)
     }
 }
 
@@ -203,7 +218,9 @@ impl Value {
     }
 
     /// Helper: Create an I/O-backed Promise (Phase 2 thread pool)
-    pub fn promise_io(rx: std::sync::mpsc::Receiver<crate::interpreter::io_pool::IoResult>) -> Self {
+    pub fn promise_io(
+        rx: std::sync::mpsc::Receiver<crate::interpreter::io_pool::IoResult>,
+    ) -> Self {
         Value::Promise(Rc::new(RefCell::new(PromiseState::IoWaiting(rx))))
     }
 
@@ -390,7 +407,9 @@ impl fmt::Display for Value {
             Value::Iterator(_) => write!(f, "<iterator>"),
             Value::AsyncFunction { params, .. } => write!(f, "<async fn({})>", params.len()),
             Value::Promise(state) => match &*state.borrow() {
-                PromiseState::Pending { .. } | PromiseState::IoWaiting(_) => write!(f, "<promise:pending>"),
+                PromiseState::Pending { .. } | PromiseState::IoWaiting(_) => {
+                    write!(f, "<promise:pending>")
+                }
                 PromiseState::Resolved(v) => write!(f, "<promise:{}>", v),
             },
             Value::StructDef { name, .. } => write!(f, "<struct {}>", name),
@@ -412,7 +431,11 @@ impl fmt::Display for Value {
             Value::ErrorVal { message, .. } => write!(f, "{}", message),
             Value::FileLines(state) => {
                 let s = state.borrow();
-                if s.has_next() { write!(f, "<file_lines:open>") } else { write!(f, "<file_lines:eof>") }
+                if s.has_next() {
+                    write!(f, "<file_lines:open>")
+                } else {
+                    write!(f, "<file_lines:eof>")
+                }
             }
         }
     }

@@ -59,7 +59,11 @@ let mixed = set([1, "hello", true, 1, "hello", false, true])
 mixed.size
 "#;
     let result = eval(source);
-    assert_eq!(result.unwrap(), "4", "Set should handle mixed hashable types");
+    assert_eq!(
+        result.unwrap(),
+        "4",
+        "Set should handle mixed hashable types"
+    );
 }
 
 #[test]
@@ -83,7 +87,11 @@ let online_premium = online.intersection(premium)
 online_premium.size
 "#;
     let result = eval(source);
-    assert_eq!(result.unwrap(), "2", "Intersection should find common elements");
+    assert_eq!(
+        result.unwrap(),
+        "2",
+        "Intersection should find common elements"
+    );
 }
 
 #[test]
@@ -95,7 +103,11 @@ let active_users = all_users.difference(banned_users)
 active_users.size
 "#;
     let result = eval(source);
-    assert_eq!(result.unwrap(), "3", "Difference should remove banned users");
+    assert_eq!(
+        result.unwrap(),
+        "3",
+        "Difference should remove banned users"
+    );
 }
 
 #[test]
@@ -118,7 +130,11 @@ tags.remove("bug")
 tags.size
 "#;
     let result = eval(source);
-    assert_eq!(result.unwrap(), "2", "Add/remove should modify set correctly");
+    assert_eq!(
+        result.unwrap(),
+        "2",
+        "Add/remove should modify set correctly"
+    );
 }
 
 #[test]
@@ -129,7 +145,11 @@ let id_array = unique_ids.to_array()
 len(id_array)
 "#;
     let result = eval(source);
-    assert_eq!(result.unwrap(), "3", "to_array() should convert for iteration");
+    assert_eq!(
+        result.unwrap(),
+        "3",
+        "to_array() should convert for iteration"
+    );
 }
 
 #[test]
@@ -140,7 +160,11 @@ let user_permissions = set(["read", "write", "delete"])
 required_permissions.is_subset(user_permissions)
 "#;
     let result = eval(source);
-    assert_eq!(result.unwrap(), "true", "Should verify user has all required permissions");
+    assert_eq!(
+        result.unwrap(),
+        "true",
+        "Should verify user has all required permissions"
+    );
 }
 
 // ============================================================================
@@ -161,7 +185,11 @@ double(x) + triple(x)
     let result = eval(source);
     std::env::set_current_dir("../..").ok();
 
-    assert_eq!(result.unwrap(), "50", "Should import and use multiple functions");
+    assert_eq!(
+        result.unwrap(),
+        "50",
+        "Should import and use multiple functions"
+    );
 }
 
 #[test]
@@ -177,7 +205,11 @@ twice(val)
     let result = eval(source);
     std::env::set_current_dir("../..").ok();
 
-    assert_eq!(result.unwrap(), "14", "Should use aliased import for clarity");
+    assert_eq!(
+        result.unwrap(),
+        "14",
+        "Should use aliased import for clarity"
+    );
 }
 
 #[test]
@@ -193,7 +225,11 @@ math_utils.square(base)
     let result = eval(source);
     std::env::set_current_dir("../..").ok();
 
-    assert_eq!(result.unwrap(), "16", "Namespace import should organize code");
+    assert_eq!(
+        result.unwrap(),
+        "16",
+        "Namespace import should organize code"
+    );
 }
 
 // ============================================================================
@@ -229,7 +265,10 @@ set([[1, 2], [3, 4]])
 "#;
     let result = eval(source);
     assert!(result.is_err(), "Should reject non-hashable values");
-    assert!(result.unwrap_err().contains("hashable"), "Error should mention hashability");
+    assert!(
+        result.unwrap_err().contains("hashable"),
+        "Error should mention hashability"
+    );
 }
 
 // ============================================================================
@@ -266,7 +305,11 @@ let enabled_features = set(["dark_mode", "notifications", "analytics"])
 enabled_features.contains("dark_mode") && enabled_features.contains("notifications")
 "#;
     let result = eval(source);
-    assert_eq!(result.unwrap(), "true", "Should check multiple feature flags");
+    assert_eq!(
+        result.unwrap(),
+        "true",
+        "Should check multiple feature flags"
+    );
 }
 
 #[test]

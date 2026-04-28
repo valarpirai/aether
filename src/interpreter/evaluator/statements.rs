@@ -72,7 +72,10 @@ impl Evaluator {
                 // FileLines is handled lazily to avoid loading the whole file
                 if let Value::FileLines(state) = &iter_val {
                     loop {
-                        let next = state.borrow_mut().next_line();
+                        let next = state
+                            .borrow_mut()
+                            .next_line()
+                            .map_err(RuntimeError::InvalidOperation)?;
                         match next {
                             None => break,
                             Some(line) => {
@@ -81,7 +84,9 @@ impl Evaluator {
                                 match flow {
                                     ControlFlow::Break => break,
                                     ControlFlow::Continue => continue,
-                                    ControlFlow::Return(val) => return Ok(ControlFlow::Return(val)),
+                                    ControlFlow::Return(val) => {
+                                        return Ok(ControlFlow::Return(val))
+                                    }
                                     ControlFlow::None => {}
                                 }
                             }
@@ -94,20 +99,40 @@ impl Evaluator {
                     Value::Array(ref elements) => elements.iter().cloned().collect(),
                     Value::Dict(ref pairs) => pairs.iter().map(|(k, _)| k.clone()).collect(),
                     Value::Set(ref elements) => elements.iter().cloned().collect(),
-                    Value::String(ref s) => s.chars().map(|c| Value::string(c.to_string())).collect(),
+                    Value::String(ref s) => {
+                        s.chars().map(|c| Value::string(c.to_string())).collect()
+                    }
                     Value::Iterator(ref state) => {
                         let mut result = Vec::new();
                         loop {
                             let mut st = state.borrow_mut();
                             let val = match &st.source {
                                 IteratorSource::Array(arr) => {
-                                    if st.index < arr.len() { let v = arr[st.index].clone(); st.index += 1; Some(v) } else { None }
+                                    if st.index < arr.len() {
+                                        let v = arr[st.index].clone();
+                                        st.index += 1;
+                                        Some(v)
+                                    } else {
+                                        None
+                                    }
                                 }
                                 IteratorSource::DictKeys(pairs) => {
-                                    if st.index < pairs.len() { let v = pairs[st.index].0.clone(); st.index += 1; Some(v) } else { None }
+                                    if st.index < pairs.len() {
+                                        let v = pairs[st.index].0.clone();
+                                        st.index += 1;
+                                        Some(v)
+                                    } else {
+                                        None
+                                    }
                                 }
                                 IteratorSource::Set(items) => {
-                                    if st.index < items.len() { let v = items[st.index].clone(); st.index += 1; Some(v) } else { None }
+                                    if st.index < items.len() {
+                                        let v = items[st.index].clone();
+                                        st.index += 1;
+                                        Some(v)
+                                    } else {
+                                        None
+                                    }
                                 }
                             };
                             drop(st);
@@ -118,10 +143,13 @@ impl Evaluator {
                         }
                         result
                     }
-                    _ => return Err(RuntimeError::TypeError {
-                        expected: "iterable (array, dict, set, string, or iterator)".to_string(),
-                        got: iter_val.type_name().to_string(),
-                    }),
+                    _ => {
+                        return Err(RuntimeError::TypeError {
+                            expected: "iterable (array, dict, set, string, or iterator)"
+                                .to_string(),
+                            got: iter_val.type_name().to_string(),
+                        })
+                    }
                 };
 
                 for element in items {
@@ -185,7 +213,11 @@ impl Evaluator {
                 let msg = format!("{}", value);
                 Err(RuntimeError::Thrown(msg))
             }
-            Stmt::StructDecl { name, fields, methods } => {
+            Stmt::StructDecl {
+                name,
+                fields,
+                methods,
+            } => {
                 let mut method_map = HashMap::new();
                 for (method_name, params, body) in methods {
                     method_map.insert(method_name.clone(), (params.clone(), body.clone()));
@@ -203,11 +235,8 @@ impl Evaluator {
                 match self.exec_stmt_internal(try_body) {
                     Ok(flow) => Ok(flow),
                     Err(e) => {
-                        let error_val = Value::error_val(
-                            e.to_string(),
-                            &self.call_stack,
-                            self.current_line,
-                        );
+                        let error_val =
+                            Value::error_val(e.to_string(), &self.call_stack, self.current_line);
                         // Unwind the call stack back to the try-catch boundary
                         self.call_stack.truncate(saved_stack_len);
                         self.environment.define(error_var.clone(), error_val);
@@ -222,4 +251,3 @@ impl Evaluator {
         }
     }
 }
-

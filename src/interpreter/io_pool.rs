@@ -12,11 +12,28 @@ pub enum IoResult {
 /// I/O task submitted to the worker pool
 #[derive(Debug)]
 pub enum IoTask {
-    HttpGet { url: String, tx: Sender<IoResult> },
-    HttpPost { url: String, body: String, tx: Sender<IoResult> },
-    Sleep { secs: f64, tx: Sender<IoResult> },
-    ReadFile { path: String, tx: Sender<IoResult> },
-    WriteFile { path: String, content: String, tx: Sender<IoResult> },
+    HttpGet {
+        url: String,
+        tx: Sender<IoResult>,
+    },
+    HttpPost {
+        url: String,
+        body: String,
+        tx: Sender<IoResult>,
+    },
+    Sleep {
+        secs: f64,
+        tx: Sender<IoResult>,
+    },
+    ReadFile {
+        path: String,
+        tx: Sender<IoResult>,
+    },
+    WriteFile {
+        path: String,
+        content: String,
+        tx: Sender<IoResult>,
+    },
 }
 
 /// Thread pool for offloading blocking I/O. Worker threads only see primitive

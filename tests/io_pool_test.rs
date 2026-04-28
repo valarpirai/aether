@@ -126,7 +126,10 @@ fn test_await_read_file_with_pool() {
     let result = run_with_pool(src, 2).unwrap();
     // Should be a string containing package info
     if let Value::String(s) = result {
-        assert!(s.contains("aether"), "Expected file content to contain 'aether'");
+        assert!(
+            s.contains("aether"),
+            "Expected file content to contain 'aether'"
+        );
     } else {
         panic!("Expected String result from read_file");
     }

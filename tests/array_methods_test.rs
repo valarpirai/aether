@@ -286,5 +286,8 @@ fn test_array_concat_non_array_throws() {
         a.concat(42)
     "#,
     );
-    assert!(result.is_err(), "concat with non-array should throw TypeError");
+    assert!(
+        result.is_err(),
+        "concat with non-array should throw TypeError"
+    );
 }

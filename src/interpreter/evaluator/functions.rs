@@ -9,9 +9,17 @@ use super::{ControlFlow, Evaluator};
 
 impl Evaluator {
     /// Call a Value with already-evaluated arguments.
-    pub(super) fn call_value(&mut self, func: Value, arg_values: Vec<Value>) -> Result<Value, RuntimeError> {
+    pub(super) fn call_value(
+        &mut self,
+        func: Value,
+        arg_values: Vec<Value>,
+    ) -> Result<Value, RuntimeError> {
         match func {
-            Value::Function { params, body, closure } => {
+            Value::Function {
+                params,
+                body,
+                closure,
+            } => {
                 self.call_depth += 1;
                 if self.call_depth > self.max_call_depth {
                     self.call_depth -= 1;
@@ -31,7 +39,11 @@ impl Evaluator {
                 while padded.len() < params.len() {
                     padded.push(Value::Null);
                 }
-                self.call_stack.push(StackFrame { fn_name: "<anonymous>".to_string(), call_site_line: self.current_line, call_site_file: self.current_file_name() });
+                self.call_stack.push(StackFrame {
+                    fn_name: "<anonymous>".to_string(),
+                    call_site_line: self.current_line,
+                    call_site_file: self.current_file_name(),
+                });
                 // Swap instead of clone — O(1) vs O(n) environment copy
                 let mut call_env = Environment::with_parent((*closure).clone());
                 for (param, value) in params.iter().zip(padded) {
@@ -62,7 +74,11 @@ impl Evaluator {
                 }
                 func(&arg_values)
             }
-            Value::AsyncFunction { params, body, closure } => {
+            Value::AsyncFunction {
+                params,
+                body,
+                closure,
+            } => {
                 if arg_values.len() > params.len() {
                     return Err(RuntimeError::ArityMismatch {
                         expected: params.len(),
@@ -73,7 +89,14 @@ impl Evaluator {
                 while padded.len() < params.len() {
                     padded.push(Value::Null);
                 }
-                Ok(Value::promise(Value::AsyncFunction { params, body, closure }, padded))
+                Ok(Value::promise(
+                    Value::AsyncFunction {
+                        params,
+                        body,
+                        closure,
+                    },
+                    padded,
+                ))
             }
             other => Err(RuntimeError::InvalidOperation(format!(
                 "Cannot call value of type '{}'",
@@ -84,10 +107,22 @@ impl Evaluator {
 
     /// Execute an async function body directly (used by Expr::Await to resolve Promises).
     /// Unlike call_value, this never wraps AsyncFunction in another Promise.
-    pub(super) fn exec_async_body(&mut self, func: Value, arg_values: Vec<Value>) -> Result<Value, RuntimeError> {
+    pub(super) fn exec_async_body(
+        &mut self,
+        func: Value,
+        arg_values: Vec<Value>,
+    ) -> Result<Value, RuntimeError> {
         let (params, body, closure) = match func {
-            Value::AsyncFunction { params, body, closure } => (params, body, closure),
-            Value::Function { params, body, closure } => (params, body, closure),
+            Value::AsyncFunction {
+                params,
+                body,
+                closure,
+            } => (params, body, closure),
+            Value::Function {
+                params,
+                body,
+                closure,
+            } => (params, body, closure),
             Value::BuiltinFn { arity, func, .. } => {
                 if arity != usize::MAX && arity != arg_values.len() {
                     return Err(RuntimeError::ArityMismatch {
@@ -97,9 +132,12 @@ impl Evaluator {
                 }
                 return func(&arg_values);
             }
-            other => return Err(RuntimeError::InvalidOperation(format!(
-                "Cannot await value of type '{}'", other.type_name()
-            ))),
+            other => {
+                return Err(RuntimeError::InvalidOperation(format!(
+                    "Cannot await value of type '{}'",
+                    other.type_name()
+                )))
+            }
         };
 
         self.call_depth += 1;
@@ -136,7 +174,11 @@ impl Evaluator {
         result
     }
 
-    pub(super) fn eval_call(&mut self, callee: &Expr, args: &[Expr]) -> Result<Value, RuntimeError> {
+    pub(super) fn eval_call(
+        &mut self,
+        callee: &Expr,
+        args: &[Expr],
+    ) -> Result<Value, RuntimeError> {
         // Check if this is a method call (e.g., arr.push(1))
         if let Expr::Member(object, method) = callee {
             return self.eval_method_call(object, method, args);
@@ -153,7 +195,11 @@ impl Evaluator {
         let func_val_clone = func_val.clone();
 
         match func_val {
-            Value::Function { params, body, closure } => {
+            Value::Function {
+                params,
+                body,
+                closure,
+            } => {
                 self.call_depth += 1;
                 if self.call_depth > self.max_call_depth {
                     self.call_depth -= 1;
@@ -186,7 +232,11 @@ impl Evaluator {
                     arg_values.push(Value::Null);
                 }
 
-                self.call_stack.push(StackFrame { fn_name: func_name.clone(), call_site_line: self.current_line, call_site_file: self.current_file_name() });
+                self.call_stack.push(StackFrame {
+                    fn_name: func_name.clone(),
+                    call_site_line: self.current_line,
+                    call_site_file: self.current_file_name(),
+                });
                 let saved_env = self.environment.clone();
                 self.environment = Environment::with_parent((*closure).clone());
 
@@ -265,7 +315,11 @@ impl Evaluator {
 
                 func(&arg_values)
             }
-            Value::AsyncFunction { params, body, closure } => {
+            Value::AsyncFunction {
+                params,
+                body,
+                closure,
+            } => {
                 if args.len() > params.len() {
                     return Err(RuntimeError::ArityMismatch {
                         expected: params.len(),
@@ -279,7 +333,14 @@ impl Evaluator {
                 while arg_values.len() < params.len() {
                     arg_values.push(Value::Null);
                 }
-                Ok(Value::promise(Value::AsyncFunction { params, body, closure }, arg_values))
+                Ok(Value::promise(
+                    Value::AsyncFunction {
+                        params,
+                        body,
+                        closure,
+                    },
+                    arg_values,
+                ))
             }
             _ => Err(RuntimeError::TypeError {
                 expected: "function".to_string(),
@@ -288,7 +349,11 @@ impl Evaluator {
         }
     }
 
-    pub(super) fn assign_target(&mut self, target: &Expr, value: Value) -> Result<(), RuntimeError> {
+    pub(super) fn assign_target(
+        &mut self,
+        target: &Expr,
+        value: Value,
+    ) -> Result<(), RuntimeError> {
         match target {
             Expr::Identifier(name) => {
                 self.environment.set(name, value)?;
@@ -372,7 +437,10 @@ impl Evaluator {
         match name {
             "http_get" => {
                 if args.len() != 1 {
-                    return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
                 }
                 let url = self.require_string_arg(&args[0], "http_get")?;
                 pool.submit(IoTask::HttpGet { url, tx });
@@ -380,7 +448,10 @@ impl Evaluator {
             }
             "http_post" => {
                 if args.len() != 2 {
-                    return Err(RuntimeError::ArityMismatch { expected: 2, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 2,
+                        got: args.len(),
+                    });
                 }
                 let url = self.require_string_arg(&args[0], "http_post")?;
                 let body = self.require_string_arg(&args[1], "http_post")?;
@@ -389,7 +460,10 @@ impl Evaluator {
             }
             "sleep" => {
                 if args.len() != 1 {
-                    return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
                 }
                 let secs = match self.eval_expr(&args[0])? {
                     Value::Float(f) => f,
@@ -406,7 +480,10 @@ impl Evaluator {
             }
             "read_file" => {
                 if args.len() != 1 {
-                    return Err(RuntimeError::ArityMismatch { expected: 1, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
                 }
                 let path = self.require_string_arg(&args[0], "read_file")?;
                 pool.submit(IoTask::ReadFile { path, tx });
@@ -414,7 +491,10 @@ impl Evaluator {
             }
             "write_file" => {
                 if args.len() != 2 {
-                    return Err(RuntimeError::ArityMismatch { expected: 2, got: args.len() });
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 2,
+                        got: args.len(),
+                    });
                 }
                 let path = self.require_string_arg(&args[0], "write_file")?;
                 let content = self.require_string_arg(&args[1], "write_file")?;

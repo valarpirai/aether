@@ -6,7 +6,11 @@ use std::rc::Rc;
 use super::Evaluator;
 
 impl Evaluator {
-    pub(super) fn eval_unary(&mut self, op: UnaryOp, operand: &Expr) -> Result<Value, RuntimeError> {
+    pub(super) fn eval_unary(
+        &mut self,
+        op: UnaryOp,
+        operand: &Expr,
+    ) -> Result<Value, RuntimeError> {
         let value = self.eval_expr(operand)?;
 
         match op {

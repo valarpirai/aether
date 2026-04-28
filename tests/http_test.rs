@@ -29,10 +29,12 @@ fn eval(source: &str) -> Result<String, String> {
 #[test]
 #[ignore]
 fn test_http_get_returns_non_empty_string() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let body = http_get("https://httpbin.org/get")
         len(body) > 0
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "true");
 }
 
@@ -46,10 +48,12 @@ fn test_http_get_type_is_string() {
 #[test]
 #[ignore]
 fn test_http_post_returns_non_empty_string() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let body = http_post("https://httpbin.org/post", "hello")
         len(body) > 0
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "true");
 }
 
@@ -63,7 +67,8 @@ fn test_http_post_type_is_string() {
 #[test]
 #[ignore]
 fn test_http_get_invalid_url_throws_error() {
-    let result = eval(r#"
+    let result = eval(
+        r#"
         let caught = false
         try {
             http_get("not-a-valid-url://???")
@@ -71,6 +76,7 @@ fn test_http_get_invalid_url_throws_error() {
             caught = true
         }
         caught
-    "#);
+    "#,
+    );
     assert_eq!(result.unwrap(), "true");
 }

@@ -40,20 +40,16 @@ impl Evaluator {
                 }
                 Ok(Value::Array(Rc::new(values)))
             }
-            Expr::FunctionExpr(params, body) => {
-                Ok(Value::Function {
-                    params: params.clone(),
-                    body: Rc::clone(body),
-                    closure: Rc::new(self.environment.clone()),
-                })
-            }
-            Expr::AsyncFunctionExpr(params, body) => {
-                Ok(Value::AsyncFunction {
-                    params: params.clone(),
-                    body: Rc::clone(body),
-                    closure: Rc::new(self.environment.clone()),
-                })
-            }
+            Expr::FunctionExpr(params, body) => Ok(Value::Function {
+                params: params.clone(),
+                body: Rc::clone(body),
+                closure: Rc::new(self.environment.clone()),
+            }),
+            Expr::AsyncFunctionExpr(params, body) => Ok(Value::AsyncFunction {
+                params: params.clone(),
+                body: Rc::clone(body),
+                closure: Rc::new(self.environment.clone()),
+            }),
             Expr::Await(inner) => {
                 let val = self.eval_expr(inner)?;
                 self.await_value(val)
@@ -267,9 +263,7 @@ impl Evaluator {
                         })?;
                         let value = match io_result {
                             IoResult::Str(Ok(s)) => Value::string(s),
-                            IoResult::Str(Err(e)) => {
-                                return Err(RuntimeError::InvalidOperation(e))
-                            }
+                            IoResult::Str(Err(e)) => return Err(RuntimeError::InvalidOperation(e)),
                             IoResult::Unit(Ok(())) => Value::Null,
                             IoResult::Unit(Err(e)) => {
                                 return Err(RuntimeError::InvalidOperation(e))
@@ -285,4 +279,3 @@ impl Evaluator {
         }
     }
 }
-

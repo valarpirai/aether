@@ -13,13 +13,20 @@ impl Evaluator {
         Ok(())
     }
 
-    pub(super) fn load_module_as(&mut self, module_name: &str, alias: &str) -> Result<(), RuntimeError> {
+    pub(super) fn load_module_as(
+        &mut self,
+        module_name: &str,
+        alias: &str,
+    ) -> Result<(), RuntimeError> {
         let module_val = self.load_module_as_value(module_name)?;
         self.environment.define(alias.to_string(), module_val);
         Ok(())
     }
 
-    pub(super) fn load_module_as_value(&mut self, module_name: &str) -> Result<Value, RuntimeError> {
+    pub(super) fn load_module_as_value(
+        &mut self,
+        module_name: &str,
+    ) -> Result<Value, RuntimeError> {
         if self.loading_stack.contains(&module_name.to_string()) {
             let cycle = self.loading_stack.join(" -> ");
             return Err(RuntimeError::InvalidOperation(format!(
@@ -58,7 +65,11 @@ impl Evaluator {
         }
     }
 
-    pub(super) fn import_from(&mut self, module_name: &str, items: &[String]) -> Result<(), RuntimeError> {
+    pub(super) fn import_from(
+        &mut self,
+        module_name: &str,
+        items: &[String],
+    ) -> Result<(), RuntimeError> {
         if !self.module_cache.contains_key(module_name) {
             let module_path = self.resolve_module_path(module_name)?;
             let module_env = self.execute_module_file(&module_path)?;
@@ -142,7 +153,10 @@ impl Evaluator {
         )))
     }
 
-    pub(super) fn execute_module_file(&mut self, path: &PathBuf) -> Result<Environment, RuntimeError> {
+    pub(super) fn execute_module_file(
+        &mut self,
+        path: &PathBuf,
+    ) -> Result<Environment, RuntimeError> {
         use crate::lexer::Scanner;
         use crate::parser::Parser;
         use std::fs;

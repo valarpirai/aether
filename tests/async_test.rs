@@ -46,7 +46,11 @@ async fn get_val() { return 42 }
 let p = get_val()
 "#;
     let p = run_get(src, "p").unwrap();
-    assert!(matches!(p, Value::Promise(_)), "Expected Promise, got {:?}", p);
+    assert!(
+        matches!(p, Value::Promise(_)),
+        "Expected Promise, got {:?}",
+        p
+    );
 }
 
 #[test]
