@@ -92,3 +92,138 @@ fn test_dict_variable_value() {
     let result = run(r#"let x = 10  let d = {"val": x}  d["val"]"#);
     assert_eq!(result.unwrap(), "10");
 }
+
+// Dict method tests
+#[test]
+fn test_dict_keys() {
+    let result = run(r#"let d = {"a": 1, "b": 2, "c": 3}  d.keys()"#);
+    assert!(result.is_ok(), "Failed: {:?}", result);
+    let output = result.unwrap();
+    assert!(output.contains("a"));
+    assert!(output.contains("b"));
+    assert!(output.contains("c"));
+}
+
+#[test]
+fn test_dict_keys_empty() {
+    let result = run(r#"let d = {}  len(d.keys())"#);
+    assert_eq!(result.unwrap(), "0");
+}
+
+#[test]
+fn test_dict_values() {
+    let result = run(r#"let d = {"a": 1, "b": 2}  d.values()"#);
+    assert!(result.is_ok(), "Failed: {:?}", result);
+    let output = result.unwrap();
+    assert!(output.contains("1"));
+    assert!(output.contains("2"));
+}
+
+#[test]
+fn test_dict_values_empty() {
+    let result = run(r#"let d = {}  len(d.values())"#);
+    assert_eq!(result.unwrap(), "0");
+}
+
+#[test]
+fn test_dict_contains_true() {
+    let result = run(r#"let d = {"name": "Alice", "age": 30}  d.contains("name")"#);
+    assert_eq!(result.unwrap(), "true");
+}
+
+#[test]
+fn test_dict_contains_false() {
+    let result = run(r#"let d = {"name": "Alice"}  d.contains("age")"#);
+    assert_eq!(result.unwrap(), "false");
+}
+
+#[test]
+fn test_dict_contains_with_int_key() {
+    let result = run(r#"let d = {1: "one", 2: "two"}  d.contains(1)"#);
+    assert_eq!(result.unwrap(), "true");
+}
+
+#[test]
+fn test_dict_size() {
+    let result = run(r#"let d = {"x": 1, "y": 2}  d.size"#);
+    assert_eq!(result.unwrap(), "2");
+}
+
+#[test]
+fn test_dict_size_empty() {
+    let result = run(r#"let d = {}  d.size"#);
+    assert_eq!(result.unwrap(), "0");
+}
+
+#[test]
+fn test_dict_keys_iteration() {
+    let source = r#"
+let d = {"a": 1, "b": 2, "c": 3}
+let keys = d.keys()
+len(keys)
+"#;
+    let result = run(source);
+    assert_eq!(result.unwrap(), "3");
+}
+
+#[test]
+fn test_dict_values_iteration() {
+    let source = r#"
+let d = {"x": 10, "y": 20}
+let vals = d.values()
+len(vals)
+"#;
+    let result = run(source);
+    assert_eq!(result.unwrap(), "2");
+}
+
+#[test]
+fn test_dict_keys_values_together() {
+    let source = r#"
+let d = {"a": 1, "b": 2}
+let k = d.keys()
+let v = d.values()
+len(k) + len(v)
+"#;
+    let result = run(source);
+    assert_eq!(result.unwrap(), "4");
+}
+
+#[test]
+fn test_dict_methods_with_nested() {
+    let source = r#"
+let d = {"outer": {"inner": 42}}
+d.contains("outer")
+"#;
+    let result = run(source);
+    assert_eq!(result.unwrap(), "true");
+}
+
+#[test]
+fn test_dict_size_vs_length() {
+    let source = r#"
+let d = {"a": 1, "b": 2}
+d.size == d.length
+"#;
+    let result = run(source);
+    assert_eq!(result.unwrap(), "true");
+}
+
+// Error cases
+#[test]
+fn test_dict_keys_with_args() {
+    let result = run(r#"let d = {"a": 1}  d.keys(42)"#);
+    assert!(result.is_err(), "Expected error for keys() with arguments");
+}
+
+#[test]
+fn test_dict_values_with_args() {
+    let result = run(r#"let d = {"a": 1}  d.values(42)"#);
+    assert!(result.is_err(), "Expected error for values() with arguments");
+}
+
+#[test]
+fn test_dict_contains_no_args() {
+    let result = run(r#"let d = {"a": 1}  d.contains()"#);
+    assert!(result.is_err(), "Expected error for contains() without arguments");
+}
