@@ -1,8 +1,9 @@
 //! Runtime value types for the Aether interpreter
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
 use super::RuntimeError;
@@ -47,6 +48,8 @@ pub enum Value {
     },
     /// Dictionary (ordered by insertion, key must be string/int/bool)
     Dict(Rc<Vec<(Value, Value)>>),
+    /// Set (unique, unordered collection - only hashable types allowed)
+    Set(Rc<HashSet<Value>>),
     /// Struct type definition (blueprint)
     StructDef {
         name: String,
@@ -72,6 +75,19 @@ impl Value {
         Value::Array(Rc::new(vec))
     }
 
+    /// Helper: Create a set value (for convenience)
+    pub fn set(set: HashSet<Value>) -> Self {
+        Value::Set(Rc::new(set))
+    }
+
+    /// Check if value is hashable (can be used in sets/dict keys)
+    pub fn is_hashable(&self) -> bool {
+        matches!(
+            self,
+            Value::Int(_) | Value::Float(_) | Value::String(_) | Value::Bool(_) | Value::Null
+        )
+    }
+
     /// Check if value is truthy (for conditional expressions)
     pub fn is_truthy(&self) -> bool {
         match self {
@@ -81,6 +97,7 @@ impl Value {
             Value::Float(f) if *f == 0.0 => false,
             Value::String(s) if s.is_empty() => false,
             Value::Array(a) if a.is_empty() => false,
+            Value::Set(s) if s.is_empty() => false,
             _ => true,
         }
     }
@@ -98,6 +115,7 @@ impl Value {
             Value::BuiltinFn { .. } => "builtin_function",
             Value::Module { .. } => "module",
             Value::Dict(_) => "dict",
+            Value::Set(_) => "set",
             Value::StructDef { .. } => "struct",
             Value::Instance { type_name, .. } => type_name.as_str(),
         }
@@ -117,8 +135,42 @@ impl PartialEq for Value {
             (Value::BuiltinFn { .. }, Value::BuiltinFn { .. }) => false,
             (Value::Module { name: a, .. }, Value::Module { name: b, .. }) => a == b,
             (Value::Dict(a), Value::Dict(b)) => a == b,
+            (Value::Set(a), Value::Set(b)) => a == b,
             (Value::StructDef { name: a, .. }, Value::StructDef { name: b, .. }) => a == b,
             _ => false,
+        }
+    }
+}
+
+impl Eq for Value {}
+
+impl Hash for Value {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Value::Int(n) => {
+                0u8.hash(state);
+                n.hash(state);
+            }
+            Value::Float(f) => {
+                1u8.hash(state);
+                f.to_bits().hash(state);
+            }
+            Value::String(s) => {
+                2u8.hash(state);
+                s.hash(state);
+            }
+            Value::Bool(b) => {
+                3u8.hash(state);
+                b.hash(state);
+            }
+            Value::Null => {
+                4u8.hash(state);
+            }
+            _ => {
+                // Non-hashable types - shouldn't reach here
+                // We'll prevent these at runtime
+                panic!("Attempted to hash non-hashable value: {}", self.type_name());
+            }
         }
     }
 }
@@ -159,6 +211,18 @@ impl fmt::Display for Value {
                     write!(f, "{}: {}", k, v)?;
                 }
                 write!(f, "}}")
+            }
+            Value::Set(elements) => {
+                write!(f, "set(")?;
+                let mut sorted: Vec<&Value> = elements.iter().collect();
+                sorted.sort_by_key(|v| format!("{}", v));
+                for (i, elem) in sorted.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", elem)?;
+                }
+                write!(f, ")")
             }
             Value::StructDef { name, .. } => write!(f, "<struct {}>", name),
             Value::Instance {

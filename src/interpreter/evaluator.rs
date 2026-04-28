@@ -1,7 +1,7 @@
 //! Expression evaluation and statement execution for the Aether interpreter
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::rc::Rc;
 
@@ -192,6 +192,16 @@ impl Evaluator {
                 name: "sleep".to_string(),
                 arity: 1,
                 func: builtins::builtin_sleep,
+            },
+        );
+
+        // Collection functions
+        self.environment.define(
+            "set".to_string(),
+            Value::BuiltinFn {
+                name: "set".to_string(),
+                arity: 1,
+                func: builtins::builtin_set,
             },
         );
 
@@ -728,6 +738,9 @@ impl Evaluator {
             // String properties
             (Value::String(s), "length") => Ok(Value::Int(s.len() as i64)),
 
+            // Set properties
+            (Value::Set(elements), "size") => Ok(Value::Int(elements.len() as i64)),
+
             // Dict member access: d.key (sugar for d["key"]), d.length returns count
             (Value::Dict(pairs), key) => {
                 if key == "length" {
@@ -1058,6 +1071,177 @@ impl Evaluator {
                     Err(RuntimeError::TypeError {
                         expected: "string".to_string(),
                         got: delimiter.type_name().to_string(),
+                    })
+                }
+            }
+
+            // Set methods
+            (Value::Set(elements), "add") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let item = self.eval_expr(&args[0])?;
+                if !item.is_hashable() {
+                    return Err(RuntimeError::TypeError {
+                        expected: "hashable type (int, float, string, bool, null)".to_string(),
+                        got: format!("{} (not hashable)", item.type_name()),
+                    });
+                }
+
+                let mut new_set = (**elements).clone();
+                new_set.insert(item);
+                let new_set_val = Value::set(new_set);
+
+                if let Expr::Identifier(name) = object {
+                    self.environment.set(name, new_set_val)?;
+                } else if let Expr::Member(obj_expr, field) = object {
+                    let owner = self.eval_expr(obj_expr)?;
+                    if let Value::Instance { fields, .. } = owner {
+                        fields.borrow_mut().insert(field.clone(), new_set_val);
+                    }
+                }
+
+                Ok(Value::Null)
+            }
+            (Value::Set(elements), "remove") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let item = self.eval_expr(&args[0])?;
+
+                let mut new_set = (**elements).clone();
+                new_set.remove(&item);
+                let new_set_val = Value::set(new_set);
+
+                if let Expr::Identifier(name) = object {
+                    self.environment.set(name, new_set_val)?;
+                } else if let Expr::Member(obj_expr, field) = object {
+                    let owner = self.eval_expr(obj_expr)?;
+                    if let Value::Instance { fields, .. } = owner {
+                        fields.borrow_mut().insert(field.clone(), new_set_val);
+                    }
+                }
+
+                Ok(Value::Null)
+            }
+            (Value::Set(elements), "contains") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let needle = self.eval_expr(&args[0])?;
+                Ok(Value::Bool(elements.contains(&needle)))
+            }
+            (Value::Set(elements), "clear") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
+                }
+
+                let new_set_val = Value::set(HashSet::new());
+
+                if let Expr::Identifier(name) = object {
+                    self.environment.set(name, new_set_val)?;
+                } else if let Expr::Member(obj_expr, field) = object {
+                    let owner = self.eval_expr(obj_expr)?;
+                    if let Value::Instance { fields, .. } = owner {
+                        fields.borrow_mut().insert(field.clone(), new_set_val);
+                    }
+                }
+
+                Ok(Value::Null)
+            }
+            (Value::Set(elements), "to_array") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
+                }
+                let mut vec: Vec<Value> = elements.iter().cloned().collect();
+                vec.sort_by_key(|v| format!("{}", v));
+                Ok(Value::array(vec))
+            }
+            (Value::Set(elements), "union") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let other = self.eval_expr(&args[0])?;
+                if let Value::Set(other_set) = other {
+                    let union: HashSet<Value> = elements.union(&other_set).cloned().collect();
+                    Ok(Value::set(union))
+                } else {
+                    Err(RuntimeError::TypeError {
+                        expected: "set".to_string(),
+                        got: other.type_name().to_string(),
+                    })
+                }
+            }
+            (Value::Set(elements), "intersection") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let other = self.eval_expr(&args[0])?;
+                if let Value::Set(other_set) = other {
+                    let intersection: HashSet<Value> =
+                        elements.intersection(&other_set).cloned().collect();
+                    Ok(Value::set(intersection))
+                } else {
+                    Err(RuntimeError::TypeError {
+                        expected: "set".to_string(),
+                        got: other.type_name().to_string(),
+                    })
+                }
+            }
+            (Value::Set(elements), "difference") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let other = self.eval_expr(&args[0])?;
+                if let Value::Set(other_set) = other {
+                    let difference: HashSet<Value> =
+                        elements.difference(&other_set).cloned().collect();
+                    Ok(Value::set(difference))
+                } else {
+                    Err(RuntimeError::TypeError {
+                        expected: "set".to_string(),
+                        got: other.type_name().to_string(),
+                    })
+                }
+            }
+            (Value::Set(elements), "is_subset") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let other = self.eval_expr(&args[0])?;
+                if let Value::Set(other_set) = other {
+                    Ok(Value::Bool(elements.is_subset(&other_set)))
+                } else {
+                    Err(RuntimeError::TypeError {
+                        expected: "set".to_string(),
+                        got: other.type_name().to_string(),
                     })
                 }
             }

@@ -1,5 +1,6 @@
 //! Built-in functions for Aether
 
+use std::collections::HashSet;
 use std::rc::Rc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -405,4 +406,35 @@ pub fn builtin_sleep(args: &[Value]) -> Result<Value, RuntimeError> {
         std::thread::sleep(Duration::from_secs_f64(secs));
     }
     Ok(Value::Null)
+}
+
+/// Built-in function: set(array)
+/// Creates a set from an array (removes duplicates, only hashable values allowed)
+pub fn builtin_set(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+
+    match &args[0] {
+        Value::Array(arr) => {
+            let mut set = HashSet::new();
+            for value in arr.iter() {
+                if !value.is_hashable() {
+                    return Err(RuntimeError::TypeError {
+                        expected: "hashable type (int, float, string, bool, null)".to_string(),
+                        got: format!("{} (not hashable)", value.type_name()),
+                    });
+                }
+                set.insert(value.clone());
+            }
+            Ok(Value::set(set))
+        }
+        other => Err(RuntimeError::TypeError {
+            expected: "array".to_string(),
+            got: other.type_name().to_string(),
+        }),
+    }
 }
