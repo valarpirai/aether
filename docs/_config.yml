@@ -1,0 +1,74 @@
+# Aether Programming Language - GitHub Pages Configuration
+
+# Site settings
+title: Aether Programming Language
+description: A general-purpose, dynamically typed programming language with automatic memory management
+author: Aether Contributors
+baseurl: "" # Leave empty for project pages
+url: "https://yourusername.github.io/aether" # Update with actual GitHub Pages URL
+
+# Theme
+theme: jekyll-theme-cayman
+# Alternative themes: minima, jekyll-theme-minimal, jekyll-theme-slate
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    default_lang: rust
+
+# Navigation
+header_pages:
+  - index.md
+  - DESIGN.md
+  - ARCHITECTURE.md
+  - DEVELOPMENT.md
+
+# Collections (if using custom collections later)
+collections:
+  docs:
+    output: true
+    permalink: /:collection/:path/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "default"
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: "default"
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# SEO
+logo: /assets/logo.png
+twitter:
+  username: aether_lang
+  card: summary
+social:
+  name: Aether Programming Language
+  links:
+    - https://github.com/yourusername/aether
+
+# GitHub
+repository: yourusername/aether
