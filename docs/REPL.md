@@ -1,3 +1,8 @@
+---
+layout: default
+title: Aether REPL Documentation
+---
+
 # Aether REPL Documentation
 
 ## Overview

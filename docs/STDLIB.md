@@ -1,3 +1,8 @@
+---
+layout: default
+title: Aether Standard Library
+---
+
 # Aether Standard Library
 
 **Status**: ✅ Complete (Phase 5)

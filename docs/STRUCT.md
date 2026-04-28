@@ -1,3 +1,8 @@
+---
+layout: default
+title: Structs in Aether
+---
+
 # Structs in Aether
 
 **Status**: ✅ Complete  
@@ -401,8 +406,8 @@ fn new_point(x, y) {
 
 ## See Also
 
-- [DESIGN.md](DESIGN.md) - Language specification
-- [INTERPRETER.md](INTERPRETER.md) - Runtime implementation
+- [DESIGN.md](DESIGN.html) - Language specification
+- [INTERPRETER.md](INTERPRETER.html) - Runtime implementation
 - [examples/shapes.ae](../examples/shapes.ae) - Struct examples
 
 ---

@@ -1,3 +1,8 @@
+---
+layout: default
+title: Aether Development Guidelines
+---
+
 # Aether Development Guidelines
 
 This document provides comprehensive development guidelines for contributing to the Aether programming language interpreter.

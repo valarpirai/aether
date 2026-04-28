@@ -1,3 +1,8 @@
+---
+layout: default
+title: JSON Support in Aether
+---
+
 # JSON Support in Aether
 
 **Status**: ✅ Complete  
@@ -192,7 +197,7 @@ fn debug_json(data) {
 
 ## See Also
 
-- [DESIGN.md](DESIGN.md) - Language specification
+- [DESIGN.md](DESIGN.html) - Language specification
 - [examples/](../examples/) - Usage examples
 
 ---

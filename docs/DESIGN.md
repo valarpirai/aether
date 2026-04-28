@@ -1,3 +1,8 @@
+---
+layout: default
+title: Aether Programming Language Design Document
+---
+
 # Aether Programming Language Design Document
 
 ## Overview

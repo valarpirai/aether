@@ -1,3 +1,8 @@
+---
+layout: default
+title: Error Handling in Aether
+---
+
 # Error Handling in Aether
 
 **Status**: ✅ Complete  
@@ -478,8 +483,8 @@ try {
 
 ## See Also
 
-- [DESIGN.md](DESIGN.md) - Language specification
-- [INTERPRETER.md](INTERPRETER.md) - Runtime implementation  
+- [DESIGN.md](DESIGN.html) - Language specification
+- [INTERPRETER.md](INTERPRETER.html) - Runtime implementation  
 - [examples/error_handling.ae](../examples/error_handling.ae) - Error handling examples
 
 ---

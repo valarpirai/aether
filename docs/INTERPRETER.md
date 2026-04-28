@@ -1,3 +1,8 @@
+---
+layout: default
+title: Aether Interpreter Documentation
+---
+
 # Aether Interpreter Documentation
 
 ## Overview
@@ -49,7 +54,7 @@ Strings and Arrays use `Rc<T>` (Reference Counted pointers) for automatic memory
 - **Cloning**: Cheap operation (only clones Rc pointer, not the actual data)
 - **Memory Reclaim**: Automatic when reference count reaches zero
 
-**See**: [GC_DESIGN.md](GC_DESIGN.md) for detailed implementation
+**See**: [GC_DESIGN.md](GC_DESIGN.html) for detailed implementation
 
 ## Environment
 

@@ -1,3 +1,8 @@
+---
+layout: default
+title: HTTP Functions in Aether
+---
+
 # HTTP Functions in Aether
 
 **Status**: ✅ Complete  
@@ -302,9 +307,9 @@ See [examples/http_demo.ae](../examples/http_demo.ae) for a full working example
 
 ## See Also
 
-- [JSON.md](JSON.md) - JSON parsing for HTTP responses
-- [ERROR_HANDLING.md](ERROR_HANDLING.md) - Error handling patterns
-- [TIME.md](TIME.md) - Sleep for rate limiting
+- [JSON.md](JSON.html) - JSON parsing for HTTP responses
+- [ERROR_HANDLING.md](ERROR_HANDLING.html) - Error handling patterns
+- [TIME.md](TIME.html) - Sleep for rate limiting
 - [examples/http_demo.ae](../examples/http_demo.ae) - HTTP examples
 
 ---
