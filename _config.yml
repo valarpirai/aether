@@ -5,11 +5,13 @@ title: Aether Programming Language
 description: A general-purpose, dynamically typed programming language with automatic memory management
 author: Aether Contributors
 baseurl: "" # Leave empty for project pages
-url: "https://yourusername.github.io/aether" # Update with actual GitHub Pages URL
+url: "https://valarpirai.github.io/aether"
 
 # Theme
-theme: jekyll-theme-cayman
-# Alternative themes: minima, jekyll-theme-minimal, jekyll-theme-slate
+remote_theme: pages-themes/cayman@v0.2.0
+plugins:
+  - jekyll-remote-theme
+# Alternative themes: pages-themes/minimal, pages-themes/slate
 
 # Build settings
 markdown: kramdown
@@ -54,11 +56,8 @@ exclude:
   - node_modules
   - vendor
 
-# Plugins
-plugins:
-  - jekyll-feed
-  - jekyll-seo-tag
-  - jekyll-sitemap
+# Additional plugins
+# Note: jekyll-remote-theme is already listed above with theme
 
 # SEO
 logo: /assets/logo.png
@@ -68,7 +67,7 @@ twitter:
 social:
   name: Aether Programming Language
   links:
-    - https://github.com/yourusername/aether
+    - https://github.com/valarpirai/aether
 
 # GitHub
-repository: yourusername/aether
+repository: valarpirai/aether
