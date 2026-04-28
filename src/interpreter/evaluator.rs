@@ -741,9 +741,9 @@ impl Evaluator {
             // Set properties
             (Value::Set(elements), "size") => Ok(Value::Int(elements.len() as i64)),
 
-            // Dict member access: d.key (sugar for d["key"]), d.length returns count
+            // Dict member access: d.key (sugar for d["key"]), d.length/d.size returns count
             (Value::Dict(pairs), key) => {
-                if key == "length" {
+                if key == "length" || key == "size" {
                     return Ok(Value::Int(pairs.len() as i64));
                 }
                 let key_val = Value::string(key.to_string());
@@ -1244,6 +1244,39 @@ impl Evaluator {
                         got: other.type_name().to_string(),
                     })
                 }
+            }
+
+            // Dict methods
+            (Value::Dict(pairs), "keys") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
+                }
+                let keys: Vec<Value> = pairs.iter().map(|(k, _)| k.clone()).collect();
+                Ok(Value::array(keys))
+            }
+            (Value::Dict(pairs), "values") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 0,
+                        got: args.len(),
+                    });
+                }
+                let values: Vec<Value> = pairs.iter().map(|(_, v)| v.clone()).collect();
+                Ok(Value::array(values))
+            }
+            (Value::Dict(pairs), "contains") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let key = self.eval_expr(&args[0])?;
+                let found = pairs.iter().any(|(k, _)| k == &key);
+                Ok(Value::Bool(found))
             }
 
             // Module member call: module.func(args)
