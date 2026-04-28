@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use super::environment::{Environment, RuntimeError};
-use super::value::Value;
+use super::value::{IteratorSource, Value};
 use crate::parser::ast::{BinaryOp, Expr, Stmt, UnaryOp};
 
 /// Control flow signals
@@ -1363,6 +1363,77 @@ impl Evaluator {
                 result
             }
 
+            // Iterator methods
+            (Value::Iterator(state), "next") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch { expected: 0, got: args.len() });
+                }
+                let mut st = state.borrow_mut();
+                let result = match &st.source {
+                    IteratorSource::Array(arr) => {
+                        if st.index < arr.len() {
+                            let val = arr[st.index].clone();
+                            st.index += 1;
+                            val
+                        } else {
+                            Value::Null
+                        }
+                    }
+                    IteratorSource::DictKeys(pairs) => {
+                        if st.index < pairs.len() {
+                            let key = pairs[st.index].0.clone();
+                            st.index += 1;
+                            key
+                        } else {
+                            Value::Null
+                        }
+                    }
+                    IteratorSource::Set(items) => {
+                        if st.index < items.len() {
+                            let val = items[st.index].clone();
+                            st.index += 1;
+                            val
+                        } else {
+                            Value::Null
+                        }
+                    }
+                };
+                Ok(result)
+            }
+            (Value::Iterator(state), "has_next") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch { expected: 0, got: args.len() });
+                }
+                let st = state.borrow();
+                let has = match &st.source {
+                    IteratorSource::Array(arr) => st.index < arr.len(),
+                    IteratorSource::DictKeys(pairs) => st.index < pairs.len(),
+                    IteratorSource::Set(items) => st.index < items.len(),
+                };
+                Ok(Value::Bool(has))
+            }
+
+            // iterator() factory methods on collections
+            (Value::Array(elements), "iterator") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch { expected: 0, got: args.len() });
+                }
+                Ok(Value::iterator(IteratorSource::Array(Rc::clone(elements))))
+            }
+            (Value::Dict(pairs), "iterator") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch { expected: 0, got: args.len() });
+                }
+                Ok(Value::iterator(IteratorSource::DictKeys(Rc::clone(pairs))))
+            }
+            (Value::Set(elements), "iterator") => {
+                if !args.is_empty() {
+                    return Err(RuntimeError::ArityMismatch { expected: 0, got: args.len() });
+                }
+                let items: Vec<Value> = elements.iter().cloned().collect();
+                Ok(Value::iterator(IteratorSource::Set(items)))
+            }
+
             // Undefined method
             (obj, meth) => Err(RuntimeError::InvalidOperation(format!(
                 "Method '{}' does not exist on type '{}'",
@@ -1442,26 +1513,52 @@ impl Evaluator {
             Stmt::For(var, iterable, body) => {
                 let iter_val = self.eval_expr(iterable)?;
 
-                match iter_val {
-                    Value::Array(elements) => {
-                        for element in elements.iter() {
-                            self.environment.define(var.clone(), element.clone());
-
-                            let flow = self.exec_stmt_internal(body)?;
-                            match flow {
-                                ControlFlow::Break => break,
-                                ControlFlow::Continue => continue,
-                                ControlFlow::Return(val) => return Ok(ControlFlow::Return(val)),
-                                ControlFlow::None => {}
+                // Collect items to iterate — supports arrays, dicts, sets, strings, iterators
+                let items: Vec<Value> = match iter_val {
+                    Value::Array(ref elements) => elements.iter().cloned().collect(),
+                    Value::Dict(ref pairs) => pairs.iter().map(|(k, _)| k.clone()).collect(),
+                    Value::Set(ref elements) => elements.iter().cloned().collect(),
+                    Value::String(ref s) => s.chars().map(|c| Value::string(c.to_string())).collect(),
+                    Value::Iterator(ref state) => {
+                        let mut result = Vec::new();
+                        loop {
+                            let mut st = state.borrow_mut();
+                            let val = match &st.source {
+                                IteratorSource::Array(arr) => {
+                                    if st.index < arr.len() { let v = arr[st.index].clone(); st.index += 1; Some(v) } else { None }
+                                }
+                                IteratorSource::DictKeys(pairs) => {
+                                    if st.index < pairs.len() { let v = pairs[st.index].0.clone(); st.index += 1; Some(v) } else { None }
+                                }
+                                IteratorSource::Set(items) => {
+                                    if st.index < items.len() { let v = items[st.index].clone(); st.index += 1; Some(v) } else { None }
+                                }
+                            };
+                            drop(st);
+                            match val {
+                                Some(v) => result.push(v),
+                                None => break,
                             }
                         }
-                        Ok(ControlFlow::None)
+                        result
                     }
-                    _ => Err(RuntimeError::TypeError {
-                        expected: "iterable (array)".to_string(),
+                    _ => return Err(RuntimeError::TypeError {
+                        expected: "iterable (array, dict, set, string, or iterator)".to_string(),
                         got: iter_val.type_name().to_string(),
                     }),
+                };
+
+                for element in items {
+                    self.environment.define(var.clone(), element);
+                    let flow = self.exec_stmt_internal(body)?;
+                    match flow {
+                        ControlFlow::Break => break,
+                        ControlFlow::Continue => continue,
+                        ControlFlow::Return(val) => return Ok(ControlFlow::Return(val)),
+                        ControlFlow::None => {}
+                    }
                 }
+                Ok(ControlFlow::None)
             }
             Stmt::Return(expr) => {
                 let value = if let Some(e) = expr {

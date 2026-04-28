@@ -62,6 +62,28 @@ pub enum Value {
         fields: Rc<RefCell<HashMap<String, Value>>>,
         methods: MethodMap,
     },
+    /// Iterator for lazy iteration over collections
+    Iterator(Rc<RefCell<IteratorState>>),
+}
+
+/// Iterator state for sequential access to elements
+#[derive(Debug, Clone)]
+pub struct IteratorState {
+    /// Source data being iterated
+    pub source: IteratorSource,
+    /// Current position in iteration
+    pub index: usize,
+}
+
+/// Source data for iterators
+#[derive(Debug, Clone)]
+pub enum IteratorSource {
+    /// Array iterator
+    Array(Rc<Vec<Value>>),
+    /// Dict iterator (over keys)
+    DictKeys(Rc<Vec<(Value, Value)>>),
+    /// Set iterator
+    Set(Vec<Value>), // Convert HashSet to Vec for iteration
 }
 
 impl Value {
@@ -85,6 +107,11 @@ impl Value {
     #[allow(clippy::mutable_key_type)]
     pub fn set(set: HashSet<Value>) -> Self {
         Value::Set(Rc::new(set))
+    }
+
+    /// Helper: Create an iterator from a source
+    pub fn iterator(source: IteratorSource) -> Self {
+        Value::Iterator(Rc::new(RefCell::new(IteratorState { source, index: 0 })))
     }
 
     /// Check if value is hashable (can be used in sets/dict keys)
@@ -125,6 +152,7 @@ impl Value {
             Value::Set(_) => "set",
             Value::StructDef { .. } => "struct",
             Value::Instance { type_name, .. } => type_name.as_str(),
+            Value::Iterator(_) => "iterator",
         }
     }
 }
@@ -144,6 +172,7 @@ impl PartialEq for Value {
             (Value::Dict(a), Value::Dict(b)) => a == b,
             (Value::Set(a), Value::Set(b)) => a == b,
             (Value::StructDef { name: a, .. }, Value::StructDef { name: b, .. }) => a == b,
+            (Value::Iterator(_), Value::Iterator(_)) => false, // Iterators never equal
             _ => false,
         }
     }
@@ -231,6 +260,7 @@ impl fmt::Display for Value {
                 }
                 write!(f, ")")
             }
+            Value::Iterator(_) => write!(f, "<iterator>"),
             Value::StructDef { name, .. } => write!(f, "<struct {}>", name),
             Value::Instance {
                 type_name, fields, ..
