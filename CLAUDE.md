@@ -274,7 +274,8 @@ All planned features for Phase 1 have been implemented and tested.
 3. ✅ `http` module — http_get(), http_post() via reqwest (blocking)
 4. ✅ User-defined structs — fields, methods, `self` binding, mutation via RefCell
 5. ✅ Iterator protocol — array/dict/set/string iterators, has_next/next, for-in
-6. ✅ Async/await — Promise-based, async fn, await, AsyncFunctionExpr
+6. ✅ Async/await — Promise-based, async fn, await, AsyncFunctionExpr (Phase 1)
+7. ✅ I/O thread pool — configurable workers, async http/sleep/file builtins, Promise.all (Phase 2)
 
 ### Backlog
 - ✅ Array slice syntax: `arr[1:3]`
@@ -284,7 +285,7 @@ All planned features for Phase 1 have been implemented and tested.
 
 ### Test Coverage (Last Updated: 2026-04-28)
 
-- **Total**: 511 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test; 5 http tests ignored — require network)
+- **Total**: ~525 tests passing ✅ (1 ignored, 1 known stack-overflow bug in recursion limit test; 5 http tests ignored — require network)
 - **Code Quality**: 5 clippy warnings (mutable key type in HashSet - acceptable)
 
 **Breakdown by Category:**
@@ -320,6 +321,8 @@ All planned features for Phase 1 have been implemented and tested.
 - Structs: 14 tests
 - **Set type: 24 tests** ✨
 - GC tests: 7 tests
+- **Async/await: 21 tests** ✨
+- **I/O pool (Phase 2): 14 tests** ✨
 
 ## Development Resources
 
