@@ -76,6 +76,13 @@ impl Value {
     }
 
     /// Helper: Create a set value (for convenience)
+    ///
+    /// # Clippy Note
+    /// The `mutable_key_type` warning is a false positive here. While `Value` contains
+    /// `Rc` (which has interior mutability via refcounts), our `Hash` implementation
+    /// only hashes the actual immutable data (int, float, string, bool, null), not the
+    /// Rc pointers. The hash is stable and correct.
+    #[allow(clippy::mutable_key_type)]
     pub fn set(set: HashSet<Value>) -> Self {
         Value::Set(Rc::new(set))
     }

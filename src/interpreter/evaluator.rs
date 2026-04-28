@@ -1076,6 +1076,7 @@ impl Evaluator {
             }
 
             // Set methods
+            // Note: clippy::mutable_key_type warnings are false positives - see value.rs
             (Value::Set(elements), "add") => {
                 if args.len() != 1 {
                     return Err(RuntimeError::ArityMismatch {
@@ -1091,6 +1092,7 @@ impl Evaluator {
                     });
                 }
 
+                #[allow(clippy::mutable_key_type)]
                 let mut new_set = (**elements).clone();
                 new_set.insert(item);
                 let new_set_val = Value::set(new_set);
@@ -1115,6 +1117,7 @@ impl Evaluator {
                 }
                 let item = self.eval_expr(&args[0])?;
 
+                #[allow(clippy::mutable_key_type)]
                 let mut new_set = (**elements).clone();
                 new_set.remove(&item);
                 let new_set_val = Value::set(new_set);
@@ -1181,6 +1184,7 @@ impl Evaluator {
                 }
                 let other = self.eval_expr(&args[0])?;
                 if let Value::Set(other_set) = other {
+                    #[allow(clippy::mutable_key_type)]
                     let union: HashSet<Value> = elements.union(&other_set).cloned().collect();
                     Ok(Value::set(union))
                 } else {
@@ -1199,6 +1203,7 @@ impl Evaluator {
                 }
                 let other = self.eval_expr(&args[0])?;
                 if let Value::Set(other_set) = other {
+                    #[allow(clippy::mutable_key_type)]
                     let intersection: HashSet<Value> =
                         elements.intersection(&other_set).cloned().collect();
                     Ok(Value::set(intersection))
@@ -1218,6 +1223,7 @@ impl Evaluator {
                 }
                 let other = self.eval_expr(&args[0])?;
                 if let Value::Set(other_set) = other {
+                    #[allow(clippy::mutable_key_type)]
                     let difference: HashSet<Value> =
                         elements.difference(&other_set).cloned().collect();
                     Ok(Value::set(difference))

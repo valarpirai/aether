@@ -420,6 +420,8 @@ pub fn builtin_set(args: &[Value]) -> Result<Value, RuntimeError> {
 
     match &args[0] {
         Value::Array(arr) => {
+            // False positive: our Hash impl only hashes immutable data
+            #[allow(clippy::mutable_key_type)]
             let mut set = HashSet::new();
             for value in arr.iter() {
                 if !value.is_hashable() {
