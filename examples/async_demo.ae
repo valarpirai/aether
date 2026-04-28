@@ -1,0 +1,84 @@
+// Async/await demo — Phase 1: Promise-based async functions
+
+// Basic async function — calling it returns a Promise, not the value
+async fn fetch_number() {
+    return 42
+}
+
+// Async functions can call other async functions with await
+async fn double_async(x) {
+    return x * 2
+}
+
+async fn quadruple(x) {
+    let a = await double_async(x)
+    return await double_async(a)
+}
+
+// Regular function can also await async results
+fn get_result() {
+    let n = await fetch_number()
+    return n * 10
+}
+
+// Anonymous async function expression
+let adder = async fn(a, b) { return a + b }
+
+// Optional parameters work the same as regular functions
+async fn greet(name) {
+    if (name == null) {
+        return "Hello, world!"
+    }
+    return "Hello, " + name + "!"
+}
+
+fn main() {
+    println("=== Async/Await Demo ===")
+    println()
+
+    // Calling async fn returns a Promise immediately (body not yet executed)
+    let p = fetch_number()
+    println("Promise before await:", p)           // <promise:pending>
+    println("Promise type:", type(p))             // promise
+
+    // await resolves the promise
+    let n = await fetch_number()
+    println("Awaited value:", n)                  // 42
+    println()
+
+    // Chained async calls
+    let result = await quadruple(5)
+    println("quadruple(5) =", result)             // 20
+    println()
+
+    // Regular function awaiting async results
+    let x = get_result()
+    println("get_result() =", x)                  // 420
+    println()
+
+    // Anonymous async function expression
+    let sum = await adder(3, 7)
+    println("adder(3, 7) =", sum)                 // 10
+    println()
+
+    // await on a non-Promise is identity (safe to use anywhere)
+    let v = await 99
+    println("await 99 =", v)                      // 99
+    println()
+
+    // Optional parameter
+    println(await greet())                         // Hello, world!
+    println(await greet("Aether"))                // Hello, Aether!
+    println()
+
+    // A Promise can be awaited multiple times — result is cached
+    let p2 = fetch_number()
+    let a = await p2
+    let b = await p2
+    println("First await:", a)                    // 42
+    println("Second await (cached):", b)          // 42
+    println("Promise after await:", p2)           // <promise:42>
+    println()
+
+    println("Done.")
+}

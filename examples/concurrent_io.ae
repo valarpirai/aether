@@ -1,0 +1,66 @@
+// Concurrent I/O demo — Phase 2: I/O thread pool
+//
+// Run with:  AETHER_WORKERS=4 aether examples/concurrent_io.ae
+// Or from code: set_workers(4) before any I/O calls
+
+fn main() {
+    println("=== Concurrent I/O Demo ===")
+    println()
+
+    // Enable I/O thread pool with 4 workers
+    set_workers(4)
+
+    // --- Async sleep ---
+    println("1. Async sleep (non-blocking)...")
+    let t1 = clock()
+    let s1 = sleep(0.1)
+    let s2 = sleep(0.1)
+    // Both sleeps run in parallel — total time ~0.1s, not ~0.2s
+    await s1
+    await s2
+    let t2 = clock()
+    println("   Two 0.1s sleeps took:", t2 - t1, "seconds (parallelism!)")
+    println()
+
+    // --- Async file I/O ---
+    println("2. Async file read...")
+    let p = read_file("Cargo.toml")
+    println("   read_file returned:", type(p))   // promise
+    let content = await p
+    let lines = content.split("\n")
+    println("   Cargo.toml first line:", lines[0])
+    println()
+
+    // --- Promise.all: submit all tasks before blocking on any ---
+    println("3. Promise.all — concurrent file reads...")
+    let p1 = read_file("Cargo.toml")
+    let p2 = read_file("README.md")
+    // Both reads run in parallel
+    let results = await Promise.all([p1, p2])
+    println("   Cargo.toml size:", len(results[0]), "bytes")
+    println("   README.md size:", len(results[1]), "bytes")
+    println()
+
+    // --- set_workers: change pool size at runtime ---
+    println("4. Changing worker count at runtime...")
+    set_workers(2)
+    let p3 = sleep(0.05)
+    await p3
+    println("   Done with 2-worker pool.")
+    println()
+
+    // --- Async http (requires network) ---
+    println("5. Async HTTP (requires network)...")
+    try {
+        let hp = http_get("https://httpbin.org/get")
+        println("   http_get returned:", type(hp))   // promise
+        let body = await hp
+        let data = json_parse(body)
+        println("   Response URL:", data["url"])
+    } catch (e) {
+        println("   Skipped (no network):", e)
+    }
+    println()
+
+    println("Done.")
+}
