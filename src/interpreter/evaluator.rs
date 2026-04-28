@@ -1478,20 +1478,20 @@ impl Evaluator {
             }
             Stmt::Import(module_name) => {
                 // Load module and add to environment
-                self.load_module(&module_name)?;
+                self.load_module(module_name)?;
                 Ok(ControlFlow::None)
             }
             Stmt::ImportAs(module_name, alias) => {
                 // Load module and add with alias
-                self.load_module_as(&module_name, &alias)?;
+                self.load_module_as(module_name, alias)?;
                 Ok(ControlFlow::None)
             }
             Stmt::FromImport(module_name, items) => {
-                self.from_import(&module_name, &items)?;
+                self.from_import(module_name, items)?;
                 Ok(ControlFlow::None)
             }
             Stmt::FromImportAs(module_name, aliased_items) => {
-                self.from_import_as(&module_name, &aliased_items)?;
+                self.from_import_as(module_name, aliased_items)?;
                 Ok(ControlFlow::None)
             }
             Stmt::Throw(expr) => {
