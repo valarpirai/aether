@@ -566,7 +566,6 @@ fn test_value_is_hashable() {
 
 #[test]
 fn test_struct_declaration() {
-    use std::collections::HashMap;
     let mut eval = Evaluator::new();
     let stmt = Stmt::StructDecl {
         name: "Point".to_string(),

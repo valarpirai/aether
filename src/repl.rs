@@ -14,18 +14,47 @@ use std::borrow::Cow;
 // ── Keywords and built-ins for autocomplete ──────────────────────────────────
 
 const KEYWORDS: &[&str] = &[
-    "fn", "let", "if", "else", "while", "for", "in", "return", "break", "continue",
-    "true", "false", "null", "and", "or", "not", "import", "from", "as", "struct",
-    "try", "catch", "throw",
+    "fn", "let", "if", "else", "while", "for", "in", "return", "break", "continue", "true",
+    "false", "null", "and", "or", "not", "import", "from", "as", "struct", "try", "catch", "throw",
 ];
 
 const BUILTINS: &[&str] = &[
-    "print", "println", "input", "len", "type", "str", "int", "float", "bool",
-    "range", "set", "map", "filter", "reduce", "find", "every", "some",
-    "json_parse", "json_stringify", "http_get", "http_post",
-    "clock", "sleep", "read_file", "write_file",
-    "abs", "min", "max", "sum", "clamp", "sign",
-    "join", "repeat", "reverse", "starts_with", "ends_with",
+    "print",
+    "println",
+    "input",
+    "len",
+    "type",
+    "str",
+    "int",
+    "float",
+    "bool",
+    "range",
+    "set",
+    "map",
+    "filter",
+    "reduce",
+    "find",
+    "every",
+    "some",
+    "json_parse",
+    "json_stringify",
+    "http_get",
+    "http_post",
+    "clock",
+    "sleep",
+    "read_file",
+    "write_file",
+    "abs",
+    "min",
+    "max",
+    "sum",
+    "clamp",
+    "sign",
+    "join",
+    "repeat",
+    "reverse",
+    "starts_with",
+    "ends_with",
 ];
 
 // ── Helper: autocomplete + multi-line validation ──────────────────────────────
@@ -37,7 +66,9 @@ struct AetherHelper {
 
 impl AetherHelper {
     fn new() -> Self {
-        let mut completions: Vec<String> = KEYWORDS.iter().chain(BUILTINS.iter())
+        let mut completions: Vec<String> = KEYWORDS
+            .iter()
+            .chain(BUILTINS.iter())
             .map(|s| s.to_string())
             .collect();
         completions.sort();
@@ -129,9 +160,9 @@ fn is_incomplete(input: &str) -> bool {
     let mut depth = 0i32;
     let mut in_string = false;
     let mut escape = false;
-    let mut chars = input.chars().peekable();
+    let chars = input.chars().peekable();
 
-    while let Some(c) = chars.next() {
+    for c in chars {
         if escape {
             escape = false;
             continue;
@@ -159,9 +190,9 @@ fn is_incomplete(input: &str) -> bool {
 // ── History file path ─────────────────────────────────────────────────────────
 
 fn history_path() -> Option<std::path::PathBuf> {
-    std::env::var("HOME").ok().map(|home| {
-        std::path::PathBuf::from(home).join(".aether_history")
-    })
+    std::env::var("HOME")
+        .ok()
+        .map(|home| std::path::PathBuf::from(home).join(".aether_history"))
 }
 
 // ── Public entry point ────────────────────────────────────────────────────────
@@ -320,7 +351,9 @@ fn handle_command(cmd: &str, evaluator: &Evaluator) {
                     }
                 }
                 if !fns.is_empty() {
-                    if !vars.is_empty() { println!(); }
+                    if !vars.is_empty() {
+                        println!();
+                    }
                     println!("Functions:");
                     for (name, val) in &fns {
                         if let Value::Function { params, .. } = val {
@@ -329,7 +362,9 @@ fn handle_command(cmd: &str, evaluator: &Evaluator) {
                     }
                 }
                 if !builtins.is_empty() {
-                    if !vars.is_empty() || !fns.is_empty() { println!(); }
+                    if !vars.is_empty() || !fns.is_empty() {
+                        println!();
+                    }
                     println!("Built-ins:");
                     let names: Vec<&str> = builtins.iter().map(|(n, _)| n.as_str()).collect();
                     // Print in columns (4 per row)
