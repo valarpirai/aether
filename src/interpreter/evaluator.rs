@@ -1140,7 +1140,7 @@ impl Evaluator {
                 let needle = self.eval_expr(&args[0])?;
                 Ok(Value::Bool(elements.contains(&needle)))
             }
-            (Value::Set(elements), "clear") => {
+            (Value::Set(_elements), "clear") => {
                 if !args.is_empty() {
                     return Err(RuntimeError::ArityMismatch {
                         expected: 0,
