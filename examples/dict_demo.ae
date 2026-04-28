@@ -1,0 +1,131 @@
+// Dictionary demonstration program
+
+fn main() {
+    println("=== Aether Dict Type Demo ===")
+    println()
+
+    // Creating dictionaries
+    println("1. Creating Dictionaries")
+    println("------------------------")
+    let person = {"name": "Alice", "age": 30, "city": "NYC"}
+    println("Person:", person)
+    println("Size:", person.size)
+    println()
+
+    let empty = {}
+    println("Empty dict:", empty, "size =", empty.size)
+    println()
+
+    // Accessing values
+    println("2. Accessing Values")
+    println("-------------------")
+    println("person['name']:", person["name"])
+    println("person.age:", person.age)
+    println("person['city']:", person["city"])
+    println()
+
+    // Dict methods
+    println("3. Dict Methods")
+    println("---------------")
+    let config = {"debug": true, "timeout": 30, "port": 8080}
+    println("Config:", config)
+    println()
+
+    let keys = config.keys()
+    println("Keys:", keys)
+    println("Number of keys:", len(keys))
+    println()
+
+    let values = config.values()
+    println("Values:", values)
+    println("Number of values:", len(values))
+    println()
+
+    // Checking key existence
+    println("4. Checking Keys")
+    println("----------------")
+    println("Contains 'debug'?", config.contains("debug"))
+    println("Contains 'verbose'?", config.contains("verbose"))
+    println()
+
+    // Iterating over keys
+    println("5. Iterating Over Keys")
+    println("----------------------")
+    let data = {"x": 10, "y": 20, "z": 30}
+    println("Data:", data)
+    let data_keys = data.keys()
+    println("Processing each key:")
+    for key in data_keys {
+        println("  Key:", key)
+    }
+    println()
+
+    // Nested dictionaries
+    println("6. Nested Dictionaries")
+    println("----------------------")
+    let user = {
+        "name": "Bob",
+        "profile": {
+            "email": "bob@example.com",
+            "verified": true
+        }
+    }
+    println("User:", user)
+    println("Name:", user.name)
+    println("Email:", user["profile"]["email"])
+    println()
+
+    // Int and bool keys
+    println("7. Different Key Types")
+    println("----------------------")
+    let mixed = {1: "one", 2: "two", true: "yes", false: "no"}
+    println("Mixed keys:", mixed)
+    println("Contains key 1?", mixed.contains(1))
+    println("Contains key true?", mixed.contains(true))
+    println()
+
+    // Dict in functions
+    println("8. Dicts in Functions")
+    println("---------------------")
+    fn create_config(name, value) {
+        return {"setting": name, "value": value}
+    }
+
+    let cfg1 = create_config("max_users", 100)
+    let cfg2 = create_config("timeout", 60)
+    println("Config 1:", cfg1)
+    println("Config 2:", cfg2)
+    println()
+
+    // Practical example: word frequency
+    println("9. Practical Use: Key-Value Storage")
+    println("-----------------------------------")
+    let inventory = {
+        "apples": 50,
+        "bananas": 30,
+        "oranges": 25
+    }
+    println("Inventory:", inventory)
+    println("Items:", inventory.keys())
+    println("Quantities:", inventory.values())
+
+    println()
+    println("Checking stock:")
+    let items = inventory.keys()
+    for item in items {
+        println(" ", item, "- in stock")
+    }
+    println()
+
+    // Size vs length
+    println("10. Size and Length")
+    println("-------------------")
+    let metrics = {"cpu": 45, "memory": 80, "disk": 60}
+    println("Metrics:", metrics)
+    println("dict.size:", metrics.size)
+    println("dict.length:", metrics.length)
+    println("Are they equal?", metrics.size == metrics.length)
+    println()
+
+    println("=== Demo Complete ===")
+}
