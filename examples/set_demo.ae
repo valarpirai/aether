@@ -1,0 +1,108 @@
+// Set demonstration program
+
+fn main() {
+    println("=== Aether Set Type Demo ===")
+    println()
+
+    // Creating sets
+    println("1. Creating Sets")
+    println("----------------")
+    let numbers = set([1, 2, 3, 2, 1])
+    println("set([1, 2, 3, 2, 1]) = ", numbers)
+    println("Size:", numbers.size)
+    println()
+
+    let words = set(["hello", "world", "hello"])
+    println("set with strings:", words)
+    println()
+
+    // Adding and removing elements
+    println("2. Adding and Removing")
+    println("----------------------")
+    let fruits = set(["apple", "banana"])
+    println("Initial:", fruits, "size =", fruits.size)
+
+    fruits.add("orange")
+    println("After add('orange'):", fruits, "size =", fruits.size)
+
+    fruits.add("banana")
+    println("After add('banana'):", fruits, "size =", fruits.size)
+
+    fruits.remove("apple")
+    println("After remove('apple'):", fruits, "size =", fruits.size)
+    println()
+
+    // Checking membership
+    println("3. Checking Membership")
+    println("----------------------")
+    let tags = set(["python", "rust", "javascript"])
+    println("Tags:", tags)
+    println("Contains 'rust'?", tags.contains("rust"))
+    println("Contains 'java'?", tags.contains("java"))
+    println()
+
+    // Set operations
+    println("4. Set Operations")
+    println("-----------------")
+    let set_a = set([1, 2, 3, 4])
+    let set_b = set([3, 4, 5, 6])
+
+    println("Set A:", set_a)
+    println("Set B:", set_b)
+    println()
+
+    let union_set = set_a.union(set_b)
+    println("Union (A ∪ B):", union_set, "size =", union_set.size)
+
+    let inter_set = set_a.intersection(set_b)
+    println("Intersection (A ∩ B):", inter_set, "size =", inter_set.size)
+
+    let diff_set = set_a.difference(set_b)
+    println("Difference (A - B):", diff_set, "size =", diff_set.size)
+    println()
+
+    // Subset testing
+    println("5. Subset Testing")
+    println("-----------------")
+    let small = set([1, 2])
+    let large = set([1, 2, 3, 4, 5])
+    println("Small:", small)
+    println("Large:", large)
+    println("Is small ⊆ large?", small.is_subset(large))
+
+    let other = set([1, 2, 6])
+    println("Other:", other)
+    println("Is other ⊆ large?", other.is_subset(large))
+    println()
+
+    // Converting to array
+    println("6. Converting to Array")
+    println("----------------------")
+    let mixed = set([3, 1, 4, 1, 5, 9, 2, 6])
+    println("Set:", mixed)
+    let arr = mixed.to_array()
+    println("As array (sorted):", arr)
+    println()
+
+    // Practical example: removing duplicates
+    println("7. Practical Use: Unique Values")
+    println("--------------------------------")
+    let data = [5, 2, 8, 2, 9, 5, 3, 8, 1]
+    println("Original data:", data)
+    let unique = set(data)
+    println("Unique values:", unique)
+    let cleaned = unique.to_array()
+    println("Cleaned array:", cleaned)
+    println()
+
+    // Mixed types
+    println("8. Mixed Type Sets")
+    println("------------------")
+    let mixed_set = set([1, "hello", true, 3, "world", false])
+    println("Mixed set:", mixed_set)
+    println("Contains 'hello'?", mixed_set.contains("hello"))
+    println("Contains true?", mixed_set.contains(true))
+    println()
+
+    println("=== Demo Complete ===")
+}
