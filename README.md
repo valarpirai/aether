@@ -1,5 +1,7 @@
 # Aether Programming Language
 
+**Website**: https://valarpirai.github.io/aether/ | **Crate**: [aether-lang](https://crates.io/crates/aether-lang)
+
 A general-purpose, dynamically typed programming language with automatic memory management.
 
 ## Overview
