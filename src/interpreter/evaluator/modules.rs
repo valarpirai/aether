@@ -27,27 +27,32 @@ impl Evaluator {
         &mut self,
         module_name: &str,
     ) -> Result<Value, RuntimeError> {
-        if self.loading_stack.contains(&module_name.to_string()) {
-            let cycle = self.loading_stack.join(" -> ");
+        if self
+            .modules
+            .loading_stack
+            .contains(&module_name.to_string())
+        {
+            let cycle = self.modules.loading_stack.join(" -> ");
             return Err(RuntimeError::InvalidOperation(format!(
                 "Circular dependency detected: {} -> {}",
                 cycle, module_name
             )));
         }
 
-        if self.module_cache.contains_key(module_name) {
-            let env = self.module_cache[module_name].clone();
+        if self.modules.cache.contains_key(module_name) {
+            let env = self.modules.cache[module_name].clone();
             return Ok(Self::module_value_from_env(module_name, &env));
         }
 
-        self.loading_stack.push(module_name.to_string());
+        self.modules.loading_stack.push(module_name.to_string());
 
         let module_path = self.resolve_module_path(module_name)?;
         let module_env = self.execute_module_file(&module_path)?;
 
-        self.loading_stack.retain(|m| m != module_name);
+        self.modules.loading_stack.retain(|m| m != module_name);
 
-        self.module_cache
+        self.modules
+            .cache
             .insert(module_name.to_string(), module_env.clone());
 
         Ok(Self::module_value_from_env(module_name, &module_env))
@@ -70,14 +75,15 @@ impl Evaluator {
         module_name: &str,
         items: &[String],
     ) -> Result<(), RuntimeError> {
-        if !self.module_cache.contains_key(module_name) {
+        if !self.modules.cache.contains_key(module_name) {
             let module_path = self.resolve_module_path(module_name)?;
             let module_env = self.execute_module_file(&module_path)?;
-            self.module_cache
+            self.modules
+                .cache
                 .insert(module_name.to_string(), module_env);
         }
 
-        let module_env = &self.module_cache[module_name];
+        let module_env = &self.modules.cache[module_name];
 
         for item in items {
             match module_env.get(item) {
@@ -101,14 +107,15 @@ impl Evaluator {
         module_name: &str,
         items: &[(String, String)],
     ) -> Result<(), RuntimeError> {
-        if !self.module_cache.contains_key(module_name) {
+        if !self.modules.cache.contains_key(module_name) {
             let module_path = self.resolve_module_path(module_name)?;
             let module_env = self.execute_module_file(&module_path)?;
-            self.module_cache
+            self.modules
+                .cache
                 .insert(module_name.to_string(), module_env);
         }
 
-        let module_env = &self.module_cache[module_name];
+        let module_env = &self.modules.cache[module_name];
 
         for (item, alias) in items {
             match module_env.get(item) {

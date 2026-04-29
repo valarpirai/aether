@@ -78,12 +78,12 @@ fn run_file(filename: &str) -> Result<(), String> {
 
     evaluator
         .execute_program(&program.statements)
-        .map_err(|e| format_runtime_error(e.to_string(), evaluator.current_line))?;
+        .map_err(|e| format_runtime_error(e.to_string(), evaluator.current_line()))?;
 
     // Auto-call main()
     evaluator
         .call_main()
-        .map_err(|e| format_runtime_error(e.to_string(), evaluator.current_line))?;
+        .map_err(|e| format_runtime_error(e.to_string(), evaluator.current_line()))?;
 
     Ok(())
 }

@@ -21,16 +21,16 @@ impl Evaluator {
                 body,
                 closure,
             } => {
-                self.call_depth += 1;
-                if self.call_depth > self.max_call_depth {
-                    self.call_depth -= 1;
+                self.calls.depth += 1;
+                if self.calls.depth > self.calls.max_depth {
+                    self.calls.depth -= 1;
                     return Err(RuntimeError::StackOverflow {
-                        depth: self.call_depth + 1,
-                        limit: self.max_call_depth,
+                        depth: self.calls.depth + 1,
+                        limit: self.calls.max_depth,
                     });
                 }
                 if arg_values.len() > params.len() {
-                    self.call_depth -= 1;
+                    self.calls.depth -= 1;
                     return Err(RuntimeError::ArityMismatch {
                         expected: params.len(),
                         got: arg_values.len(),
@@ -40,9 +40,9 @@ impl Evaluator {
                 while padded.len() < params.len() {
                     padded.push(Value::Null);
                 }
-                self.call_stack.push(StackFrame {
+                self.calls.stack.push(StackFrame {
                     fn_name: "<anonymous>".to_string(),
-                    call_site_line: self.current_line,
+                    call_site_line: self.calls.current_line,
                     call_site_file: self.current_file_name(),
                 });
                 // Swap instead of clone — O(1) vs O(n) environment copy
@@ -57,13 +57,13 @@ impl Evaluator {
                     Err(e) => {
                         std::mem::swap(&mut self.environment, &mut call_env);
                         // Don't pop call_stack on error — TryCatch captures the snapshot first
-                        self.call_depth -= 1;
+                        self.calls.depth -= 1;
                         return Err(e);
                     }
                 };
                 std::mem::swap(&mut self.environment, &mut call_env);
-                self.call_stack.pop();
-                self.call_depth -= 1;
+                self.calls.stack.pop();
+                self.calls.depth -= 1;
                 result
             }
             Value::BuiltinFn { arity, func, .. } => {
@@ -160,16 +160,16 @@ impl Evaluator {
             }
         };
 
-        self.call_depth += 1;
-        if self.call_depth > self.max_call_depth {
-            self.call_depth -= 1;
+        self.calls.depth += 1;
+        if self.calls.depth > self.calls.max_depth {
+            self.calls.depth -= 1;
             return Err(RuntimeError::StackOverflow {
-                depth: self.call_depth + 1,
-                limit: self.max_call_depth,
+                depth: self.calls.depth + 1,
+                limit: self.calls.max_depth,
             });
         }
         if arg_values.len() > params.len() {
-            self.call_depth -= 1;
+            self.calls.depth -= 1;
             return Err(RuntimeError::ArityMismatch {
                 expected: params.len(),
                 got: arg_values.len(),
@@ -190,7 +190,7 @@ impl Evaluator {
             Err(e) => Err(e),
         };
         std::mem::swap(&mut self.environment, &mut call_env);
-        self.call_depth -= 1;
+        self.calls.depth -= 1;
         result
     }
 
@@ -220,17 +220,17 @@ impl Evaluator {
                 body,
                 closure,
             } => {
-                self.call_depth += 1;
-                if self.call_depth > self.max_call_depth {
-                    self.call_depth -= 1;
+                self.calls.depth += 1;
+                if self.calls.depth > self.calls.max_depth {
+                    self.calls.depth -= 1;
                     return Err(RuntimeError::StackOverflow {
-                        depth: self.call_depth + 1,
-                        limit: self.max_call_depth,
+                        depth: self.calls.depth + 1,
+                        limit: self.calls.max_depth,
                     });
                 }
 
                 if args.len() > params.len() {
-                    self.call_depth -= 1;
+                    self.calls.depth -= 1;
                     return Err(RuntimeError::ArityMismatch {
                         expected: params.len(),
                         got: args.len(),
@@ -242,7 +242,7 @@ impl Evaluator {
                     match self.eval_expr(arg) {
                         Ok(val) => arg_values.push(val),
                         Err(e) => {
-                            self.call_depth -= 1;
+                            self.calls.depth -= 1;
                             return Err(e);
                         }
                     }
@@ -252,9 +252,9 @@ impl Evaluator {
                     arg_values.push(Value::Null);
                 }
 
-                self.call_stack.push(StackFrame {
+                self.calls.stack.push(StackFrame {
                     fn_name: func_name.clone(),
-                    call_site_line: self.current_line,
+                    call_site_line: self.calls.current_line,
                     call_site_file: self.current_file_name(),
                 });
                 let saved_env = self.environment.clone();
@@ -275,14 +275,14 @@ impl Evaluator {
                     Err(e) => {
                         self.environment = saved_env;
                         // Don't pop call_stack on error — TryCatch captures the snapshot first
-                        self.call_depth -= 1;
+                        self.calls.depth -= 1;
                         return Err(e);
                     }
                 };
 
                 self.environment = saved_env;
-                self.call_stack.pop();
-                self.call_depth -= 1;
+                self.calls.stack.pop();
+                self.calls.depth -= 1;
 
                 result
             }
@@ -310,7 +310,7 @@ impl Evaluator {
                             })
                         }
                     };
-                    self.io_pool = Some(Arc::new(IoPool::new(n)));
+                    self.async_rt.io_pool = Some(Arc::new(IoPool::new(n)));
                     return Ok(Value::Null);
                 }
 
@@ -337,7 +337,7 @@ impl Evaluator {
                     }
                     // Explicit arg overrides env var; no arg uses env var default (or None)
                     let timeout = if args.is_empty() {
-                        self.event_loop_timeout
+                        self.async_rt.event_loop_timeout
                     } else {
                         match self.eval_expr(&args[0])? {
                             Value::Int(n) => Some(n as f64),
@@ -363,7 +363,7 @@ impl Evaluator {
                     }
                     match self.eval_expr(&args[0])? {
                         Value::Int(n) if n > 0 => {
-                            self.event_loop_queue.set_limit(n as usize);
+                            self.async_rt.event_loop_queue.set_limit(n as usize);
                             return Ok(Value::Null);
                         }
                         Value::Int(_) => {
@@ -390,15 +390,15 @@ impl Evaluator {
                     }
                     match self.eval_expr(&args[0])? {
                         Value::Null => {
-                            self.event_loop_timeout = None;
+                            self.async_rt.event_loop_timeout = None;
                             return Ok(Value::Null);
                         }
                         Value::Int(n) if n > 0 => {
-                            self.event_loop_timeout = Some(n as f64);
+                            self.async_rt.event_loop_timeout = Some(n as f64);
                             return Ok(Value::Null);
                         }
                         Value::Float(f) if f > 0.0 => {
-                            self.event_loop_timeout = Some(f);
+                            self.async_rt.event_loop_timeout = Some(f);
                             return Ok(Value::Null);
                         }
                         Value::Int(_) | Value::Float(_) => {
@@ -416,7 +416,7 @@ impl Evaluator {
                 }
 
                 // Async I/O dispatch when pool is active
-                if let Some(pool) = self.io_pool.clone() {
+                if let Some(pool) = self.async_rt.io_pool.clone() {
                     if let Some(promise) = self.try_submit_io_task(&name, args, &pool)? {
                         return Ok(promise);
                     }
@@ -670,10 +670,11 @@ impl Evaluator {
                 match state {
                     PromiseState::IoWaiting(rx) => {
                         // Attach per-task deadline from AETHER_EVENT_LOOP_TIMEOUT / set_task_timeout
-                        let deadline = self.event_loop_timeout.map(|secs| {
+                        let deadline = self.async_rt.event_loop_timeout.map(|secs| {
                             std::time::Instant::now() + std::time::Duration::from_secs_f64(secs)
                         });
-                        self.event_loop_queue
+                        self.async_rt
+                            .event_loop_queue
                             .push(rx, callback, deadline)
                             .map_err(RuntimeError::InvalidOperation)?;
                     }
@@ -713,7 +714,7 @@ impl Evaluator {
             .map(|s| std::time::Instant::now() + std::time::Duration::from_secs_f64(s));
 
         loop {
-            if self.event_loop_queue.is_empty() {
+            if self.async_rt.event_loop_queue.is_empty() {
                 break;
             }
 
@@ -724,7 +725,7 @@ impl Evaluator {
                 }
             }
 
-            let ready = self.event_loop_queue.drain_ready();
+            let ready = self.async_rt.event_loop_queue.drain_ready();
 
             if ready.is_empty() {
                 std::thread::sleep(std::time::Duration::from_millis(1));

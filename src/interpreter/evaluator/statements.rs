@@ -131,13 +131,16 @@ impl Evaluator {
                 Ok(ControlFlow::None)
             }
             Stmt::TryCatch(try_body, error_var, catch_body, finally_body) => {
-                let saved_stack_len = self.call_stack.len();
+                let saved_stack_len = self.calls.stack.len();
                 let result = match self.exec_stmt_internal(try_body) {
                     Ok(flow) => Ok(flow),
                     Err(e) => {
-                        let error_val =
-                            Value::error_val(e.to_string(), &self.call_stack, self.current_line);
-                        self.call_stack.truncate(saved_stack_len);
+                        let error_val = Value::error_val(
+                            e.to_string(),
+                            &self.calls.stack,
+                            self.calls.current_line,
+                        );
+                        self.calls.stack.truncate(saved_stack_len);
                         self.environment.define(error_var.clone(), error_val);
                         self.exec_stmt_internal(catch_body)
                     }
@@ -149,7 +152,7 @@ impl Evaluator {
                 result
             }
             Stmt::Line(n) => {
-                self.current_line = *n;
+                self.calls.current_line = *n;
                 Ok(ControlFlow::None)
             }
         }

@@ -688,12 +688,12 @@ impl Evaluator {
                 for arg in args {
                     arg_values.push(self.eval_expr(arg)?);
                 }
-                self.call_depth += 1;
-                if self.call_depth > self.max_call_depth {
-                    self.call_depth -= 1;
+                self.calls.depth += 1;
+                if self.calls.depth > self.calls.max_depth {
+                    self.calls.depth -= 1;
                     return Err(RuntimeError::StackOverflow {
-                        depth: self.call_depth + 1,
-                        limit: self.max_call_depth,
+                        depth: self.calls.depth + 1,
+                        limit: self.calls.max_depth,
                     });
                 }
                 let mut call_env = Environment::new();
@@ -719,7 +719,7 @@ impl Evaluator {
                 };
                 let parent = self.environment.take_parent().unwrap_or_default();
                 self.environment = parent;
-                self.call_depth -= 1;
+                self.calls.depth -= 1;
                 result
             }
 

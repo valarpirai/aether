@@ -28,30 +28,69 @@ enum ControlFlow {
     Continue(Option<String>),
 }
 
+/// Call-depth tracking, stack frames, and current line — managed together during function entry/exit
+pub(crate) struct CallContext {
+    pub(crate) depth: usize,
+    pub(crate) max_depth: usize,
+    pub(crate) stack: Vec<StackFrame>,
+    pub(crate) current_line: usize,
+}
+
+impl CallContext {
+    fn new(max_depth: usize) -> Self {
+        Self {
+            depth: 0,
+            max_depth,
+            stack: Vec::new(),
+            current_line: 0,
+        }
+    }
+}
+
+/// Module cache and in-progress loading set — only accessed during import resolution
+pub(crate) struct ModuleLoader {
+    pub(crate) cache: HashMap<String, Environment>,
+    pub(crate) loading_stack: Vec<String>,
+}
+
+impl ModuleLoader {
+    fn new() -> Self {
+        Self {
+            cache: HashMap::new(),
+            loading_stack: Vec::new(),
+        }
+    }
+}
+
+/// I/O thread pool and event loop state — only accessed for async I/O and on_ready/event_loop
+pub(crate) struct AsyncRuntime {
+    pub(crate) io_pool: Option<Arc<IoPool>>,
+    pub(crate) event_loop_queue: EventLoopQueue,
+    pub(crate) event_loop_timeout: Option<f64>,
+}
+
+impl AsyncRuntime {
+    fn new(queue: EventLoopQueue, timeout: Option<f64>) -> Self {
+        Self {
+            io_pool: None,
+            event_loop_queue: queue,
+            event_loop_timeout: timeout,
+        }
+    }
+}
+
 /// Tree-walking interpreter for Aether programs
 pub struct Evaluator {
     /// Current environment (variables in scope)
     pub environment: Environment,
-    /// Current call depth (for recursion limit)
-    call_depth: usize,
-    /// Maximum allowed call depth
-    max_call_depth: usize,
-    /// Module cache to prevent re-execution on repeated imports
-    module_cache: HashMap<String, Environment>,
-    /// Tracks modules currently being loaded (for circular dependency detection)
-    loading_stack: Vec<String>,
     /// Current file being executed (for relative imports and stack traces)
     pub current_file: Option<PathBuf>,
-    /// Optional I/O thread pool for async-native builtins (Phase 2)
-    pub(crate) io_pool: Option<Arc<IoPool>>,
-    /// Event loop queue: pending (receiver, callback) pairs for on_ready/event_loop
-    pub(crate) event_loop_queue: EventLoopQueue,
-    /// Default timeout for event_loop() (from AETHER_EVENT_LOOP_TIMEOUT env var)
-    pub(crate) event_loop_timeout: Option<f64>,
-    /// Most recently seen line number (updated by Stmt::Line markers)
-    pub current_line: usize,
-    /// Call stack for stack-trace generation in error objects
-    pub(crate) call_stack: Vec<StackFrame>,
+    /// Call depth, stack frames, and line tracking
+    pub(crate) calls: CallContext,
+    /// Module cache and circular-import detection
+    pub(crate) modules: ModuleLoader,
+    /// I/O thread pool and event loop queue
+    pub(crate) async_rt: AsyncRuntime,
 }
 
 impl Evaluator {
@@ -78,23 +117,7 @@ impl Evaluator {
 
     /// Create a new evaluator with stdlib loaded
     pub fn new_with_stdlib() -> Self {
-        let mut queue = EventLoopQueue::new();
-        if let Some(limit) = Self::env_queue_limit() {
-            queue.set_limit(limit);
-        }
-        let mut evaluator = Self {
-            environment: Environment::new(),
-            call_depth: 0,
-            max_call_depth: 100,
-            module_cache: HashMap::new(),
-            loading_stack: Vec::new(),
-            current_file: None,
-            io_pool: None,
-            event_loop_queue: queue,
-            event_loop_timeout: Self::env_event_loop_timeout(),
-            current_line: 0,
-            call_stack: Vec::new(),
-        };
+        let mut evaluator = Self::new_base();
         evaluator.register_builtins();
         evaluator.load_stdlib();
         evaluator
@@ -102,23 +125,7 @@ impl Evaluator {
 
     /// Create a new evaluator without stdlib (faster for tests)
     pub fn new_without_stdlib() -> Self {
-        let mut queue = EventLoopQueue::new();
-        if let Some(limit) = Self::env_queue_limit() {
-            queue.set_limit(limit);
-        }
-        let mut evaluator = Self {
-            environment: Environment::new(),
-            call_depth: 0,
-            max_call_depth: 100,
-            module_cache: HashMap::new(),
-            loading_stack: Vec::new(),
-            current_file: None,
-            io_pool: None,
-            event_loop_queue: queue,
-            event_loop_timeout: Self::env_event_loop_timeout(),
-            current_line: 0,
-            call_stack: Vec::new(),
-        };
+        let mut evaluator = Self::new_base();
         evaluator.register_builtins();
         evaluator
     }
@@ -126,13 +133,32 @@ impl Evaluator {
     /// Create a new evaluator with an I/O thread pool (Phase 2)
     pub fn new_with_pool(workers: usize) -> Self {
         let mut evaluator = Self::new_with_stdlib();
-        evaluator.io_pool = Some(Arc::new(IoPool::new(workers)));
+        evaluator.async_rt.io_pool = Some(Arc::new(IoPool::new(workers)));
         evaluator
+    }
+
+    fn new_base() -> Self {
+        let mut queue = EventLoopQueue::new();
+        if let Some(limit) = Self::env_queue_limit() {
+            queue.set_limit(limit);
+        }
+        Self {
+            environment: Environment::new(),
+            current_file: None,
+            calls: CallContext::new(100),
+            modules: ModuleLoader::new(),
+            async_rt: AsyncRuntime::new(queue, Self::env_event_loop_timeout()),
+        }
     }
 
     /// Override the maximum recursion depth (used by AETHER_CALL_DEPTH env var)
     pub fn set_max_call_depth(&mut self, depth: usize) {
-        self.max_call_depth = depth;
+        self.calls.max_depth = depth;
+    }
+
+    /// Most recently seen source line (updated by Stmt::Line markers)
+    pub fn current_line(&self) -> usize {
+        self.calls.current_line
     }
 
     /// Return the current file's name (e.g. "main.ae") for stack frames, or None.
@@ -578,8 +604,8 @@ impl Evaluator {
                         "main() must take no arguments".to_string(),
                     ));
                 }
-                self.call_depth += 1;
-                self.call_stack.push(StackFrame {
+                self.calls.depth += 1;
+                self.calls.stack.push(StackFrame {
                     fn_name: "main".to_string(),
                     call_site_line: 0,
                     call_site_file: self.current_file_name(),
@@ -591,12 +617,12 @@ impl Evaluator {
                     Err(e) => Err(e),
                 };
                 self.environment = saved_env;
-                self.call_stack.pop();
-                self.call_depth -= 1;
+                self.calls.stack.pop();
+                self.calls.depth -= 1;
                 result?;
                 // Auto-drain any on_ready callbacks registered but event_loop() never called.
                 // Mirrors Node.js keeping the process alive for pending async work.
-                if !self.event_loop_queue.is_empty() {
+                if !self.async_rt.event_loop_queue.is_empty() {
                     self.run_event_loop(None)?;
                 }
                 Ok(())
