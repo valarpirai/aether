@@ -16,39 +16,72 @@ Recursive descent parser that converts tokens into an Abstract Syntax Tree (AST)
 ## AST Nodes
 
 ### Expressions (Expr)
-- `Integer(i64)`, `Float(f64)`, `String(String)`, `Bool(bool)`, `Null`
+
+**Literals:**
+- `Integer(i64)`, `Float(f64)`, `Bool(bool)`, `Null`
+- `StringLit(String)` — plain string literal
+- `StringInterp(Vec<StringPart>)` — interpolated `"text ${expr} text"`
+
+**Variables and Access:**
 - `Identifier(String)`
+- `Member(Box<Expr>, String)` — `obj.field`
+- `OptionalMember(Box<Expr>, String)` — `obj?.field` (null-safe)
+- `Index(Box<Expr>, Box<Expr>)` — `arr[idx]`
+- `Slice(Box<Expr>, Option<Box<Expr>>, Option<Box<Expr>>)` — `s[1:3]`
+
+**Operators:**
 - `Binary(Box<Expr>, BinaryOp, Box<Expr>)`
 - `Unary(UnaryOp, Box<Expr>)`
-- `Call(Box<Expr>, Vec<Expr>)` - Function calls
-- `Array(Vec<Expr>)` - Array literals
-- `Index(Box<Expr>, Box<Expr>)` - Array indexing
-- `Member(Box<Expr>, String)` - Member access
+- `NullCoalesce(Box<Expr>, Box<Expr>)` — `a ?? b`
+
+**Calls:**
+- `Call(Box<Expr>, Vec<Expr>)` — function call
+- `OptionalCall(Box<Expr>, String, Vec<Expr>)` — `obj?.method(args)` (null-safe)
+
+**Constructors:**
+- `Array(Vec<Expr>)` — array literal, may include `Spread(Box<Expr>)` elements
+- `Dict(Vec<(Expr, Expr)>)` — dict literal `{key: val}`
+- `StructInit(String, Vec<(String, Expr)>)` — `Point(x: 1, y: 2)`
+
+**Functions:**
+- `FunctionExpr(Vec<String>, Box<Stmt>)` — `fn(params) { body }`
+- `AsyncFunctionExpr(Vec<String>, Box<Stmt>)` — `async fn(params) { body }`
+- `Await(Box<Expr>)` — `await expr`
 
 ### Statements (Stmt)
-- `Expr(Expr)` - Expression statement
-- `Let(String, Expr)` - Variable declaration
-- `Assign(Expr, Expr)` - Assignment
-- `CompoundAssign(Expr, BinaryOp, Expr)` - `+=`, `-=`, etc.
-- `Block(Vec<Stmt>)` - Block of statements
-- `If(Expr, Box<Stmt>, Option<Box<Stmt>>)` - If/else
-- `While(Expr, Box<Stmt>)` - While loop
-- `For(String, Expr, Box<Stmt>)` - For-in loop
-- `Return(Option<Expr>)` - Return statement
-- `Break`, `Continue` - Loop control
-- `Function(String, Vec<String>, Box<Stmt>)` - Function declaration
+- `Expr(Expr)` — expression statement
+- `Let(String, Expr)` — variable declaration
+- `Assign(Expr, Expr)` — assignment
+- `CompoundAssign(Expr, BinaryOp, Expr)` — `+=`, `-=`, etc.
+- `Block(Vec<Stmt>)` — block of statements
+- `If(Expr, Box<Stmt>, Option<Box<Stmt>>)` — if/else
+- `While(Expr, Box<Stmt>)` — while loop
+- `For(String, Expr, Box<Stmt>)` — for-in single binding
+- `ForKV(String, String, Expr, Box<Stmt>)` — for key, value in dict
+- `Labeled(String, Box<Stmt>)` — labeled loop for break/continue targets
+- `Break(Option<String>)` — break with optional label
+- `Continue(Option<String>)` — continue with optional label
+- `Return(Option<Expr>)` — return statement
+- `Function(String, Vec<(String, Option<Expr>)>, Box<Stmt>)` — named function (params may have defaults)
+- `AsyncFunction(String, Vec<(String, Option<Expr>)>, Box<Stmt>)` — `async fn`
+- `Struct(String, Vec<String>, Vec<Stmt>)` — struct definition
+- `Import(String, Option<String>)` — `import mod` or `import mod as alias`
+- `FromImport(String, Vec<(String, Option<String>)>)` — `from mod import fn`
+- `TryCatch(Box<Stmt>, String, Box<Stmt>, Option<Box<Stmt>>)` — try/catch/finally
+- `Throw(Expr)` — throw expression
 
 ## Operator Precedence (Lowest to Highest)
 
-1. Logical OR (`||`)
-2. Logical AND (`&&`)
-3. Equality (`==`, `!=`)
-4. Comparison (`<`, `>`, `<=`, `>=`)
-5. Addition/Subtraction (`+`, `-`)
-6. Multiplication/Division/Modulo (`*`, `/`, `%`)
-7. Unary (`-`, `!`)
-8. Postfix (calls, indexing, member access)
-9. Primary (literals, identifiers, grouping)
+1. Null coalescing (`??`)
+2. Logical OR (`||`)
+3. Logical AND (`&&`)
+4. Equality (`==`, `!=`)
+5. Comparison (`<`, `>`, `<=`, `>=`)
+6. Addition/Subtraction (`+`, `-`)
+7. Multiplication/Division/Modulo (`*`, `/`, `%`)
+8. Unary (`-`, `!`)
+9. Postfix (calls, indexing, member access, optional chaining `?.`)
+10. Primary (literals, identifiers, grouping, `await`)
 
 ## Parser Methods
 
@@ -299,5 +332,5 @@ let program = parser.parse()?;
 
 ---
 
-**Last Updated**: April 17, 2026
-**Status**: 53 unit tests passing — no changes since initial implementation
+**Last Updated**: April 29, 2026
+**Status**: 53 unit tests passing
