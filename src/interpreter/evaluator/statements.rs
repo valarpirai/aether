@@ -122,6 +122,14 @@ impl Evaluator {
                 self.environment.define(name.clone(), struct_def);
                 Ok(ControlFlow::None)
             }
+            Stmt::EnumDecl { name, variants } => {
+                let enum_def = Value::EnumDef {
+                    name: name.clone(),
+                    variants: Rc::new(variants.clone()),
+                };
+                self.environment.define(name.clone(), enum_def);
+                Ok(ControlFlow::None)
+            }
             Stmt::TryCatch(try_body, error_var, catch_body, finally_body) => {
                 let saved_stack_len = self.call_stack.len();
                 let result = match self.exec_stmt_internal(try_body) {

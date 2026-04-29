@@ -75,6 +75,25 @@ impl Evaluator {
                 }
                 func(&arg_values)
             }
+            Value::EnumConstructor {
+                enum_name,
+                variant_name,
+                fields,
+            } => {
+                if arg_values.len() != fields.len() {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: fields.len(),
+                        got: arg_values.len(),
+                    });
+                }
+                let named: Vec<(String, Value)> = fields.into_iter().zip(arg_values).collect();
+                Ok(Value::EnumVariant {
+                    type_name: format!("{}.{}", enum_name, variant_name),
+                    enum_name,
+                    variant_name,
+                    fields: Rc::new(named),
+                })
+            }
             Value::AsyncFunction {
                 params,
                 body,

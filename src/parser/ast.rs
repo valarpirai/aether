@@ -135,6 +135,11 @@ pub enum Stmt {
         fields: Vec<String>,
         methods: Vec<(String, Vec<String>, Box<Stmt>)>,
     },
+    /// Enum declaration (name, variants) — each variant is (name, field_names)
+    EnumDecl {
+        name: String,
+        variants: Vec<(String, Vec<String>)>,
+    },
     /// Line number marker — injected by the parser, updates evaluator's current_line
     Line(usize),
 }

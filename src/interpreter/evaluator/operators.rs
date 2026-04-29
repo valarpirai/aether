@@ -55,8 +55,8 @@ impl Evaluator {
             }
             BinaryOp::Divide => self.eval_divide(left_val, right_val),
             BinaryOp::Modulo => self.eval_modulo(left_val, right_val),
-            BinaryOp::Equal => Ok(Value::Bool(self.values_equal(&left_val, &right_val))),
-            BinaryOp::NotEqual => Ok(Value::Bool(!self.values_equal(&left_val, &right_val))),
+            BinaryOp::Equal => Ok(Value::Bool(Self::values_equal(&left_val, &right_val))),
+            BinaryOp::NotEqual => Ok(Value::Bool(!Self::values_equal(&left_val, &right_val))),
             BinaryOp::Less => self.eval_comparison(left_val, right_val, |a, b| a < b, |a, b| a < b),
             BinaryOp::Greater => {
                 self.eval_comparison(left_val, right_val, |a, b| a > b, |a, b| a > b)
@@ -203,7 +203,7 @@ impl Evaluator {
         }
     }
 
-    pub(super) fn values_equal(&self, left: &Value, right: &Value) -> bool {
+    pub(super) fn values_equal(left: &Value, right: &Value) -> bool {
         match (left, right) {
             (Value::Int(a), Value::Int(b)) => a == b,
             (Value::Float(a), Value::Float(b)) => a == b,
@@ -212,6 +212,25 @@ impl Evaluator {
             (Value::String(a), Value::String(b)) => a == b,
             (Value::Bool(a), Value::Bool(b)) => a == b,
             (Value::Null, Value::Null) => true,
+            (
+                Value::EnumVariant {
+                    type_name: ta,
+                    fields: fa,
+                    ..
+                },
+                Value::EnumVariant {
+                    type_name: tb,
+                    fields: fb,
+                    ..
+                },
+            ) => {
+                ta == tb
+                    && fa.len() == fb.len()
+                    && fa
+                        .iter()
+                        .zip(fb.iter())
+                        .all(|((_, va), (_, vb))| Self::values_equal(va, vb))
+            }
             _ => false,
         }
     }

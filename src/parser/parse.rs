@@ -119,6 +119,9 @@ impl Parser {
         if self.match_token(&[TokenKind::Struct]) {
             return self.struct_declaration();
         }
+        if self.match_token(&[TokenKind::Enum]) {
+            return self.enum_declaration();
+        }
         if self.match_token(&[TokenKind::Import]) {
             return self.import_statement();
         }
@@ -915,6 +918,61 @@ impl Parser {
             fields,
             methods,
         })
+    }
+
+    // Parse enum declaration: enum Name { Variant(fields) UnitVariant ... }
+    fn enum_declaration(&mut self) -> Result<Stmt, ParseError> {
+        let name = if let TokenKind::Identifier(n) = &self.peek().kind {
+            n.clone()
+        } else {
+            return Err(ParseError::UnexpectedToken {
+                expected: "enum name".to_string(),
+                found: self.peek().clone(),
+            });
+        };
+        self.advance();
+        self.consume(TokenKind::LeftBrace, "{")?;
+
+        let mut variants: Vec<(String, Vec<String>)> = Vec::new();
+
+        while !self.check(&TokenKind::RightBrace) && !self.is_at_end() {
+            let variant_name = if let TokenKind::Identifier(v) = &self.peek().kind {
+                v.clone()
+            } else {
+                return Err(ParseError::UnexpectedToken {
+                    expected: "variant name".to_string(),
+                    found: self.peek().clone(),
+                });
+            };
+            self.advance();
+
+            let fields = if self.match_token(&[TokenKind::LeftParen]) {
+                let mut f = Vec::new();
+                while !self.check(&TokenKind::RightParen) && !self.is_at_end() {
+                    if let TokenKind::Identifier(field) = &self.peek().kind {
+                        f.push(field.clone());
+                        self.advance();
+                        if !self.match_token(&[TokenKind::Comma]) {
+                            break;
+                        }
+                    } else {
+                        return Err(ParseError::UnexpectedToken {
+                            expected: "field name".to_string(),
+                            found: self.peek().clone(),
+                        });
+                    }
+                }
+                self.consume(TokenKind::RightParen, ")")?;
+                f
+            } else {
+                Vec::new()
+            };
+
+            variants.push((variant_name, fields));
+        }
+
+        self.consume(TokenKind::RightBrace, "}")?;
+        Ok(Stmt::EnumDecl { name, variants })
     }
 
     // Parse struct initialization: StructName { field: value, ... }

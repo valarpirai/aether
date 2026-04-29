@@ -409,6 +409,7 @@ impl Scanner {
             "catch" => TokenKind::Catch,
             "throw" => TokenKind::Throw,
             "struct" => TokenKind::Struct,
+            "enum" => TokenKind::Enum,
             "async" => TokenKind::Async,
             "await" => TokenKind::Await,
             "finally" => TokenKind::Finally,

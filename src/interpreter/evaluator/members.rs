@@ -13,7 +13,14 @@ impl Evaluator {
         member: &str,
     ) -> Result<Value, RuntimeError> {
         let obj_val = self.eval_expr(object)?;
+        self.eval_member_on_value(obj_val, member)
+    }
 
+    pub(super) fn eval_member_on_value(
+        &mut self,
+        obj_val: Value,
+        member: &str,
+    ) -> Result<Value, RuntimeError> {
         match (&obj_val, member) {
             (Value::Array(elements), "length") => Ok(Value::Int(elements.len() as i64)),
             (Value::String(s), "length") => Ok(Value::Int(s.len() as i64)),
@@ -76,6 +83,43 @@ impl Evaluator {
 
             (Value::FileLines(state), "has_next") => Ok(Value::Bool(state.borrow().has_next())),
 
+            (Value::EnumDef { name, variants }, variant_name) => {
+                let found = variants.iter().find(|(v, _)| v == variant_name);
+                match found {
+                    Some((_, fields)) if fields.is_empty() => Ok(Value::EnumVariant {
+                        type_name: format!("{}.{}", name, variant_name),
+                        enum_name: name.clone(),
+                        variant_name: variant_name.to_string(),
+                        fields: Rc::new(Vec::new()),
+                    }),
+                    Some((_, fields)) => Ok(Value::EnumConstructor {
+                        enum_name: name.clone(),
+                        variant_name: variant_name.to_string(),
+                        fields: fields.clone(),
+                    }),
+                    None => Err(RuntimeError::InvalidOperation(format!(
+                        "Enum '{}' has no variant '{}'",
+                        name, variant_name
+                    ))),
+                }
+            }
+
+            (
+                Value::EnumVariant {
+                    type_name, fields, ..
+                },
+                prop,
+            ) => fields
+                .iter()
+                .find(|(n, _)| n == prop)
+                .map(|(_, v)| v.clone())
+                .ok_or_else(|| {
+                    RuntimeError::InvalidOperation(format!(
+                        "Variant '{}' has no field '{}'",
+                        type_name, prop
+                    ))
+                }),
+
             (obj, prop) => Err(RuntimeError::InvalidOperation(format!(
                 "Property '{}' does not exist on type '{}'",
                 prop,
@@ -91,6 +135,17 @@ impl Evaluator {
         args: &[Expr],
     ) -> Result<Value, RuntimeError> {
         let obj_val = self.eval_expr(object)?;
+
+        // For EnumDef, member access returns a constructor — eval it and dispatch
+        // through call_value instead of the method dispatch table.
+        if matches!(obj_val, Value::EnumDef { .. }) {
+            let member = self.eval_member_on_value(obj_val, method)?;
+            let arg_values: Vec<Value> = args
+                .iter()
+                .map(|a| self.eval_expr(a))
+                .collect::<Result<_, _>>()?;
+            return self.call_value(member, arg_values);
+        }
 
         match (&obj_val, method) {
             // Array methods
@@ -148,7 +203,9 @@ impl Evaluator {
                     });
                 }
                 let needle = self.eval_expr(&args[0])?;
-                let found = elements.iter().any(|elem| self.values_equal(elem, &needle));
+                let found = elements
+                    .iter()
+                    .any(|elem| Evaluator::values_equal(elem, &needle));
                 Ok(Value::Bool(found))
             }
             (Value::Array(elements), "sort") => {

@@ -234,7 +234,7 @@ fn main() {
     }
 
     accept_next()
-    event_loop()
+    event_loop_forever()   // keeps waiting between connections
 }
 ```
 

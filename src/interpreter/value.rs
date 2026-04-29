@@ -79,6 +79,25 @@ pub enum Value {
     },
     /// Lazy file-line iterator — reads one line at a time without buffering the whole file
     FileLines(Rc<RefCell<FileIterState>>),
+    /// Enum type definition — holds all variant names and their field lists
+    EnumDef {
+        name: String,
+        variants: Rc<Vec<(String, Vec<String>)>>,
+    },
+    /// Callable constructor for an enum variant with fields (e.g. Shape.Circle)
+    EnumConstructor {
+        enum_name: String,
+        variant_name: String,
+        fields: Vec<String>,
+    },
+    /// Runtime instance of an enum variant
+    EnumVariant {
+        enum_name: String,
+        variant_name: String,
+        /// Pre-computed "EnumName.VariantName" — returned by type()
+        type_name: String,
+        fields: Rc<Vec<(String, Value)>>,
+    },
 }
 
 /// State of a Promise value
@@ -267,6 +286,9 @@ impl Value {
             Value::Promise(_) => "promise",
             Value::ErrorVal { .. } => "error",
             Value::FileLines(_) => "file_lines",
+            Value::EnumDef { .. } => "enum",
+            Value::EnumConstructor { .. } => "enum_constructor",
+            Value::EnumVariant { type_name, .. } => type_name.as_str(),
         }
     }
 }
@@ -317,6 +339,20 @@ impl PartialEq for Value {
             (Value::Promise(_), Value::Promise(_)) => false,
             (Value::ErrorVal { message: a, .. }, Value::ErrorVal { message: b, .. }) => a == b,
             (Value::FileLines(_), Value::FileLines(_)) => false,
+            (Value::EnumDef { name: a, .. }, Value::EnumDef { name: b, .. }) => a == b,
+            (Value::EnumConstructor { .. }, Value::EnumConstructor { .. }) => false,
+            (
+                Value::EnumVariant {
+                    type_name: ta,
+                    fields: fa,
+                    ..
+                },
+                Value::EnumVariant {
+                    type_name: tb,
+                    fields: fb,
+                    ..
+                },
+            ) => ta == tb && fa == fb,
             _ => false,
         }
     }
@@ -435,6 +471,29 @@ impl fmt::Display for Value {
                     write!(f, "<file_lines:open>")
                 } else {
                     write!(f, "<file_lines:eof>")
+                }
+            }
+            Value::EnumDef { name, .. } => write!(f, "<enum {}>", name),
+            Value::EnumConstructor {
+                enum_name,
+                variant_name,
+                ..
+            } => write!(f, "<constructor {}.{}>", enum_name, variant_name),
+            Value::EnumVariant {
+                type_name, fields, ..
+            } => {
+                let f_list = fields.as_ref();
+                if f_list.is_empty() {
+                    write!(f, "{}", type_name)
+                } else {
+                    write!(f, "{}(", type_name)?;
+                    for (i, (_, v)) in f_list.iter().enumerate() {
+                        if i > 0 {
+                            write!(f, ", ")?;
+                        }
+                        write!(f, "{}", v)?;
+                    }
+                    write!(f, ")")
                 }
             }
         }
