@@ -45,6 +45,7 @@ pub enum TokenKind {
     Async,
     Await,
     Finally,
+    Match,
 
     // Operators
     Plus,    // +
@@ -54,6 +55,7 @@ pub enum TokenKind {
     Percent, // %
 
     Equal,      // =
+    FatArrow,   // =>
     PlusEqual,  // +=
     MinusEqual, // -=
     StarEqual,  // *=
@@ -69,6 +71,7 @@ pub enum TokenKind {
     And,              // &&
     Or,               // ||
     Not,              // !
+    Pipe,             // | (for match or-patterns)
     QuestionQuestion, // ??
     QuestionDot,      // ?.
 

@@ -140,8 +140,28 @@ pub enum Stmt {
         name: String,
         variants: Vec<(String, Vec<String>)>,
     },
+    /// match expr { pattern => body, ... }
+    Match {
+        subject: Expr,
+        arms: Vec<(Pattern, Box<Stmt>)>,
+    },
     /// Line number marker — injected by the parser, updates evaluator's current_line
     Line(usize),
+}
+
+/// Pattern for match arms
+#[derive(Debug, Clone, PartialEq)]
+pub enum Pattern {
+    /// Literal value: 1, "hello", true, null
+    Literal(Expr),
+    /// Catch-all: _
+    Wildcard,
+    /// Bind to variable: x (non-underscore identifier not followed by {})
+    Bind(String),
+    /// Enum variant with fields: Some(x), None, Status::Ok
+    EnumVariant(String, Option<String>, Vec<String>),
+    /// Or-pattern: pat1 | pat2
+    Or(Vec<Pattern>),
 }
 
 /// Program (top-level statements)

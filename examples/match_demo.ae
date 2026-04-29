@@ -1,0 +1,74 @@
+// match statement demo
+
+fn classify(n) {
+    match n {
+        0          => return "zero",
+        1 | 2 | 3  => return "small",
+        _          => return "large",
+    }
+}
+
+fn describe_bool(b) {
+    match b {
+        true  => return "yes",
+        false => return "no",
+    }
+}
+
+fn http_label(code) {
+    match code {
+        200 => return "OK",
+        201 => return "Created",
+        404 => return "Not Found",
+        500 => return "Server Error",
+        _   => return "Unknown",
+    }
+}
+
+enum Shape { Circle(radius) Rect(width, height) Point }
+
+fn area(shape) {
+    match shape {
+        Shape.Circle(r) => return 3 * r * r,
+        Shape.Rect(w, h) => return w * h,
+        Shape.Point => return 0,
+    }
+}
+
+fn main() {
+    println("=== Literal patterns ===")
+    println(classify(0))    // zero
+    println(classify(2))    // small
+    println(classify(99))   // large
+
+    println()
+    println("=== Boolean patterns ===")
+    println(describe_bool(true))   // yes
+    println(describe_bool(false))  // no
+
+    println()
+    println("=== Or-patterns ===")
+    println(http_label(200))  // OK
+    println(http_label(404))  // Not Found
+    println(http_label(999))  // Unknown
+
+    println()
+    println("=== Enum variant patterns ===")
+    println(area(Shape.Circle(5)))     // 75
+    println(area(Shape.Rect(4, 6)))    // 24
+    println(area(Shape.Point))         // 0
+
+    println()
+    println("=== Bind variable ===")
+    let x = 42
+    match x {
+        n => println("captured: " + str(n)),
+    }
+
+    println()
+    println("=== Negative literal ===")
+    match -7 {
+        -7 => println("negative seven"),
+        _  => println("other"),
+    }
+}

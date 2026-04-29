@@ -151,6 +151,8 @@ impl Scanner {
             '=' => {
                 let kind = if self.match_char('=') {
                     TokenKind::EqualEqual
+                } else if self.match_char('>') {
+                    TokenKind::FatArrow
                 } else {
                     TokenKind::Equal
                 };
@@ -183,7 +185,7 @@ impl Scanner {
                 if self.match_char('|') {
                     self.add_token(TokenKind::Or, start_column);
                 } else {
-                    return Err(LexerError::UnexpectedCharacter(c, self.line, start_column));
+                    self.add_token(TokenKind::Pipe, start_column);
                 }
             }
             '?' => {
@@ -413,6 +415,7 @@ impl Scanner {
             "async" => TokenKind::Async,
             "await" => TokenKind::Await,
             "finally" => TokenKind::Finally,
+            "match" => TokenKind::Match,
             _ => TokenKind::Identifier(text.clone()),
         };
 

@@ -196,31 +196,7 @@ impl Parser {
         };
         self.advance();
 
-        // Parse parameter list
-        self.consume(TokenKind::LeftParen, "(")?;
-        let mut params = Vec::new();
-
-        if !self.check(&TokenKind::RightParen) {
-            loop {
-                if let TokenKind::Identifier(param) = &self.peek().kind {
-                    params.push(param.clone());
-                    self.advance();
-                } else {
-                    return Err(ParseError::UnexpectedToken {
-                        expected: "parameter name".to_string(),
-                        found: self.peek().clone(),
-                    });
-                }
-
-                if !self.match_token(&[TokenKind::Comma]) {
-                    break;
-                }
-            }
-        }
-
-        self.consume(TokenKind::RightParen, ")")?;
-
-        // Parse function body (must be a block)
+        let params = self.parse_params()?;
         self.consume(TokenKind::LeftBrace, "{")?;
         let body = self.block_statement()?;
 
@@ -272,6 +248,9 @@ impl Parser {
         if self.match_token(&[TokenKind::Throw]) {
             return self.throw_statement();
         }
+        if self.match_token(&[TokenKind::Match]) {
+            return self.parse_match_statement();
+        }
         self.expression_statement()
     }
 
@@ -287,6 +266,30 @@ impl Parser {
 
         self.consume(TokenKind::RightBrace, "}")?;
         Ok(Stmt::Block(statements))
+    }
+
+    // Parse a parenthesised parameter list: (a, b, c) — returns names only
+    fn parse_params(&mut self) -> Result<Vec<String>, ParseError> {
+        self.consume(TokenKind::LeftParen, "(")?;
+        let mut params = Vec::new();
+        if !self.check(&TokenKind::RightParen) {
+            loop {
+                if let TokenKind::Identifier(param) = &self.peek().kind {
+                    params.push(param.clone());
+                    self.advance();
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        expected: "parameter name".to_string(),
+                        found: self.peek().clone(),
+                    });
+                }
+                if !self.match_token(&[TokenKind::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenKind::RightParen, ")")?;
+        Ok(params)
     }
 
     // Parse if statement: if (condition) then_branch [else else_branch]
@@ -730,34 +733,9 @@ impl Parser {
 
     // Parse function expression: fn(params) { body }
     fn function_expression(&mut self) -> Result<Expr, ParseError> {
-        // Parse parameter list
-        self.consume(TokenKind::LeftParen, "(")?;
-        let mut params = Vec::new();
-
-        if !self.check(&TokenKind::RightParen) {
-            loop {
-                if let TokenKind::Identifier(param) = &self.peek().kind {
-                    params.push(param.clone());
-                    self.advance();
-                } else {
-                    return Err(ParseError::UnexpectedToken {
-                        expected: "parameter name".to_string(),
-                        found: self.peek().clone(),
-                    });
-                }
-
-                if !self.match_token(&[TokenKind::Comma]) {
-                    break;
-                }
-            }
-        }
-
-        self.consume(TokenKind::RightParen, ")")?;
-
-        // Parse function body (must be a block)
+        let params = self.parse_params()?;
         self.consume(TokenKind::LeftBrace, "{")?;
         let body = self.block_statement()?;
-
         Ok(Expr::FunctionExpr(params, Rc::new(body)))
     }
 
@@ -773,25 +751,7 @@ impl Parser {
         };
         self.advance();
 
-        self.consume(TokenKind::LeftParen, "(")?;
-        let mut params = Vec::new();
-        if !self.check(&TokenKind::RightParen) {
-            loop {
-                if let TokenKind::Identifier(param) = &self.peek().kind {
-                    params.push(param.clone());
-                    self.advance();
-                } else {
-                    return Err(ParseError::UnexpectedToken {
-                        expected: "parameter name".to_string(),
-                        found: self.peek().clone(),
-                    });
-                }
-                if !self.match_token(&[TokenKind::Comma]) {
-                    break;
-                }
-            }
-        }
-        self.consume(TokenKind::RightParen, ")")?;
+        let params = self.parse_params()?;
         self.consume(TokenKind::LeftBrace, "{")?;
         let body = self.block_statement()?;
         Ok(Stmt::AsyncFunction(name, params, Rc::new(body)))
@@ -799,25 +759,7 @@ impl Parser {
 
     // Parse async function expression: async fn(params) { body }
     fn async_function_expression(&mut self) -> Result<Expr, ParseError> {
-        self.consume(TokenKind::LeftParen, "(")?;
-        let mut params = Vec::new();
-        if !self.check(&TokenKind::RightParen) {
-            loop {
-                if let TokenKind::Identifier(param) = &self.peek().kind {
-                    params.push(param.clone());
-                    self.advance();
-                } else {
-                    return Err(ParseError::UnexpectedToken {
-                        expected: "parameter name".to_string(),
-                        found: self.peek().clone(),
-                    });
-                }
-                if !self.match_token(&[TokenKind::Comma]) {
-                    break;
-                }
-            }
-        }
-        self.consume(TokenKind::RightParen, ")")?;
+        let params = self.parse_params()?;
         self.consume(TokenKind::LeftBrace, "{")?;
         let body = self.block_statement()?;
         Ok(Expr::AsyncFunctionExpr(params, Rc::new(body)))
@@ -869,25 +811,7 @@ impl Parser {
                 };
                 self.advance();
 
-                self.consume(TokenKind::LeftParen, "(")?;
-                let mut params = Vec::new();
-                if !self.check(&TokenKind::RightParen) {
-                    loop {
-                        if let TokenKind::Identifier(param) = &self.peek().kind {
-                            params.push(param.clone());
-                            self.advance();
-                        } else {
-                            return Err(ParseError::UnexpectedToken {
-                                expected: "parameter name".to_string(),
-                                found: self.peek().clone(),
-                            });
-                        }
-                        if !self.match_token(&[TokenKind::Comma]) {
-                            break;
-                        }
-                    }
-                }
-                self.consume(TokenKind::RightParen, ")")?;
+                let params = self.parse_params()?;
                 self.consume(TokenKind::LeftBrace, "{")?;
                 let body = self.block_statement()?;
                 methods.push((method_name, params, Box::new(body)));
@@ -1135,5 +1059,150 @@ impl Parser {
     fn throw_statement(&mut self) -> Result<Stmt, ParseError> {
         let value = self.expression()?;
         Ok(Stmt::Throw(value))
+    }
+
+    // Parse a single pattern for a match arm
+    fn parse_pattern(&mut self) -> Result<Pattern, ParseError> {
+        let pat = self.parse_single_pattern()?;
+
+        // Or-pattern: pat1 | pat2 | ...
+        if self.check(&TokenKind::Pipe) {
+            let mut alts = vec![pat];
+            while self.match_token(&[TokenKind::Pipe]) {
+                alts.push(self.parse_single_pattern()?);
+            }
+            return Ok(Pattern::Or(alts));
+        }
+
+        Ok(pat)
+    }
+
+    fn parse_single_pattern(&mut self) -> Result<Pattern, ParseError> {
+        // Wildcard: _
+        if let TokenKind::Identifier(name) = &self.peek().kind {
+            if name == "_" {
+                self.advance();
+                return Ok(Pattern::Wildcard);
+            }
+        }
+
+        // Literal patterns
+        if self.match_token(&[TokenKind::True]) {
+            return Ok(Pattern::Literal(Expr::Bool(true)));
+        }
+        if self.match_token(&[TokenKind::False]) {
+            return Ok(Pattern::Literal(Expr::Bool(false)));
+        }
+        if self.match_token(&[TokenKind::Null]) {
+            return Ok(Pattern::Literal(Expr::Null));
+        }
+        if self.match_token(&[TokenKind::Minus]) {
+            match self.peek().kind {
+                TokenKind::Integer(n) => {
+                    let n = -n;
+                    self.advance();
+                    return Ok(Pattern::Literal(Expr::Integer(n)));
+                }
+                TokenKind::Float(f) => {
+                    let f = -f;
+                    self.advance();
+                    return Ok(Pattern::Literal(Expr::Float(f)));
+                }
+                _ => {
+                    return Err(ParseError::UnexpectedToken {
+                        expected: "number after '-' in pattern".to_string(),
+                        found: self.peek().clone(),
+                    });
+                }
+            }
+        }
+        if let TokenKind::Integer(n) = self.peek().kind {
+            self.advance();
+            return Ok(Pattern::Literal(Expr::Integer(n)));
+        }
+        if let TokenKind::Float(f) = self.peek().kind {
+            self.advance();
+            return Ok(Pattern::Literal(Expr::Float(f)));
+        }
+        if let TokenKind::String(s) = &self.peek().kind {
+            let s = s.clone();
+            self.advance();
+            return Ok(Pattern::Literal(Expr::String(s)));
+        }
+
+        // Identifier: Enum.Variant(fields), Enum.Variant, or bind variable
+        if let TokenKind::Identifier(first) = &self.peek().kind {
+            let first = first.clone();
+            self.advance();
+
+            // Enum.Variant pattern: Identifier followed by '.' on same line
+            if self.peek().kind == TokenKind::Dot && self.peek().line == self.previous().line {
+                self.advance(); // consume '.'
+                let variant = if let TokenKind::Identifier(v) = &self.peek().kind {
+                    let v = v.clone();
+                    self.advance();
+                    v
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        expected: "variant name after '.'".to_string(),
+                        found: self.peek().clone(),
+                    });
+                };
+                let fields = if self.match_token(&[TokenKind::LeftParen]) {
+                    let mut f = Vec::new();
+                    while !self.check(&TokenKind::RightParen) && !self.is_at_end() {
+                        if let TokenKind::Identifier(field) = &self.peek().kind {
+                            f.push(field.clone());
+                            self.advance();
+                            if !self.match_token(&[TokenKind::Comma]) {
+                                break;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    self.consume(TokenKind::RightParen, ")")?;
+                    f
+                } else {
+                    Vec::new()
+                };
+                return Ok(Pattern::EnumVariant(first, Some(variant), fields));
+            }
+
+            // Plain identifier: bind variable
+            return Ok(Pattern::Bind(first));
+        }
+
+        Err(ParseError::UnexpectedToken {
+            expected: "pattern".to_string(),
+            found: self.peek().clone(),
+        })
+    }
+
+    // Parse match statement: match expr { pattern => stmt, ... }
+    fn parse_match_statement(&mut self) -> Result<Stmt, ParseError> {
+        let subject = self.expression()?;
+        self.consume(TokenKind::LeftBrace, "{")?;
+
+        let mut arms: Vec<(Pattern, Box<Stmt>)> = Vec::new();
+
+        while !self.check(&TokenKind::RightBrace) && !self.is_at_end() {
+            let pattern = self.parse_pattern()?;
+            self.consume(TokenKind::FatArrow, "=>")?;
+            arms.push((pattern, Box::new(self.match_arm_body()?)));
+            self.match_token(&[TokenKind::Comma]);
+        }
+
+        self.consume(TokenKind::RightBrace, "}")?;
+        Ok(Stmt::Match { subject, arms })
+    }
+
+    fn match_arm_body(&mut self) -> Result<Stmt, ParseError> {
+        if self.check(&TokenKind::LeftBrace) {
+            self.advance(); // consume '{'
+            self.block_statement()
+        } else {
+            self.statement()
+        }
     }
 }

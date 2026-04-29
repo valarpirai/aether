@@ -1,6 +1,6 @@
 use crate::interpreter::environment::RuntimeError;
 use crate::interpreter::value::{IteratorSource, Value};
-use crate::parser::ast::Stmt;
+use crate::parser::ast::{Pattern, Stmt};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -151,9 +151,79 @@ impl Evaluator {
                 }
                 result
             }
+            Stmt::Match { subject, arms } => {
+                let val = self.eval_expr(subject)?;
+                for (pattern, body) in arms {
+                    if let Some(bindings) = self.match_pattern(pattern, &val) {
+                        for (name, bound) in bindings {
+                            self.environment.define(name, bound);
+                        }
+                        return self.exec_stmt_internal(body);
+                    }
+                }
+                Ok(ControlFlow::None)
+            }
             Stmt::Line(n) => {
                 self.calls.current_line = *n;
                 Ok(ControlFlow::None)
+            }
+        }
+    }
+
+    #[allow(clippy::only_used_in_recursion)]
+    fn match_pattern(&self, pattern: &Pattern, val: &Value) -> Option<Vec<(String, Value)>> {
+        use crate::parser::ast::Expr as AstExpr;
+        match pattern {
+            Pattern::Wildcard => Some(vec![]),
+            Pattern::Bind(name) => Some(vec![(name.clone(), val.clone())]),
+            Pattern::Literal(expr) => {
+                let matches = match (expr, val) {
+                    (AstExpr::Bool(b), Value::Bool(v)) => b == v,
+                    (AstExpr::Null, Value::Null) => true,
+                    (AstExpr::Integer(n), Value::Int(v)) => n == v,
+                    (AstExpr::Float(f), Value::Float(v)) => f == v,
+                    (AstExpr::String(s), Value::String(rc)) => s.as_str() == rc.as_ref().as_str(),
+                    _ => false,
+                };
+                if matches {
+                    Some(vec![])
+                } else {
+                    None
+                }
+            }
+            Pattern::EnumVariant(enum_name, variant_opt, field_names) => {
+                if let Value::EnumVariant {
+                    enum_name: en,
+                    variant_name: vn,
+                    fields,
+                    ..
+                } = val
+                {
+                    let name_matches = en == enum_name;
+                    let variant_matches = variant_opt.as_ref().is_none_or(|v| v == vn);
+                    if !(name_matches && variant_matches) {
+                        return None;
+                    }
+                    let mut bindings = Vec::new();
+                    for (i, fname) in field_names.iter().enumerate() {
+                        if fname == "_" {
+                            continue;
+                        }
+                        let bound = fields.get(i).map(|(_, v)| v.clone()).unwrap_or(Value::Null);
+                        bindings.push((fname.clone(), bound));
+                    }
+                    Some(bindings)
+                } else {
+                    None
+                }
+            }
+            Pattern::Or(alts) => {
+                for alt in alts {
+                    if let Some(bindings) = self.match_pattern(alt, val) {
+                        return Some(bindings);
+                    }
+                }
+                None
             }
         }
     }
