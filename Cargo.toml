@@ -6,7 +6,7 @@ authors = ["Aether Contributors"]
 description = "A general-purpose, dynamically typed programming language with automatic memory management"
 readme = "README.md"
 license = "MIT"
-repository = "https://github.com/yourusername/aether"
+repository = "https://github.com/valarpirai/aether"
 keywords = ["interpreter", "programming-language", "dynamic", "repl"]
 categories = ["development-tools"]
 
