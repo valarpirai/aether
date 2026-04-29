@@ -9,6 +9,9 @@ This document lists every knob that controls Aether's behaviour, grouped by how 
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
 | `AETHER_WORKERS` | positive integer | _(none)_ | Enable the I/O thread pool with this many worker threads. When unset, I/O builtins (`http_get`, `sleep`, `read_file`, `write_file`, `http_post`) run synchronously on the main thread. When set, each call returns a `Promise` immediately and the I/O runs on a worker thread. |
+| `AETHER_EVENT_LOOP_TIMEOUT` | positive float (seconds) | _(none)_ | Default timeout for `event_loop()` calls that pass no argument. `event_loop(n)` with an explicit argument always overrides this. When unset, `event_loop()` runs until the queue is empty with no deadline. |
+| `AETHER_QUEUE_LIMIT` | positive integer | `1024` | Maximum number of pending callbacks in the event loop queue. `on_ready()` throws a runtime error when this limit is reached (backpressure). Can also be changed at runtime via `set_queue_limit(n)`. |
+| `AETHER_CALL_DEPTH` | positive integer | `100` | Maximum Aether call stack depth before a `StackOverflow` error is raised. |
 | `HOME` | path | _(OS default)_ | REPL history file is written to `$HOME/.aether_history`. If `HOME` is unset, REPL history is disabled for the session. |
 
 ### Example
@@ -16,6 +19,9 @@ This document lists every knob that controls Aether's behaviour, grouped by how 
 ```bash
 # Run a script with a 4-worker I/O pool
 AETHER_WORKERS=4 aether examples/concurrent_io.ae
+
+# Limit event_loop() to 30 seconds and cap queue at 500 entries
+AETHER_EVENT_LOOP_TIMEOUT=30 AETHER_QUEUE_LIMIT=500 aether server.ae
 
 # Override worker count for a single benchmark run
 AETHER_WORKERS=8 aether bench.ae
@@ -41,6 +47,23 @@ set_workers(4)          // create/replace pool with 4 workers
 let p = sleep(0.1)      // now runs on pool
 await p
 set_workers(2)          // shrink pool at runtime
+```
+
+---
+
+### `set_queue_limit(n)`
+
+Caps the event loop queue at `n` pending callbacks (backpressure).
+
+- **`n`**: positive integer
+- `on_ready()` throws immediately if the queue is already at the limit.
+- Overrides `AETHER_QUEUE_LIMIT` for the remainder of the program.
+- Default: `1024` (or `AETHER_QUEUE_LIMIT` if set at startup).
+
+```aether
+set_queue_limit(100)    // refuse more than 100 pending callbacks
+on_ready(p1, cb)        // ok if queue < 100
+on_ready(p2, cb)        // throws if queue == 100
 ```
 
 ---

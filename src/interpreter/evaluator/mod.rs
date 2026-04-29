@@ -46,6 +46,8 @@ pub struct Evaluator {
     pub(crate) io_pool: Option<Arc<IoPool>>,
     /// Event loop queue: pending (receiver, callback) pairs for on_ready/event_loop
     pub(crate) event_loop_queue: EventLoopQueue,
+    /// Default timeout for event_loop() (from AETHER_EVENT_LOOP_TIMEOUT env var)
+    pub(crate) event_loop_timeout: Option<f64>,
     /// Most recently seen line number (updated by Stmt::Line markers)
     pub current_line: usize,
     /// Call stack for stack-trace generation in error objects
@@ -53,6 +55,22 @@ pub struct Evaluator {
 }
 
 impl Evaluator {
+    /// Read AETHER_EVENT_LOOP_TIMEOUT from the environment (positive float, in seconds).
+    fn env_event_loop_timeout() -> Option<f64> {
+        std::env::var("AETHER_EVENT_LOOP_TIMEOUT")
+            .ok()
+            .and_then(|s| s.parse::<f64>().ok())
+            .filter(|&v| v > 0.0)
+    }
+
+    /// Read AETHER_QUEUE_LIMIT from the environment (positive integer).
+    fn env_queue_limit() -> Option<usize> {
+        std::env::var("AETHER_QUEUE_LIMIT")
+            .ok()
+            .and_then(|s| s.parse::<usize>().ok())
+            .filter(|&v| v > 0)
+    }
+
     /// Create a new evaluator with a fresh environment (includes stdlib)
     pub fn new() -> Self {
         Self::new_with_stdlib()
@@ -60,6 +78,10 @@ impl Evaluator {
 
     /// Create a new evaluator with stdlib loaded
     pub fn new_with_stdlib() -> Self {
+        let mut queue = EventLoopQueue::new();
+        if let Some(limit) = Self::env_queue_limit() {
+            queue.set_limit(limit);
+        }
         let mut evaluator = Self {
             environment: Environment::new(),
             call_depth: 0,
@@ -68,7 +90,8 @@ impl Evaluator {
             loading_stack: Vec::new(),
             current_file: None,
             io_pool: None,
-            event_loop_queue: EventLoopQueue::new(),
+            event_loop_queue: queue,
+            event_loop_timeout: Self::env_event_loop_timeout(),
             current_line: 0,
             call_stack: Vec::new(),
         };
@@ -79,6 +102,10 @@ impl Evaluator {
 
     /// Create a new evaluator without stdlib (faster for tests)
     pub fn new_without_stdlib() -> Self {
+        let mut queue = EventLoopQueue::new();
+        if let Some(limit) = Self::env_queue_limit() {
+            queue.set_limit(limit);
+        }
         let mut evaluator = Self {
             environment: Environment::new(),
             call_depth: 0,
@@ -87,7 +114,8 @@ impl Evaluator {
             loading_stack: Vec::new(),
             current_file: None,
             io_pool: None,
-            event_loop_queue: EventLoopQueue::new(),
+            event_loop_queue: queue,
+            event_loop_timeout: Self::env_event_loop_timeout(),
             current_line: 0,
             call_stack: Vec::new(),
         };

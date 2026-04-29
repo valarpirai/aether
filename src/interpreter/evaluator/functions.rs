@@ -315,8 +315,9 @@ impl Evaluator {
                             got: args.len(),
                         });
                     }
+                    // Explicit arg overrides env var; no arg uses env var default (or None)
                     let timeout = if args.is_empty() {
-                        None
+                        self.event_loop_timeout
                     } else {
                         match self.eval_expr(&args[0])? {
                             Value::Int(n) => Some(n as f64),
