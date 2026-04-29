@@ -108,7 +108,7 @@ fn main() {
 - [Language Design](DESIGN.html) — Types, syntax, operators, all features
 - [Architecture](ARCHITECTURE.html) — System design and roadmap
 - [Configuration](CONFIGURATION.html) — Env vars, runtime knobs, compile-time constants
-- [Backlog](BACKLOG.html) — Planned features (6 tiers, ~30 items)
+- [Backlog](BACKLOG.html) — Planned features (7 tiers, ~30 items)
 
 ### Implementation Guides
 - [Lexer](LEXER.html) — Tokenization (14 tests)
@@ -151,9 +151,9 @@ fn main() {
 | **Iterators** | `has_next()`, `next()`, for-in over array/dict/set/string/iterator |
 | **Async/await** | `async fn`, `await expr`, Promise caching, `Promise.all` |
 | **Event loop** | `on_ready(promise, callback)`, `event_loop()`; chained callbacks; Node.js-style concurrency |
-| **I/O thread pool** | `set_workers(n)`, `AETHER_WORKERS`; async http, sleep, file I/O |
+| **I/O thread pool** | `set_workers(n)`, `AETHER_IO_WORKERS`; async http, sleep, file I/O |
 | **JSON** | `json_parse()`, `json_stringify()` |
-| **HTTP** | `http_get(url)`, `http_post(url, body)` |
+| **HTTP** | `http_get(url [, opts])`, `http_post(url, body [, opts])` — per-request timeout and user-agent |
 | **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, join, repeat, reverse, starts_with, ends_with |
 | **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
 | **REPL** | rustyline with history, tab-completion, `_help`/`_env`/`_exit` |

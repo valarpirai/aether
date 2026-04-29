@@ -225,7 +225,7 @@ fn cancellable_wait(seconds, should_cancel) {
 - No timezone support
 - No high-precision timers (nanosecond)
 - Sleep is not interruptible
-- No async/non-blocking sleep
+- Synchronous by default; async (non-blocking) when `AETHER_IO_WORKERS` is set or `set_workers(n)` is called
 
 ## See Also
 

@@ -5,9 +5,9 @@ title: Iterator Protocol in Aether
 
 # Iterator Protocol in Aether
 
-**Status**: 🚧 In Design  
-**Phase**: 5 Sprint 3  
-**Target**: Lazy iteration and custom iterators
+**Status**: ✅ Complete  
+**Phase**: 5 Sprint 2  
+**Tests**: 22 tests passing (`tests/iterator_test.rs`)
 
 ## Overview
 
@@ -238,81 +238,39 @@ fn main() {
 }
 ```
 
-## Iterator Methods (Future)
+## Iterator Combinators (Planned)
 
-These would be added to the stdlib:
-
-### map(iterator, func)
-
-Transform each element:
-
-```aether
-let arr = [1, 2, 3]
-let iter = map(arr.iterator(), fn(x) { return x * 2 })
-
-// Yields: 2, 4, 6
-```
-
-### filter(iterator, predicate)
-
-Keep elements matching predicate:
-
-```aether
-let arr = [1, 2, 3, 4, 5]
-let iter = filter(arr.iterator(), fn(x) { return x % 2 == 0 })
-
-// Yields: 2, 4
-```
-
-### take(iterator, n)
-
-Take first n elements:
-
-```aether
-let arr = [1, 2, 3, 4, 5]
-let iter = take(arr.iterator(), 3)
-
-// Yields: 1, 2, 3
-```
-
-### chain(iter1, iter2)
-
-Chain two iterators:
-
-```aether
-let a = [1, 2].iterator()
-let b = [3, 4].iterator()
-let iter = chain(a, b)
-
-// Yields: 1, 2, 3, 4
-```
+Higher-order iterator functions (`map`, `filter`, `take`, `chain` on raw iterators) are planned for a future stdlib sprint. Today, `map()` and `filter()` from `stdlib/collections.ae` work on arrays (not raw iterators). Use `arr.iterator()` then consume via `while` loops for custom transformation pipelines.
 
 ## Implementation Notes
 
 ### Value Type
 
-Add `Iterator` variant to `Value` enum:
+`Iterator` is a variant of `Value` backed by `IteratorState`:
 
 ```rust
 pub enum Value {
-    // ... existing variants
+    // ... other variants
     Iterator(Rc<RefCell<IteratorState>>),
 }
 
 pub struct IteratorState {
-    source: Box<dyn IteratorSource>,
-    exhausted: bool,
+    pub source: IteratorSource,
+    pub index: usize,
 }
 
-trait IteratorSource {
-    fn next(&mut self) -> Option<Value>;
-    fn has_next(&self) -> bool;
+pub enum IteratorSource {
+    Array(Rc<Vec<Value>>),
+    DictKeys(Rc<Vec<(Value, Value)>>),
+    Set(Rc<HashSet<Value>>),
 }
 ```
 
-### For-In Loop Desugaring
+`IteratorState` is `Rc<RefCell<...>>` so it can be mutated (index advances) while remaining Clone-friendly.
 
-Transform for-in loops to use iterators:
+Struct-based iterators (custom `has_next`/`next` methods) are handled at the for-in dispatch level — the evaluator calls `has_next()` and `next()` as method calls on the struct instance.
+
+### For-In Loop Desugaring
 
 ```aether
 // Source:
@@ -320,7 +278,7 @@ for item in collection {
     body
 }
 
-// Desugars to:
+// Desugars to (conceptually):
 {
     let __iter = collection.iterator()
     while (__iter.has_next()) {
@@ -330,13 +288,7 @@ for item in collection {
 }
 ```
 
-### Built-in Iterator Sources
-
-Implement `IteratorSource` trait for:
-- `ArrayIterator` - wraps `Vec<Value>` with index
-- `DictIterator` - wraps `HashMap` keys iterator
-- `SetIterator` - wraps `HashSet` iterator
-- `StructIterator` - calls struct's `next()` and `has_next()` methods
+Strings are iterable via for-in (yields one character at a time) without a separate `IteratorSource` variant — the evaluator handles them directly.
 
 ## Examples
 
@@ -524,29 +476,6 @@ fn map_iterator(iter, func) { ... }  // Must handle all types
 
 Iterator abstraction adds method call overhead compared to direct indexing.
 
-## Migration Path
-
-### Phase 1: Core Protocol
-- Add `Iterator` value type
-- Implement `iterator()` for arrays, dicts, sets
-- Add `next()` and `has_next()` methods
-- Tests for basic iteration
-
-### Phase 2: For-In Integration
-- Desugar for-in to use iterators
-- Maintain backwards compatibility
-- Test all existing for-in loops
-
-### Phase 3: Stdlib Iterators
-- Add iterator utility functions (map, filter, take, chain)
-- Document patterns
-- Examples
-
-### Phase 4: Custom Iterators
-- Enable struct-based iterators
-- Document custom iterator pattern
-- Advanced examples
-
 ## See Also
 
 - [DESIGN.md](DESIGN.html) - Language specification
@@ -555,5 +484,5 @@ Iterator abstraction adds method call overhead compared to direct indexing.
 
 ---
 
-**Last Updated**: 2026-04-28  
-**Status**: Design document (not yet implemented)
+**Last Updated**: 2026-04-29  
+**Status**: Complete — 22 tests passing

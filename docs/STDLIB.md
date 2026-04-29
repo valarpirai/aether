@@ -171,6 +171,15 @@ Sum of array elements.
 sum([1, 2, 3, 4])  // 10
 ```
 
+#### `sign(n)`
+Returns -1, 0, or 1 based on the sign of `n`.
+
+```aether
+sign(-5)  // -1
+sign(0)   // 0
+sign(7)   // 1
+```
+
 #### `clamp(value, min_val, max_val)`
 Constrain value to range.
 
@@ -371,18 +380,51 @@ Track performance of stdlib functions vs. Rust built-ins:
 - `map()` vs. manual loop
 - Function call overhead
 
+## Built-in Global Functions
+
+These are implemented in Rust (not stdlib) and available without any import:
+
+| Function | Description |
+|----------|-------------|
+| `print(...)` | Print without newline |
+| `println(...)` | Print with newline |
+| `len(v)` | Length of string, array, dict, or set |
+| `type(v)` | Type name as string |
+| `int(v)` / `float(v)` / `str(v)` / `bool(v)` | Type conversions |
+| `input(prompt)` | Read line from stdin |
+| `set([...])` | Create a set from an array |
+| `json_parse(s)` | Parse JSON string |
+| `json_stringify(v)` | Serialize value to JSON |
+| `clock()` | Unix epoch as float (seconds) |
+| `sleep(secs)` | Sleep (sync, or async via I/O pool) |
+| `http_get(url [, opts])` | HTTP GET |
+| `http_post(url, body [, opts])` | HTTP POST |
+| `read_file(path)` | Read file as string |
+| `write_file(path, content)` | Write string to file |
+| `read_lines(path)` | Read file as array of lines |
+| `read_bytes(path)` | Read file as byte array |
+| `write_bytes(path, bytes)` | Write byte array to file |
+| `append_file(path, content)` | Append to file |
+| `lines_iter(path)` | Lazy line-by-line file iterator |
+| `file_exists(path)` | Check if path exists |
+| `is_file(path)` / `is_dir(path)` | Check path type |
+| `list_dir(path)` | List directory entries |
+| `path_join(...)` | Join path components |
+| `rename(from, to)` | Rename file or directory |
+| `rm(path)` | Remove file or directory |
+| `mkdir(path)` | Create directory |
+| `set_workers(n)` | Configure I/O thread pool |
+| `on_ready(promise, cb)` | Register event loop callback |
+| `event_loop([timeout])` | Run event loop |
+| `set_queue_limit(n)` | Cap event loop queue |
+| `set_task_timeout(secs\|null)` | Per-task deadline |
+
 ## Future Enhancements
 
-### Standard Library Expansion (Planned)
-- **JSON**: `json_parse()`, `json_stringify()` (requires Rust builtins)
-- **Time**: `clock()`, `sleep()` (requires Rust builtins)
-- **HTTP**: `http_get()`, `http_post()` (requires reqwest dependency)
+### Planned Additions
 - **RegEx**: Regular expression matching
-
-### Advanced Features
 - **Lazy sequences**: Infinite ranges, generators
-- **Memoization**: Cache function results
-- **Parallel operations**: `pmap()` for concurrent execution
+- **Iterator combinators**: `take`, `chain`, `zip` on raw iterators
 
 ## Contribution Guidelines
 

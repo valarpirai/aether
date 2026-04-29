@@ -11,7 +11,9 @@ Aether provides structured error handling through `try/catch/throw` statements, 
 ## Table of Contents
 - [Throwing Errors](#throwing-errors)
 - [Catching Errors](#catching-errors)
+- [Finally Block](#finally-block)
 - [Error Propagation](#error-propagation)
+- [Error Object Properties](#error-object-properties)
 - [Error Values](#error-values)
 - [Best Practices](#best-practices)
 - [Examples](#examples)
@@ -86,6 +88,41 @@ try {
 println("Result:", result)  // Result: -1
 ```
 
+## Finally Block
+
+Use `finally` for guaranteed cleanup code that runs regardless of whether an error occurred:
+
+```aether
+fn process_file(filename) {
+    let data = read_file(filename)
+    try {
+        transform(data)
+    } catch(e) {
+        println("Transform failed:", e)
+        throw e
+    } finally {
+        println("Cleanup always runs")
+    }
+}
+```
+
+The `finally` block runs:
+- After the `try` body completes normally
+- After the `catch` block completes (even if the error is re-thrown)
+- Even if `return` is executed inside `try` or `catch`
+
+```aether
+fn with_finally() {
+    try {
+        return 42
+    } finally {
+        println("finally runs before return")
+    }
+}
+```
+
+`finally` is optional — `try/catch` without `finally` is valid.
+
 ## Error Propagation
 
 Errors propagate up the call stack until caught:
@@ -122,6 +159,46 @@ fn main() {
     println("Never reached")
 }
 ```
+
+## Error Object Properties
+
+When a runtime error is caught, the error variable `e` is an error object with two properties:
+
+```aether
+try {
+    throw "something went wrong"
+} catch(e) {
+    println(e.message)      // "something went wrong"
+    println(e.stack_trace)  // call stack at the time of the error
+}
+```
+
+### `e.message`
+
+The error message string. For user-thrown errors this is the thrown value converted to string.
+
+### `e.stack_trace`
+
+A formatted string showing the call stack at the point the error was thrown:
+
+```
+fn divide(a, b) {
+    if (b == 0) { throw "division by zero" }
+    return a / b
+}
+fn calculate() { return divide(10, 0) }
+
+try {
+    calculate()
+} catch(e) {
+    println(e.stack_trace)
+    // Error: division by zero
+    //   at divide (script.ae:2)
+    //   at calculate (script.ae:5)
+}
+```
+
+Stack frames include the function name, filename, and line number.
 
 ## Error Values
 
@@ -225,23 +302,21 @@ fn process() {
 }
 ```
 
-### 4. Clean Up Resources
+### 4. Use Finally for Resource Cleanup
 
-Use try/catch to ensure cleanup:
+`finally` guarantees cleanup runs even if an error is thrown or caught:
 
 ```aether
 fn process_file(filename) {
-    let file = open_file(filename)
+    let data = read_file(filename)
     try {
-        // Process the file
-        let data = read_file(file)
         transform(data)
     } catch(e) {
         println("Processing failed:", e)
-        close_file(file)  // Clean up
         throw e
+    } finally {
+        println("Always runs — good for releasing resources")
     }
-    close_file(file)  // Normal cleanup
 }
 ```
 
@@ -458,8 +533,6 @@ try {
 
 ## Limitations
 
-**No Finally Block**: Aether doesn't have `finally` for guaranteed cleanup. Use explicit cleanup in both try and catch blocks.
-
 **No Multiple Catch Blocks**: You can't catch different error types separately. Use conditional logic in the catch block instead:
 
 ```aether
@@ -474,8 +547,6 @@ try {
 }
 ```
 
-**No Stack Traces**: Error messages don't include stack traces. Include context in error messages.
-
 ## See Also
 
 - [DESIGN.md](DESIGN.md) - Language specification
@@ -484,5 +555,5 @@ try {
 
 ---
 
-**Last Updated**: 2026-04-28  
-**Status**: Complete and stable
+**Last Updated**: 2026-04-29  
+**Status**: Complete — try/catch/finally with stack traces

@@ -46,12 +46,18 @@ All token types supported by Aether:
 - `While`, `For`, `In` - Loops
 - `Break`, `Continue` - Loop control
 - `Import`, `From`, `As` - Module system
+- `Struct` - Struct declaration
+- `Async`, `Await` - Async/await
+- `Try`, `Catch`, `Throw`, `Finally` - Error handling
 
 **Operators**:
 - Arithmetic: `Plus`, `Minus`, `Star`, `Slash`, `Percent`
 - Assignment: `Equal`, `PlusEqual`, `MinusEqual`, `StarEqual`, `SlashEqual`
 - Comparison: `EqualEqual`, `NotEqual`, `Less`, `Greater`, `LessEqual`, `GreaterEqual`
 - Logical: `And`, `Or`, `Not`
+- Null coalescing: `QuestionQuestion` (`??`)
+- Optional chaining: `QuestionDot` (`?.`)
+- Spread: `Spread` (`...`)
 
 **Delimiters**:
 - `LeftParen`, `RightParen` - `(`, `)`
@@ -177,13 +183,32 @@ fn scan_token(&mut self) -> Result<(), LexerError> {
 2. Check if it's a keyword
 3. Return keyword token or identifier token
 
-**Keywords Map**:
+**Keywords Map** (complete list):
 ```rust
 match text.as_str() {
     "let" => TokenKind::Let,
     "fn" => TokenKind::Fn,
     "if" => TokenKind::If,
-    // ... more keywords
+    "else" => TokenKind::Else,
+    "while" => TokenKind::While,
+    "for" => TokenKind::For,
+    "in" => TokenKind::In,
+    "return" => TokenKind::Return,
+    "break" => TokenKind::Break,
+    "continue" => TokenKind::Continue,
+    "import" => TokenKind::Import,
+    "from" => TokenKind::From,
+    "as" => TokenKind::As,
+    "struct" => TokenKind::Struct,
+    "async" => TokenKind::Async,
+    "await" => TokenKind::Await,
+    "try" => TokenKind::Try,
+    "catch" => TokenKind::Catch,
+    "throw" => TokenKind::Throw,
+    "finally" => TokenKind::Finally,
+    "true" => TokenKind::True,
+    "false" => TokenKind::False,
+    "null" => TokenKind::Null,
     _ => TokenKind::Identifier(text)
 }
 ```

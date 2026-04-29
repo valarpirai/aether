@@ -69,20 +69,22 @@ use std::rc::Rc;
 pub enum Value {
     Int(i64),
     Float(f64),
-    String(Rc<String>),        // ← Wrapped in Rc
+    String(Rc<String>),        // Rc — cheap clone, freed when RC = 0
     Bool(bool),
     Null,
-    Array(Rc<Vec<Value>>),     // ← Wrapped in Rc
-    Function {
-        params: Vec<String>,
-        body: Box<Stmt>,
-        closure: Box<Environment>,
-    },
-    BuiltinFn {
-        name: String,
-        arity: usize,
-        func: BuiltinFn,
-    },
+    Array(Rc<Vec<Value>>),     // Rc — cheap clone
+    Dict(Rc<Vec<(Value, Value)>>),  // Rc
+    Set(Rc<HashSet<Value>>),        // Rc
+    Function { params: Vec<String>, body: Rc<Stmt>, closure: Rc<Environment> },
+    AsyncFunction { params: Vec<String>, body: Rc<Stmt>, closure: Rc<Environment> },
+    BuiltinFn { name: String, arity: usize, func: BuiltinFn },
+    Module { name: String, members: Rc<HashMap<String, Value>> },
+    StructDef { name: String, fields: Vec<String>, methods: MethodMap },
+    Instance { type_name: String, fields: Rc<RefCell<HashMap<String, Value>>>, methods: MethodMap },
+    Iterator(Rc<RefCell<IteratorState>>),
+    Promise(Rc<RefCell<PromiseState>>),
+    ErrorVal { message: String, stack_trace: String },
+    FileLines(Rc<RefCell<FileIterState>>),
 }
 ```
 
@@ -223,7 +225,7 @@ use std::sync::Arc;  // Thread-safe RC
 
 ## Success Criteria
 
-- ✅ All 333 tests still pass
+- ✅ All ~693 tests still pass
 - ✅ Memory usage < 100 MB (vs 135 GB)
 - ✅ Test time ≤ 60 seconds (no regression)
 - ✅ 0 clippy warnings

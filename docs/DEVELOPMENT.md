@@ -2,6 +2,16 @@
 
 This document provides comprehensive development guidelines for contributing to the Aether programming language interpreter.
 
+## First-Time Setup
+
+After cloning the repo, run this once to enable the shared pre-commit hook:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The hook runs `cargo fmt --check`, `cargo clippy`, and `cargo test` before every commit. The hook file lives in `.githooks/pre-commit` (tracked in the repo) so every contributor gets the same checks.
+
 ## Table of Contents
 - [Post-Feature Checklist](#post-feature-checklist)
 - [Code Organization](#code-organization)
@@ -77,12 +87,21 @@ src/
 └── interpreter/           # ✅ Complete
     ├── mod.rs             # Interpreter module exports
     ├── value.rs           # Runtime value types (Rc-wrapped)
-    ├── environment.rs     # Variable scoping
-    ├── evaluator.rs       # Expression evaluation
+    ├── environment.rs     # Variable scoping + RuntimeError
     ├── builtins.rs        # Built-in functions
     ├── stdlib.rs          # Stdlib module loader
+    ├── io_pool.rs         # I/O thread pool + HttpOptions
+    ├── event_loop.rs      # EventLoopQueue for on_ready/event_loop
     ├── interpreter_tests.rs # Interpreter tests (17 tests) ✅
-    └── builtins_tests.rs  # Built-in tests (15 tests) ✅
+    ├── builtins_tests.rs  # Built-in tests (15 tests) ✅
+    └── evaluator/         # Split from evaluator.rs (>1000 lines)
+        ├── mod.rs         # Evaluator struct, constructors, public API
+        ├── expressions.rs # eval_expr, eval_index, eval_slice, await_value
+        ├── statements.rs  # exec_stmt_internal (all Stmt variants)
+        ├── functions.rs   # eval_call, call_value, try_submit_io_task
+        ├── members.rs     # eval_member, eval_method_call
+        ├── modules.rs     # load_module, import resolution
+        └── operators.rs   # eval_unary, eval_binary
 ```
 
 **Test File Convention**: Use `<module>_tests.rs` naming pattern for test files.
