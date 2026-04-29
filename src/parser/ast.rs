@@ -48,6 +48,10 @@ pub enum Expr {
     AsyncFunctionExpr(Vec<String>, Rc<Stmt>),
     /// Await expression: await <expr>
     Await(Box<Expr>),
+    /// Optional member access: expr?.member — null if expr is null
+    OptionalMember(Box<Expr>, String),
+    /// Optional method call: expr?.method(args) — null if expr is null
+    OptionalCall(Box<Expr>, String, Vec<Expr>),
 }
 
 /// Binary operators
@@ -71,6 +75,8 @@ pub enum BinaryOp {
     // Logical
     And,
     Or,
+    /// Null coalescing: a ?? b — returns a if not null, else b
+    NullCoalesce,
 }
 
 /// Unary operators

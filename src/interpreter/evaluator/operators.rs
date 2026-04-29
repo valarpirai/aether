@@ -33,6 +33,16 @@ impl Evaluator {
         right: &Expr,
     ) -> Result<Value, RuntimeError> {
         let left_val = self.eval_expr(left)?;
+
+        // Short-circuit operators — right side evaluated only when needed
+        if let BinaryOp::NullCoalesce = op {
+            return if matches!(left_val, Value::Null) {
+                self.eval_expr(right)
+            } else {
+                Ok(left_val)
+            };
+        }
+
         let right_val = self.eval_expr(right)?;
 
         match op {
@@ -71,6 +81,7 @@ impl Evaluator {
                     Ok(right_val)
                 }
             }
+            BinaryOp::NullCoalesce => unreachable!("handled above"),
         }
     }
 

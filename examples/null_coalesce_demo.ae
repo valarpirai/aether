@@ -1,0 +1,48 @@
+// Demonstrates ?? (null coalescing) and ?. (optional chaining)
+
+fn main() {
+    // Null coalescing (??)
+    let name = null ?? "default"
+    println(name)  // default
+
+    let score = 0 ?? 100
+    println(score)  // 0 (not null, so not replaced)
+
+    let flag = false ?? true
+    println(flag)  // false (not null)
+
+    // Chained ??
+    let val = null ?? null ?? "last resort"
+    println(val)  // last resort
+
+    // Using ?? with a function return
+    let user_name = null
+    println(user_name ?? "anonymous")  // anonymous
+
+    // Optional member access (?.)
+    let s = "hello"
+    println(s?.length)  // 5
+
+    let nullstr = null
+    println(nullstr?.length)  // null
+
+    // Optional method call (?.)
+    println(s?.upper())  // HELLO
+    println(nullstr?.upper())  // null
+
+    // Combined: ?. with ??
+    let greeting = nullstr?.upper() ?? "STRANGER"
+    println(greeting)  // STRANGER
+
+    let real = "world"
+    let real_greeting = real?.upper() ?? "STRANGER"
+    println(real_greeting)  // WORLD
+
+    // Optional on array
+    let arr = [1, 2, 3]
+    println(arr?.length)    // 3
+    println(arr?.contains(2))  // true
+
+    let null_arr = null
+    println(null_arr?.length ?? 0)  // 0
+}

@@ -186,6 +186,16 @@ impl Scanner {
                     return Err(LexerError::UnexpectedCharacter(c, self.line, start_column));
                 }
             }
+            '?' => {
+                let kind = if self.match_char('?') {
+                    TokenKind::QuestionQuestion
+                } else if self.match_char('.') {
+                    TokenKind::QuestionDot
+                } else {
+                    return Err(LexerError::UnexpectedCharacter(c, self.line, start_column));
+                };
+                self.add_token(kind, start_column);
+            }
             '"' if self.peek() == '"' && self.peek_next() == '"' => {
                 self.advance(); // second "
                 self.advance(); // third "

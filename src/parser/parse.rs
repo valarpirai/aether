@@ -385,7 +385,17 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {
-        self.logical_or()
+        self.null_coalesce()
+    }
+
+    // Parse null coalescing: expr ?? expr (lower precedence than ||, short-circuit)
+    fn null_coalesce(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.logical_or()?;
+        while self.match_token(&[TokenKind::QuestionQuestion]) {
+            let right = self.logical_or()?;
+            expr = Expr::Binary(Box::new(expr), BinaryOp::NullCoalesce, Box::new(right));
+        }
+        Ok(expr)
     }
 
     // Parse logical OR: expr || expr
@@ -558,6 +568,33 @@ impl Parser {
                 };
                 self.advance();
                 expr = Expr::Member(Box::new(expr), member);
+            } else if self.match_token(&[TokenKind::QuestionDot]) {
+                // Optional chaining: expr?.member or expr?.method(args)
+                let member = if let TokenKind::Identifier(name) = &self.peek().kind {
+                    name.clone()
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        expected: "property name after ?.".to_string(),
+                        found: self.peek().clone(),
+                    });
+                };
+                self.advance();
+                // Check if this is a method call: expr?.method(args)
+                if self.match_token(&[TokenKind::LeftParen]) {
+                    let mut args = Vec::new();
+                    if !self.check(&TokenKind::RightParen) {
+                        loop {
+                            args.push(self.expression()?);
+                            if !self.match_token(&[TokenKind::Comma]) {
+                                break;
+                            }
+                        }
+                    }
+                    self.consume(TokenKind::RightParen, ")")?;
+                    expr = Expr::OptionalCall(Box::new(expr), member, args);
+                } else {
+                    expr = Expr::OptionalMember(Box::new(expr), member);
+                }
             } else {
                 break;
             }

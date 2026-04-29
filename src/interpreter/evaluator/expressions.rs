@@ -77,6 +77,22 @@ impl Evaluator {
                 }
                 Ok(Value::Dict(Rc::new(evaluated)))
             }
+            Expr::OptionalMember(obj, member) => {
+                let val = self.eval_expr(obj)?;
+                if matches!(val, Value::Null) {
+                    Ok(Value::Null)
+                } else {
+                    self.eval_member(obj, member)
+                }
+            }
+            Expr::OptionalCall(obj, method, args) => {
+                let val = self.eval_expr(obj)?;
+                if matches!(val, Value::Null) {
+                    Ok(Value::Null)
+                } else {
+                    self.eval_method_call(obj, method, args)
+                }
+            }
             Expr::Spread(_) => Err(RuntimeError::InvalidOperation(
                 "spread operator is only valid inside array literals".to_string(),
             )),

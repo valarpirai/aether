@@ -65,9 +65,11 @@ pub enum TokenKind {
     LessEqual,    // <=
     GreaterEqual, // >=
 
-    And, // &&
-    Or,  // ||
-    Not, // !
+    And,              // &&
+    Or,               // ||
+    Not,              // !
+    QuestionQuestion, // ??
+    QuestionDot,      // ?.
 
     // Delimiters
     LeftParen,    // (
