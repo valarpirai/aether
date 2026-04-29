@@ -118,10 +118,9 @@ impl Evaluator {
                     padded,
                 ))
             }
-            other => Err(RuntimeError::InvalidOperation(format!(
-                "Cannot call value of type '{}'",
-                other.type_name()
-            ))),
+            other => Err(RuntimeError::NotCallable {
+                type_name: other.type_name().to_string(),
+            }),
         }
     }
 
@@ -153,10 +152,9 @@ impl Evaluator {
                 return func(&arg_values);
             }
             other => {
-                return Err(RuntimeError::InvalidOperation(format!(
-                    "Cannot await value of type '{}'",
-                    other.type_name()
-                )))
+                return Err(RuntimeError::NotCallable {
+                    type_name: other.type_name().to_string(),
+                })
             }
         };
 
@@ -673,10 +671,11 @@ impl Evaluator {
                         let deadline = self.async_rt.event_loop_timeout.map(|secs| {
                             std::time::Instant::now() + std::time::Duration::from_secs_f64(secs)
                         });
+                        let limit = self.async_rt.event_loop_queue.limit();
                         self.async_rt
                             .event_loop_queue
                             .push(rx, callback, deadline)
-                            .map_err(RuntimeError::InvalidOperation)?;
+                            .map_err(|_| RuntimeError::QueueFull { limit })?;
                     }
                     PromiseState::Resolved(val) => {
                         self.call_value(callback, vec![val])?;

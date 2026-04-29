@@ -36,19 +36,17 @@ impl Evaluator {
                         return Ok(v.clone());
                     }
                 }
-                Err(RuntimeError::InvalidOperation(format!(
-                    "Key '{}' not found in dict",
-                    key
-                )))
+                Err(RuntimeError::DictKeyNotFound(key.to_string()))
             }
 
             (Value::Module { name, members }, prop) => {
-                members.get(prop).cloned().ok_or_else(|| {
-                    RuntimeError::InvalidOperation(format!(
-                        "Module '{}' has no member '{}'",
-                        name, prop
-                    ))
-                })
+                members
+                    .get(prop)
+                    .cloned()
+                    .ok_or_else(|| RuntimeError::PropertyNotFound {
+                        type_name: format!("module '{}'", name),
+                        property: prop.to_string(),
+                    })
             }
 
             (
@@ -58,12 +56,12 @@ impl Evaluator {
                 prop,
             ) => {
                 let map = fields.borrow();
-                map.get(prop).cloned().ok_or_else(|| {
-                    RuntimeError::InvalidOperation(format!(
-                        "Field '{}' does not exist on '{}'",
-                        prop, type_name
-                    ))
-                })
+                map.get(prop)
+                    .cloned()
+                    .ok_or_else(|| RuntimeError::PropertyNotFound {
+                        type_name: type_name.clone(),
+                        property: prop.to_string(),
+                    })
             }
 
             (
@@ -75,10 +73,10 @@ impl Evaluator {
             ) => match prop {
                 "message" => Ok(Value::string(message.clone())),
                 "stack_trace" => Ok(Value::string(stack_trace.clone())),
-                other => Err(RuntimeError::InvalidOperation(format!(
-                    "error has no property '{}'",
-                    other
-                ))),
+                other => Err(RuntimeError::PropertyNotFound {
+                    type_name: "error".to_string(),
+                    property: other.to_string(),
+                }),
             },
 
             (Value::FileLines(state), "has_next") => Ok(Value::Bool(state.borrow().has_next())),
@@ -97,10 +95,10 @@ impl Evaluator {
                         variant_name: variant_name.to_string(),
                         fields: fields.clone(),
                     }),
-                    None => Err(RuntimeError::InvalidOperation(format!(
-                        "Enum '{}' has no variant '{}'",
-                        name, variant_name
-                    ))),
+                    None => Err(RuntimeError::EnumVariantNotFound {
+                        enum_name: name.clone(),
+                        variant: variant_name.to_string(),
+                    }),
                 }
             }
 
@@ -113,18 +111,15 @@ impl Evaluator {
                 .iter()
                 .find(|(n, _)| n == prop)
                 .map(|(_, v)| v.clone())
-                .ok_or_else(|| {
-                    RuntimeError::InvalidOperation(format!(
-                        "Variant '{}' has no field '{}'",
-                        type_name, prop
-                    ))
+                .ok_or_else(|| RuntimeError::PropertyNotFound {
+                    type_name: type_name.clone(),
+                    property: prop.to_string(),
                 }),
 
-            (obj, prop) => Err(RuntimeError::InvalidOperation(format!(
-                "Property '{}' does not exist on type '{}'",
-                prop,
-                obj.type_name()
-            ))),
+            (obj, prop) => Err(RuntimeError::PropertyNotFound {
+                type_name: obj.type_name().to_string(),
+                property: prop.to_string(),
+            }),
         }
     }
 
@@ -650,12 +645,14 @@ impl Evaluator {
 
             // Module member call: module.func(args)
             (Value::Module { name, members }, method) => {
-                let func = members.get(method).cloned().ok_or_else(|| {
-                    RuntimeError::InvalidOperation(format!(
-                        "Module '{}' has no member '{}'",
-                        name, method
-                    ))
-                })?;
+                let func =
+                    members
+                        .get(method)
+                        .cloned()
+                        .ok_or_else(|| RuntimeError::MethodNotFound {
+                            type_name: format!("module '{}'", name),
+                            method: method.to_string(),
+                        })?;
                 let mut arg_values = Vec::new();
                 for arg in args {
                     arg_values.push(self.eval_expr(arg)?);
@@ -672,12 +669,14 @@ impl Evaluator {
                 },
                 meth,
             ) => {
-                let method = methods.get(meth).cloned().ok_or_else(|| {
-                    RuntimeError::InvalidOperation(format!(
-                        "Method '{}' does not exist on '{}'",
-                        meth, type_name
-                    ))
-                })?;
+                let method =
+                    methods
+                        .get(meth)
+                        .cloned()
+                        .ok_or_else(|| RuntimeError::MethodNotFound {
+                            type_name: type_name.clone(),
+                            method: meth.to_string(),
+                        })?;
                 let (params, body) = method;
                 let instance = Value::Instance {
                     type_name: type_name.clone(),
@@ -837,11 +836,10 @@ impl Evaluator {
             }
 
             // Undefined method
-            (obj, meth) => Err(RuntimeError::InvalidOperation(format!(
-                "Method '{}' does not exist on type '{}'",
-                meth,
-                obj.type_name()
-            ))),
+            (obj, meth) => Err(RuntimeError::MethodNotFound {
+                type_name: obj.type_name().to_string(),
+                method: meth.to_string(),
+            }),
         }
     }
 }

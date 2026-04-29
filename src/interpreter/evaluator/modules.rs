@@ -32,11 +32,9 @@ impl Evaluator {
             .loading_stack
             .contains(&module_name.to_string())
         {
-            let cycle = self.modules.loading_stack.join(" -> ");
-            return Err(RuntimeError::InvalidOperation(format!(
-                "Circular dependency detected: {} -> {}",
-                cycle, module_name
-            )));
+            return Err(RuntimeError::CircularImport {
+                module: module_name.to_string(),
+            });
         }
 
         if self.modules.cache.contains_key(module_name) {
@@ -91,10 +89,10 @@ impl Evaluator {
                     self.environment.define(item.clone(), value);
                 }
                 Err(_) => {
-                    return Err(RuntimeError::InvalidOperation(format!(
-                        "Module '{}' has no function '{}'",
-                        module_name, item
-                    )));
+                    return Err(RuntimeError::PropertyNotFound {
+                        type_name: format!("module '{}'", module_name),
+                        property: item.clone(),
+                    });
                 }
             }
         }
@@ -123,10 +121,10 @@ impl Evaluator {
                     self.environment.define(alias.clone(), value);
                 }
                 Err(_) => {
-                    return Err(RuntimeError::InvalidOperation(format!(
-                        "Module '{}' has no member '{}'",
-                        module_name, item
-                    )));
+                    return Err(RuntimeError::PropertyNotFound {
+                        type_name: format!("module '{}'", module_name),
+                        property: item.clone(),
+                    });
                 }
             }
         }
@@ -154,10 +152,9 @@ impl Evaluator {
             return Ok(path);
         }
 
-        Err(RuntimeError::InvalidOperation(format!(
-            "Module not found: '{}'",
-            module_name
-        )))
+        Err(RuntimeError::ModuleNotFound {
+            module: module_name.to_string(),
+        })
     }
 
     pub(super) fn execute_module_file(
@@ -168,17 +165,24 @@ impl Evaluator {
         use crate::parser::Parser;
         use std::fs;
 
-        let source = fs::read_to_string(path)
-            .map_err(|e| RuntimeError::InvalidOperation(format!("Failed to read module: {}", e)))?;
-
-        let mut scanner = Scanner::new(&source);
-        let tokens = scanner.scan_tokens().map_err(|e| {
-            RuntimeError::InvalidOperation(format!("Failed to tokenize module: {}", e))
+        let module_name = path.to_string_lossy().to_string();
+        let source = fs::read_to_string(path).map_err(|e| RuntimeError::ModuleLoadError {
+            module: module_name.clone(),
+            reason: e.to_string(),
         })?;
 
+        let mut scanner = Scanner::new(&source);
+        let tokens = scanner
+            .scan_tokens()
+            .map_err(|e| RuntimeError::ModuleLoadError {
+                module: module_name.clone(),
+                reason: e.to_string(),
+            })?;
+
         let mut parser = Parser::new(tokens);
-        let program = parser.parse().map_err(|e| {
-            RuntimeError::InvalidOperation(format!("Failed to parse module: {}", e))
+        let program = parser.parse().map_err(|e| RuntimeError::ModuleLoadError {
+            module: module_name.clone(),
+            reason: e.to_string(),
         })?;
 
         let saved_env = self.environment.clone();

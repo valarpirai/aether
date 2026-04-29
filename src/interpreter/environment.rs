@@ -6,22 +6,98 @@ use std::collections::HashMap;
 /// Runtime error types
 #[derive(Debug, Clone, PartialEq)]
 pub enum RuntimeError {
-    /// Undefined variable
+    // --- Core language ---
     UndefinedVariable(String),
-    /// Type mismatch in operation
-    TypeError { expected: String, got: String },
-    /// Division by zero
+    TypeError {
+        expected: String,
+        got: String,
+    },
     DivisionByZero,
-    /// Index out of bounds
-    IndexOutOfBounds { index: i64, length: usize },
-    /// Invalid operation
-    InvalidOperation(String),
-    /// Arity mismatch in function call
-    ArityMismatch { expected: usize, got: usize },
-    /// Recursion depth exceeded
-    StackOverflow { depth: usize, limit: usize },
+    IndexOutOfBounds {
+        index: i64,
+        length: usize,
+    },
+    ArityMismatch {
+        expected: usize,
+        got: usize,
+    },
+    StackOverflow {
+        depth: usize,
+        limit: usize,
+    },
     /// User-thrown error (via throw statement)
     Thrown(String),
+    /// Catch-all for rare cases not yet categorised
+    InvalidOperation(String),
+
+    // --- Type conversion ---
+    ConversionError {
+        from_type: String,
+        to_type: String,
+        value: String,
+    },
+
+    // --- I/O ---
+    IoError {
+        operation: String,
+        detail: String,
+    },
+    ChannelClosed,
+
+    // --- HTTP / network ---
+    HttpError {
+        url: String,
+        detail: String,
+    },
+
+    // --- Parsing ---
+    ParseError {
+        format: String,
+        detail: String,
+    },
+
+    // --- Member / property access ---
+    PropertyNotFound {
+        type_name: String,
+        property: String,
+    },
+    MethodNotFound {
+        type_name: String,
+        method: String,
+    },
+    EnumVariantNotFound {
+        enum_name: String,
+        variant: String,
+    },
+    DictKeyNotFound(String),
+
+    // --- Modules / imports ---
+    CircularImport {
+        module: String,
+    },
+    ModuleNotFound {
+        module: String,
+    },
+    ModuleLoadError {
+        module: String,
+        reason: String,
+    },
+
+    // --- Function calls / async ---
+    NotCallable {
+        type_name: String,
+    },
+    AsyncNotAwaited {
+        fn_name: String,
+    },
+    QueueFull {
+        limit: usize,
+    },
+
+    // --- Operators / expressions ---
+    InvalidSpread {
+        got: String,
+    },
 }
 
 impl std::fmt::Display for RuntimeError {
@@ -39,7 +115,6 @@ impl std::fmt::Display for RuntimeError {
                     index, length
                 )
             }
-            RuntimeError::InvalidOperation(msg) => write!(f, "Invalid operation: {}", msg),
             RuntimeError::ArityMismatch { expected, got } => {
                 write!(f, "Expected {} arguments, got {}", expected, got)
             }
@@ -51,6 +126,68 @@ impl std::fmt::Display for RuntimeError {
                 )
             }
             RuntimeError::Thrown(msg) => write!(f, "{}", msg),
+            RuntimeError::InvalidOperation(msg) => write!(f, "Invalid operation: {}", msg),
+            RuntimeError::ConversionError {
+                from_type,
+                to_type,
+                value,
+            } => {
+                write!(f, "Cannot convert {} '{}' to {}", from_type, value, to_type)
+            }
+            RuntimeError::IoError { operation, detail } => {
+                write!(f, "I/O error in {}: {}", operation, detail)
+            }
+            RuntimeError::ChannelClosed => write!(f, "I/O channel closed unexpectedly"),
+            RuntimeError::HttpError { url, detail } => {
+                write!(f, "HTTP error for '{}': {}", url, detail)
+            }
+            RuntimeError::ParseError { format, detail } => {
+                write!(f, "Parse error ({}): {}", format, detail)
+            }
+            RuntimeError::PropertyNotFound {
+                type_name,
+                property,
+            } => {
+                write!(f, "'{}' has no property '{}'", type_name, property)
+            }
+            RuntimeError::MethodNotFound { type_name, method } => {
+                write!(
+                    f,
+                    "Method '{}' does not exist on type '{}'",
+                    method, type_name
+                )
+            }
+            RuntimeError::EnumVariantNotFound { enum_name, variant } => {
+                write!(f, "Enum '{}' has no variant '{}'", enum_name, variant)
+            }
+            RuntimeError::DictKeyNotFound(key) => {
+                write!(f, "Key '{}' not found in dict", key)
+            }
+            RuntimeError::CircularImport { module } => {
+                write!(f, "Circular import detected: '{}'", module)
+            }
+            RuntimeError::ModuleNotFound { module } => {
+                write!(f, "Module not found: '{}'", module)
+            }
+            RuntimeError::ModuleLoadError { module, reason } => {
+                write!(f, "Failed to load module '{}': {}", module, reason)
+            }
+            RuntimeError::NotCallable { type_name } => {
+                write!(f, "Value of type '{}' is not callable", type_name)
+            }
+            RuntimeError::AsyncNotAwaited { fn_name } => {
+                write!(
+                    f,
+                    "Async function '{}' must be called with 'await'",
+                    fn_name
+                )
+            }
+            RuntimeError::QueueFull { limit } => {
+                write!(f, "Event loop queue is full (limit: {})", limit)
+            }
+            RuntimeError::InvalidSpread { got } => {
+                write!(f, "Spread operator requires an array, got '{}'", got)
+            }
         }
     }
 }

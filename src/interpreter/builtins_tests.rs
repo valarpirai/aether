@@ -131,7 +131,7 @@ fn test_builtin_len_arity_error() {
 #[test]
 fn test_builtin_int_invalid_string() {
     let err = builtin_int(&[Value::string("abc")]).unwrap_err();
-    assert!(matches!(err, super::RuntimeError::InvalidOperation(_)));
+    assert!(matches!(err, super::RuntimeError::ConversionError { .. }));
 }
 
 #[test]
@@ -143,7 +143,7 @@ fn test_builtin_int_type_error() {
 #[test]
 fn test_builtin_float_invalid_string() {
     let err = builtin_float(&[Value::string("xyz")]).unwrap_err();
-    assert!(matches!(err, super::RuntimeError::InvalidOperation(_)));
+    assert!(matches!(err, super::RuntimeError::ConversionError { .. }));
 }
 
 #[test]
@@ -196,7 +196,7 @@ fn test_builtin_json_parse_array() {
 #[test]
 fn test_builtin_json_parse_invalid() {
     let err = builtin_json_parse(&[Value::string("{bad json}")]).unwrap_err();
-    assert!(matches!(err, super::RuntimeError::InvalidOperation(_)));
+    assert!(matches!(err, super::RuntimeError::ParseError { .. }));
 }
 
 #[test]

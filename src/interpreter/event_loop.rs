@@ -37,6 +37,10 @@ impl EventLoopQueue {
         self.max_pending = limit;
     }
 
+    pub fn limit(&self) -> usize {
+        self.max_pending
+    }
+
     pub fn len(&self) -> usize {
         self.pending.len()
     }

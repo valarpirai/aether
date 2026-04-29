@@ -28,10 +28,9 @@ impl Evaluator {
                                 }
                             }
                             other => {
-                                return Err(RuntimeError::InvalidOperation(format!(
-                                    "spread operator requires an array, got {}",
-                                    other.type_name()
-                                )))
+                                return Err(RuntimeError::InvalidSpread {
+                                    got: other.type_name().to_string(),
+                                })
                             }
                         }
                     } else {
@@ -274,15 +273,21 @@ impl Evaluator {
                     }
                     PromiseState::IoWaiting(rx) => {
                         // Block main thread until I/O worker completes
-                        let io_result = rx.recv().map_err(|_| {
-                            RuntimeError::InvalidOperation("I/O channel closed".to_string())
-                        })?;
+                        let io_result = rx.recv().map_err(|_| RuntimeError::ChannelClosed)?;
                         let value = match io_result {
                             IoResult::Str(Ok(s)) => Value::string(s),
-                            IoResult::Str(Err(e)) => return Err(RuntimeError::InvalidOperation(e)),
+                            IoResult::Str(Err(e)) => {
+                                return Err(RuntimeError::IoError {
+                                    operation: "async I/O".to_string(),
+                                    detail: e,
+                                })
+                            }
                             IoResult::Unit(Ok(())) => Value::Null,
                             IoResult::Unit(Err(e)) => {
-                                return Err(RuntimeError::InvalidOperation(e))
+                                return Err(RuntimeError::IoError {
+                                    operation: "async I/O".to_string(),
+                                    detail: e,
+                                })
                             }
                         };
                         *state_rc.borrow_mut() = PromiseState::Resolved(value.clone());

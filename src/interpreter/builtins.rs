@@ -81,10 +81,15 @@ pub fn builtin_int(args: &[Value]) -> Result<Value, RuntimeError> {
     match &args[0] {
         Value::Int(n) => Ok(Value::Int(*n)),
         Value::Float(f) => Ok(Value::Int(*f as i64)),
-        Value::String(s) => s
-            .parse::<i64>()
-            .map(Value::Int)
-            .map_err(|_| RuntimeError::InvalidOperation(format!("Cannot convert '{}' to int", s))),
+        Value::String(s) => {
+            s.parse::<i64>()
+                .map(Value::Int)
+                .map_err(|_| RuntimeError::ConversionError {
+                    from_type: "string".to_string(),
+                    to_type: "int".to_string(),
+                    value: s.to_string(),
+                })
+        }
         Value::Bool(b) => Ok(Value::Int(if *b { 1 } else { 0 })),
         other => Err(RuntimeError::TypeError {
             expected: "number, string, or bool".to_string(),
@@ -106,9 +111,15 @@ pub fn builtin_float(args: &[Value]) -> Result<Value, RuntimeError> {
     match &args[0] {
         Value::Int(n) => Ok(Value::Float(*n as f64)),
         Value::Float(f) => Ok(Value::Float(*f)),
-        Value::String(s) => s.parse::<f64>().map(Value::Float).map_err(|_| {
-            RuntimeError::InvalidOperation(format!("Cannot convert '{}' to float", s))
-        }),
+        Value::String(s) => {
+            s.parse::<f64>()
+                .map(Value::Float)
+                .map_err(|_| RuntimeError::ConversionError {
+                    from_type: "string".to_string(),
+                    to_type: "float".to_string(),
+                    value: s.to_string(),
+                })
+        }
         Value::Bool(b) => Ok(Value::Float(if *b { 1.0 } else { 0.0 })),
         other => Err(RuntimeError::TypeError {
             expected: "number, string, or bool".to_string(),
@@ -163,7 +174,10 @@ pub fn builtin_read_file(args: &[Value]) -> Result<Value, RuntimeError> {
     };
     std::fs::read_to_string(&path)
         .map(Value::string)
-        .map_err(|e| RuntimeError::InvalidOperation(format!("read_file '{}': {}", path, e)))
+        .map_err(|e| RuntimeError::IoError {
+            operation: "read_file".to_string(),
+            detail: format!("{}: {}", path, e),
+        })
 }
 
 /// Built-in function: write_file(path, content)
@@ -187,7 +201,10 @@ pub fn builtin_write_file(args: &[Value]) -> Result<Value, RuntimeError> {
     let content = format!("{}", args[1]);
     std::fs::write(&path, content)
         .map(|_| Value::Null)
-        .map_err(|e| RuntimeError::InvalidOperation(format!("write_file '{}': {}", path, e)))
+        .map_err(|e| RuntimeError::IoError {
+            operation: "write_file".to_string(),
+            detail: format!("{}: {}", path, e),
+        })
 }
 
 /// Built-in function: read_lines(path)
@@ -208,8 +225,10 @@ pub fn builtin_read_lines(args: &[Value]) -> Result<Value, RuntimeError> {
             })
         }
     };
-    let content = std::fs::read_to_string(&path)
-        .map_err(|e| RuntimeError::InvalidOperation(format!("read_lines '{}': {}", path, e)))?;
+    let content = std::fs::read_to_string(&path).map_err(|e| RuntimeError::IoError {
+        operation: "read_lines".to_string(),
+        detail: format!("{}: {}", path, e),
+    })?;
     let lines: Vec<Value> = content
         .lines()
         .map(|l| Value::string(l.to_string()))
@@ -241,10 +260,16 @@ pub fn builtin_append_file(args: &[Value]) -> Result<Value, RuntimeError> {
         .append(true)
         .create(true)
         .open(&path)
-        .map_err(|e| RuntimeError::InvalidOperation(format!("append_file '{}': {}", path, e)))?;
+        .map_err(|e| RuntimeError::IoError {
+            operation: "append_file".to_string(),
+            detail: format!("{}: {}", path, e),
+        })?;
     file.write_all(content.as_bytes())
         .map(|_| Value::Null)
-        .map_err(|e| RuntimeError::InvalidOperation(format!("append_file '{}': {}", path, e)))
+        .map_err(|e| RuntimeError::IoError {
+            operation: "append_file".to_string(),
+            detail: format!("{}: {}", path, e),
+        })
 }
 
 /// Built-in function: file_exists(path) -> bool
@@ -267,10 +292,10 @@ pub fn builtin_file_exists(args: &[Value]) -> Result<Value, RuntimeError> {
     match std::fs::metadata(&path) {
         Ok(_) => Ok(Value::Bool(true)),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Value::Bool(false)),
-        Err(e) => Err(RuntimeError::InvalidOperation(format!(
-            "file_exists '{}': {}",
-            path, e
-        ))),
+        Err(e) => Err(RuntimeError::IoError {
+            operation: "file_exists".to_string(),
+            detail: format!("{}: {}", path, e),
+        }),
     }
 }
 
@@ -293,7 +318,10 @@ pub fn builtin_mkdir(args: &[Value]) -> Result<Value, RuntimeError> {
     };
     std::fs::create_dir_all(&path)
         .map(|_| Value::Null)
-        .map_err(|e| RuntimeError::InvalidOperation(format!("mkdir '{}': {}", path, e)))
+        .map_err(|e| RuntimeError::IoError {
+            operation: "mkdir".to_string(),
+            detail: format!("{}: {}", path, e),
+        })
 }
 
 /// Built-in function: is_file(path) -> bool
@@ -316,10 +344,10 @@ pub fn builtin_is_file(args: &[Value]) -> Result<Value, RuntimeError> {
     match std::fs::metadata(&path) {
         Ok(m) => Ok(Value::Bool(m.is_file())),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Value::Bool(false)),
-        Err(e) => Err(RuntimeError::InvalidOperation(format!(
-            "is_file '{}': {}",
-            path, e
-        ))),
+        Err(e) => Err(RuntimeError::IoError {
+            operation: "is_file".to_string(),
+            detail: format!("{}: {}", path, e),
+        }),
     }
 }
 
@@ -343,10 +371,10 @@ pub fn builtin_is_dir(args: &[Value]) -> Result<Value, RuntimeError> {
     match std::fs::metadata(&path) {
         Ok(m) => Ok(Value::Bool(m.is_dir())),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Value::Bool(false)),
-        Err(e) => Err(RuntimeError::InvalidOperation(format!(
-            "is_dir '{}': {}",
-            path, e
-        ))),
+        Err(e) => Err(RuntimeError::IoError {
+            operation: "is_dir".to_string(),
+            detail: format!("{}: {}", path, e),
+        }),
     }
 }
 
@@ -388,8 +416,10 @@ pub fn builtin_read_bytes(args: &[Value]) -> Result<Value, RuntimeError> {
             })
         }
     };
-    let bytes = std::fs::read(&path)
-        .map_err(|e| RuntimeError::InvalidOperation(format!("read_bytes '{}': {}", path, e)))?;
+    let bytes = std::fs::read(&path).map_err(|e| RuntimeError::IoError {
+        operation: "read_bytes".to_string(),
+        detail: format!("{}: {}", path, e),
+    })?;
     let arr: Vec<Value> = bytes.iter().map(|&b| Value::Int(b as i64)).collect();
     Ok(Value::array(arr))
 }
@@ -441,7 +471,10 @@ pub fn builtin_write_bytes(args: &[Value]) -> Result<Value, RuntimeError> {
     }
     std::fs::write(&path, &bytes)
         .map(|_| Value::Null)
-        .map_err(|e| RuntimeError::InvalidOperation(format!("write_bytes '{}': {}", path, e)))
+        .map_err(|e| RuntimeError::IoError {
+            operation: "write_bytes".to_string(),
+            detail: format!("{}: {}", path, e),
+        })
 }
 
 /// Built-in function: list_dir(path) -> array of filenames (not full paths)
@@ -461,12 +494,16 @@ pub fn builtin_list_dir(args: &[Value]) -> Result<Value, RuntimeError> {
             })
         }
     };
-    let entries = std::fs::read_dir(&path)
-        .map_err(|e| RuntimeError::InvalidOperation(format!("list_dir '{}': {}", path, e)))?;
+    let entries = std::fs::read_dir(&path).map_err(|e| RuntimeError::IoError {
+        operation: "list_dir".to_string(),
+        detail: format!("{}: {}", path, e),
+    })?;
     let mut names: Vec<Value> = Vec::new();
     for entry in entries {
-        let entry = entry
-            .map_err(|e| RuntimeError::InvalidOperation(format!("list_dir '{}': {}", path, e)))?;
+        let entry = entry.map_err(|e| RuntimeError::IoError {
+            operation: "list_dir".to_string(),
+            detail: format!("{}: {}", path, e),
+        })?;
         let name = entry.file_name().to_string_lossy().into_owned();
         names.push(Value::string(name));
     }
@@ -525,8 +562,9 @@ pub fn builtin_rename(args: &[Value]) -> Result<Value, RuntimeError> {
     };
     std::fs::rename(&src, &dst)
         .map(|_| Value::Null)
-        .map_err(|e| {
-            RuntimeError::InvalidOperation(format!("rename '{}' -> '{}': {}", src, dst, e))
+        .map_err(|e| RuntimeError::IoError {
+            operation: "rename".to_string(),
+            detail: format!("'{}' -> '{}': {}", src, dst, e),
         })
 }
 
@@ -549,7 +587,10 @@ pub fn builtin_rm(args: &[Value]) -> Result<Value, RuntimeError> {
     };
     std::fs::remove_file(&path)
         .map(|_| Value::Null)
-        .map_err(|e| RuntimeError::InvalidOperation(format!("rm '{}': {}", path, e)))
+        .map_err(|e| RuntimeError::IoError {
+            operation: "rm".to_string(),
+            detail: format!("{}: {}", path, e),
+        })
 }
 
 /// Built-in function: input(prompt)
@@ -569,7 +610,10 @@ pub fn builtin_input(args: &[Value]) -> Result<Value, RuntimeError> {
     let mut line = String::new();
     std::io::stdin()
         .read_line(&mut line)
-        .map_err(|e| RuntimeError::InvalidOperation(format!("input failed: {}", e)))?;
+        .map_err(|e| RuntimeError::IoError {
+            operation: "input".to_string(),
+            detail: e.to_string(),
+        })?;
     Ok(Value::string(
         line.trim_end_matches('\n')
             .trim_end_matches('\r')
@@ -594,8 +638,10 @@ pub fn builtin_json_parse(args: &[Value]) -> Result<Value, RuntimeError> {
             })
         }
     };
-    let json: JsonValue = serde_json::from_str(&s)
-        .map_err(|e| RuntimeError::InvalidOperation(format!("json_parse error: {}", e)))?;
+    let json: JsonValue = serde_json::from_str(&s).map_err(|e| RuntimeError::ParseError {
+        format: "JSON".to_string(),
+        detail: e.to_string(),
+    })?;
     json_to_value(json)
 }
 
@@ -645,10 +691,9 @@ fn value_to_json(value: &Value) -> Result<JsonValue, RuntimeError> {
         Value::Int(n) => Ok(JsonValue::Number((*n).into())),
         Value::Float(f) => serde_json::Number::from_f64(*f)
             .map(JsonValue::Number)
-            .ok_or_else(|| {
-                RuntimeError::InvalidOperation(
-                    "cannot serialize non-finite float to JSON".to_string(),
-                )
+            .ok_or_else(|| RuntimeError::ParseError {
+                format: "json".to_string(),
+                detail: "cannot serialize non-finite float to JSON".to_string(),
             }),
         Value::String(s) => Ok(JsonValue::String(s.as_ref().clone())),
         Value::Array(arr) => {
@@ -662,20 +707,20 @@ fn value_to_json(value: &Value) -> Result<JsonValue, RuntimeError> {
                 let key = match k {
                     Value::String(s) => s.as_ref().clone(),
                     other => {
-                        return Err(RuntimeError::InvalidOperation(format!(
-                            "json_stringify: dict key must be string, got {}",
-                            other.type_name()
-                        )))
+                        return Err(RuntimeError::ParseError {
+                            format: "json".to_string(),
+                            detail: format!("dict key must be string, got {}", other.type_name()),
+                        })
                     }
                 };
                 map.insert(key, value_to_json(v)?);
             }
             Ok(JsonValue::Object(map))
         }
-        other => Err(RuntimeError::InvalidOperation(format!(
-            "json_stringify: cannot serialize {}",
-            other.type_name()
-        ))),
+        other => Err(RuntimeError::ParseError {
+            format: "json".to_string(),
+            detail: format!("cannot serialize {}", other.type_name()),
+        }),
     }
 }
 
@@ -767,9 +812,15 @@ pub fn builtin_http_get(args: &[Value]) -> Result<Value, RuntimeError> {
     let body = build_http_client_with_opts(&opts)
         .get(&url)
         .send()
-        .map_err(|e| RuntimeError::InvalidOperation(format!("http_get failed: {}", e)))?
+        .map_err(|e| RuntimeError::HttpError {
+            url: url.clone(),
+            detail: e.to_string(),
+        })?
         .text()
-        .map_err(|e| RuntimeError::InvalidOperation(format!("http_get read failed: {}", e)))?;
+        .map_err(|e| RuntimeError::HttpError {
+            url: url.clone(),
+            detail: e.to_string(),
+        })?;
     Ok(Value::string(body))
 }
 
@@ -800,9 +851,15 @@ pub fn builtin_http_post(args: &[Value]) -> Result<Value, RuntimeError> {
         .post(&url)
         .body(body)
         .send()
-        .map_err(|e| RuntimeError::InvalidOperation(format!("http_post failed: {}", e)))?
+        .map_err(|e| RuntimeError::HttpError {
+            url: url.clone(),
+            detail: e.to_string(),
+        })?
         .text()
-        .map_err(|e| RuntimeError::InvalidOperation(format!("http_post read failed: {}", e)))?;
+        .map_err(|e| RuntimeError::HttpError {
+            url: url.clone(),
+            detail: e.to_string(),
+        })?;
     Ok(Value::string(response_body))
 }
 
