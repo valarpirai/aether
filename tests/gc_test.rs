@@ -124,6 +124,61 @@ arr.length
     assert_eq!(result, "500");
 }
 
+// Weak ref to a live instance upgrades successfully
+#[test]
+fn test_weak_ref_live() {
+    let source = r#"
+struct Node { value }
+let n = Node { value: 42 }
+let w = make_weak(n)
+let upgraded = upgrade_weak(w)
+upgraded.value
+"#;
+    let result = eval(source).unwrap();
+    assert_eq!(result, "42");
+}
+
+// is_weak returns true for a weak value
+#[test]
+fn test_is_weak_true() {
+    let source = r#"
+struct Point { x }
+let p = Point { x: 1 }
+let w = make_weak(p)
+is_weak(w)
+"#;
+    let result = eval(source).unwrap();
+    assert_eq!(result, "true");
+}
+
+// is_weak returns false for a regular instance
+#[test]
+fn test_is_weak_false_for_instance() {
+    let source = r#"
+struct Point { x }
+let p = Point { x: 1 }
+is_weak(p)
+"#;
+    let result = eval(source).unwrap();
+    assert_eq!(result, "false");
+}
+
+// A Node holding a weak back-pointer to another node — no owning cycle
+#[test]
+fn test_instance_cycle_with_weak() {
+    let source = r#"
+struct Node { value, back }
+let a = Node { value: 1, back: null }
+let b = Node { value: 2, back: null }
+let weak_a = make_weak(a)
+b.back = weak_a
+let resolved = upgrade_weak(b.back)
+resolved.value
+"#;
+    let result = eval(source).unwrap();
+    assert_eq!(result, "1");
+}
+
 // Closure capturing large env should still work
 #[test]
 fn test_closure_with_large_env() {

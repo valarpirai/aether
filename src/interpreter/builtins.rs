@@ -920,3 +920,86 @@ pub fn builtin_set(args: &[Value]) -> Result<Value, RuntimeError> {
         }),
     }
 }
+
+/// Built-in function: make_weak(val) -> weak
+/// Returns a weak (non-owning) reference to an Instance, Array, or Dict.
+/// Use this to break reference cycles that would otherwise leak memory.
+pub fn builtin_make_weak(args: &[Value]) -> Result<Value, RuntimeError> {
+    use crate::interpreter::value::WeakTarget;
+    use std::rc::Rc;
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    match &args[0] {
+        Value::Instance {
+            type_name,
+            fields,
+            methods,
+        } => Ok(Value::Weak(WeakTarget::Instance {
+            type_name: type_name.clone(),
+            fields: Rc::downgrade(fields),
+            methods: methods.clone(),
+        })),
+        Value::Array(rc) => Ok(Value::Weak(WeakTarget::Array(Rc::downgrade(rc)))),
+        Value::Dict(rc) => Ok(Value::Weak(WeakTarget::Dict(Rc::downgrade(rc)))),
+        other => Err(RuntimeError::TypeError {
+            expected: "instance, array, or dict".to_string(),
+            got: other.type_name().to_string(),
+        }),
+    }
+}
+
+/// Built-in function: upgrade_weak(weak) -> value | null
+/// Tries to upgrade a weak reference back to a strong one.
+/// Returns null if the target has already been dropped.
+pub fn builtin_upgrade_weak(args: &[Value]) -> Result<Value, RuntimeError> {
+    use crate::interpreter::value::WeakTarget;
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    match &args[0] {
+        Value::Weak(target) => match target {
+            WeakTarget::Instance {
+                type_name,
+                fields,
+                methods,
+            } => match fields.upgrade() {
+                Some(rc) => Ok(Value::Instance {
+                    type_name: type_name.clone(),
+                    fields: rc,
+                    methods: methods.clone(),
+                }),
+                None => Ok(Value::Null),
+            },
+            WeakTarget::Array(w) => match w.upgrade() {
+                Some(rc) => Ok(Value::Array(rc)),
+                None => Ok(Value::Null),
+            },
+            WeakTarget::Dict(w) => match w.upgrade() {
+                Some(rc) => Ok(Value::Dict(rc)),
+                None => Ok(Value::Null),
+            },
+        },
+        other => Err(RuntimeError::TypeError {
+            expected: "weak".to_string(),
+            got: other.type_name().to_string(),
+        }),
+    }
+}
+
+/// Built-in function: is_weak(val) -> bool
+pub fn builtin_is_weak(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    Ok(Value::Bool(matches!(args[0], Value::Weak(_))))
+}

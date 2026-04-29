@@ -417,6 +417,32 @@ impl Evaluator {
             },
         );
 
+        // Weak reference functions (for breaking GC cycles)
+        self.environment.define(
+            "make_weak".to_string(),
+            Value::BuiltinFn {
+                name: "make_weak".to_string(),
+                arity: 1,
+                func: builtins::builtin_make_weak,
+            },
+        );
+        self.environment.define(
+            "upgrade_weak".to_string(),
+            Value::BuiltinFn {
+                name: "upgrade_weak".to_string(),
+                arity: 1,
+                func: builtins::builtin_upgrade_weak,
+            },
+        );
+        self.environment.define(
+            "is_weak".to_string(),
+            Value::BuiltinFn {
+                name: "is_weak".to_string(),
+                arity: 1,
+                func: builtins::builtin_is_weak,
+            },
+        );
+
         // JSON functions
         self.environment.define(
             "json_parse".to_string(),

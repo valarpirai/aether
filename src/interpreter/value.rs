@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 use super::environment::{RuntimeError, StackFrame};
 
@@ -98,6 +98,22 @@ pub enum Value {
         type_name: String,
         fields: Rc<Vec<(String, Value)>>,
     },
+    /// Weak reference — holds a non-owning pointer to a heap-allocated value.
+    /// Used to break reference cycles in Instance, Array, or Dict structures.
+    Weak(WeakTarget),
+}
+
+/// Non-owning pointer variant. Stores enough metadata to reconstruct the
+/// full Value on upgrade (type_name and methods for Instance).
+#[derive(Debug, Clone)]
+pub enum WeakTarget {
+    Instance {
+        type_name: String,
+        fields: Weak<RefCell<HashMap<String, Value>>>,
+        methods: MethodMap,
+    },
+    Array(Weak<Vec<Value>>),
+    Dict(Weak<Vec<(Value, Value)>>),
 }
 
 /// State of a Promise value
@@ -289,6 +305,7 @@ impl Value {
             Value::EnumDef { .. } => "enum",
             Value::EnumConstructor { .. } => "enum_constructor",
             Value::EnumVariant { type_name, .. } => type_name.as_str(),
+            Value::Weak(_) => "weak",
         }
     }
 }
@@ -353,6 +370,7 @@ impl PartialEq for Value {
                     ..
                 },
             ) => ta == tb && fa == fb,
+            (Value::Weak(_), Value::Weak(_)) => false, // identity is not tracked
             _ => false,
         }
     }
@@ -496,6 +514,31 @@ impl fmt::Display for Value {
                     write!(f, ")")
                 }
             }
+            Value::Weak(w) => match w {
+                WeakTarget::Instance {
+                    type_name, fields, ..
+                } => {
+                    if fields.upgrade().is_some() {
+                        write!(f, "<weak:{}>", type_name)
+                    } else {
+                        write!(f, "<weak:dropped>")
+                    }
+                }
+                WeakTarget::Array(w) => {
+                    if w.upgrade().is_some() {
+                        write!(f, "<weak:array>")
+                    } else {
+                        write!(f, "<weak:dropped>")
+                    }
+                }
+                WeakTarget::Dict(w) => {
+                    if w.upgrade().is_some() {
+                        write!(f, "<weak:dict>")
+                    } else {
+                        write!(f, "<weak:dropped>")
+                    }
+                }
+            },
         }
     }
 }

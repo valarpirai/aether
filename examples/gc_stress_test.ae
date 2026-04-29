@@ -72,7 +72,38 @@ let nested_len = nested_stress()
 println("Nested result length:", nested_len)
 println()
 
+// Test 5: Weak references break Instance cycles
+println("Test 5: Weak references for cycle-safe linked list")
+struct Node {
+    value
+    next
+}
+
+fn make_list(n) {
+    let head = null
+    let i = n
+    while (i > 0) {
+        let node = Node { value: i, next: head }
+        head = node
+        i = i - 1
+    }
+    return head
+}
+
+let list = make_list(100)
+println("Linked list head value:", list.value)
+
+// Demonstrate weak refs — a Node can hold a back-pointer without owning it
+let a = Node { value: 1, next: null }
+let b = Node { value: 2, next: null }
+let weak_a = make_weak(a)
+b.next = weak_a
+let back = upgrade_weak(b.next)
+println("Back-pointer value:", back.value)
+println("is_weak check:", is_weak(weak_a))
+println()
+
 println("=== GC Stress Test Complete ===")
-println("If memory stayed low, GC is working! 🎉")
+println("If memory stayed low, GC is working!")
 
 fn main() {}

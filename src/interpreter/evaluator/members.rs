@@ -16,6 +16,7 @@ impl Evaluator {
         self.eval_member_on_value(obj_val, member)
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     pub(super) fn eval_member_on_value(
         &mut self,
         obj_val: Value,
@@ -115,6 +116,29 @@ impl Evaluator {
                     type_name: type_name.clone(),
                     property: prop.to_string(),
                 }),
+
+            (Value::Weak(target), prop) => {
+                use crate::interpreter::value::WeakTarget;
+                let strong = match target {
+                    WeakTarget::Instance {
+                        type_name,
+                        fields,
+                        methods,
+                    } => fields.upgrade().map(|rc| Value::Instance {
+                        type_name: type_name.clone(),
+                        fields: rc,
+                        methods: methods.clone(),
+                    }),
+                    WeakTarget::Array(w) => w.upgrade().map(Value::Array),
+                    WeakTarget::Dict(w) => w.upgrade().map(Value::Dict),
+                };
+                match strong {
+                    Some(val) => self.eval_member_on_value(val, prop),
+                    None => Err(RuntimeError::InvalidOperation(
+                        "cannot access member on dropped weak reference".to_string(),
+                    )),
+                }
+            }
 
             (obj, prop) => Err(RuntimeError::PropertyNotFound {
                 type_name: obj.type_name().to_string(),
