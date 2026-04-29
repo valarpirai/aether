@@ -307,15 +307,56 @@ impl Evaluator {
                     return self.register_on_ready(promise_val, callback);
                 }
 
-                // event_loop() — run until all queued callbacks have fired
+                // event_loop(?timeout_secs) — run until queue empty or timeout
                 if name == "event_loop" {
-                    if !args.is_empty() {
+                    if args.len() > 1 {
                         return Err(RuntimeError::ArityMismatch {
-                            expected: 0,
+                            expected: 1,
                             got: args.len(),
                         });
                     }
-                    return self.run_event_loop();
+                    let timeout = if args.is_empty() {
+                        None
+                    } else {
+                        match self.eval_expr(&args[0])? {
+                            Value::Int(n) => Some(n as f64),
+                            Value::Float(f) => Some(f),
+                            other => {
+                                return Err(RuntimeError::TypeError {
+                                    expected: "number".to_string(),
+                                    got: other.type_name().to_string(),
+                                })
+                            }
+                        }
+                    };
+                    return self.run_event_loop(timeout);
+                }
+
+                // set_queue_limit(n) — cap the event loop queue for backpressure
+                if name == "set_queue_limit" {
+                    if args.len() != 1 {
+                        return Err(RuntimeError::ArityMismatch {
+                            expected: 1,
+                            got: args.len(),
+                        });
+                    }
+                    match self.eval_expr(&args[0])? {
+                        Value::Int(n) if n > 0 => {
+                            self.event_loop_queue.set_limit(n as usize);
+                            return Ok(Value::Null);
+                        }
+                        Value::Int(_) => {
+                            return Err(RuntimeError::InvalidOperation(
+                                "set_queue_limit requires a positive integer".to_string(),
+                            ))
+                        }
+                        other => {
+                            return Err(RuntimeError::TypeError {
+                                expected: "positive int".to_string(),
+                                got: other.type_name().to_string(),
+                            })
+                        }
+                    }
                 }
 
                 // Async I/O dispatch when pool is active
@@ -555,7 +596,9 @@ impl Evaluator {
                 };
                 match state {
                     PromiseState::IoWaiting(rx) => {
-                        self.event_loop_queue.push(rx, callback);
+                        self.event_loop_queue
+                            .push(rx, callback)
+                            .map_err(RuntimeError::InvalidOperation)?;
                     }
                     PromiseState::Resolved(val) => {
                         self.call_value(callback, vec![val])?;
@@ -574,13 +617,28 @@ impl Evaluator {
         Ok(Value::Null)
     }
 
-    /// Run the event loop until all queued callbacks have fired.
-    /// Polls receivers with try_recv (non-blocking). Sleeps 1ms when nothing
-    /// is ready to avoid busy-spinning.
-    pub(crate) fn run_event_loop(&mut self) -> Result<Value, RuntimeError> {
+    /// Run the event loop until all queued callbacks have fired or the optional
+    /// timeout (in seconds) expires. Polls with try_recv (non-blocking) and
+    /// sleeps 1ms per idle tick.
+    ///
+    /// Error isolation: I/O errors and callback exceptions do NOT abort the
+    /// loop — they are logged to stderr and the remaining callbacks continue.
+    pub(crate) fn run_event_loop(
+        &mut self,
+        timeout_secs: Option<f64>,
+    ) -> Result<Value, RuntimeError> {
+        let deadline =
+            timeout_secs.map(|s| std::time::Instant::now() + std::time::Duration::from_secs_f64(s));
+
         loop {
             if self.event_loop_queue.is_empty() {
                 break;
+            }
+
+            if let Some(dl) = deadline {
+                if std::time::Instant::now() >= dl {
+                    break;
+                }
             }
 
             let ready = self.event_loop_queue.drain_ready();
@@ -591,10 +649,19 @@ impl Evaluator {
             }
 
             for (result, callback) in ready {
-                let val = result.map_err(RuntimeError::InvalidOperation)?;
-                self.call_value(callback, vec![val])?;
-                // Callbacks may have pushed new on_ready entries; they will be
-                // picked up in the next iteration of this loop.
+                match result {
+                    Ok(val) => {
+                        // Callback errors are isolated — log and continue
+                        if let Err(e) = self.call_value(callback, vec![val]) {
+                            eprintln!("event_loop: callback error: {}", e);
+                        }
+                    }
+                    Err(e) => {
+                        // I/O error — skip this callback, log the cause
+                        eprintln!("event_loop: I/O error (callback skipped): {}", e);
+                    }
+                }
+                // New on_ready calls from within a callback are picked up next iteration.
             }
         }
 

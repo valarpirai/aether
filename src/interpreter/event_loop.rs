@@ -11,6 +11,7 @@ pub struct EventLoopEntry {
 /// callbacks. The main interpreter thread polls this each tick via drain_ready().
 pub struct EventLoopQueue {
     pub pending: Vec<EventLoopEntry>,
+    max_pending: usize,
 }
 
 impl Default for EventLoopQueue {
@@ -23,11 +24,30 @@ impl EventLoopQueue {
     pub fn new() -> Self {
         Self {
             pending: Vec::new(),
+            max_pending: 1024,
         }
     }
 
-    pub fn push(&mut self, rx: Receiver<IoResult>, callback: Value) {
+    /// Change the maximum number of entries allowed in the queue.
+    pub fn set_limit(&mut self, limit: usize) {
+        self.max_pending = limit;
+    }
+
+    pub fn len(&self) -> usize {
+        self.pending.len()
+    }
+
+    /// Push a new entry, returning an error if the queue is at capacity (backpressure).
+    pub fn push(&mut self, rx: Receiver<IoResult>, callback: Value) -> Result<(), String> {
+        if self.pending.len() >= self.max_pending {
+            return Err(format!(
+                "event loop queue full ({}/{} pending callbacks)",
+                self.pending.len(),
+                self.max_pending
+            ));
+        }
         self.pending.push(EventLoopEntry { rx, callback });
+        Ok(())
     }
 
     pub fn is_empty(&self) -> bool {
@@ -48,7 +68,7 @@ impl EventLoopQueue {
                 Ok(IoResult::Unit(Ok(()))) => ready.push((Ok(Value::Null), entry.callback)),
                 Ok(IoResult::Unit(Err(e))) => ready.push((Err(e), entry.callback)),
                 Err(TryRecvError::Empty) => remaining.push(entry),
-                Err(TryRecvError::Disconnected) => {} // worker dropped, discard
+                Err(TryRecvError::Disconnected) => {} // worker panicked — drop silently
             }
         }
 

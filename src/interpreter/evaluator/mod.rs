@@ -421,12 +421,22 @@ impl Evaluator {
             },
         );
 
-        // event_loop() — intercepted in eval_call
+        // event_loop(?timeout_secs) — intercepted in eval_call
         self.environment.define(
             "event_loop".to_string(),
             Value::BuiltinFn {
                 name: "event_loop".to_string(),
-                arity: 0,
+                arity: usize::MAX, // 0 or 1 args; validated in intercept
+                func: |_| Ok(Value::Null),
+            },
+        );
+
+        // set_queue_limit(n) — cap the event loop queue; intercepted in eval_call
+        self.environment.define(
+            "set_queue_limit".to_string(),
+            Value::BuiltinFn {
+                name: "set_queue_limit".to_string(),
+                arity: 1,
                 func: |_| Ok(Value::Null),
             },
         );
@@ -545,7 +555,13 @@ impl Evaluator {
                 self.environment = saved_env;
                 self.call_stack.pop();
                 self.call_depth -= 1;
-                result
+                result?;
+                // Auto-drain any on_ready callbacks registered but event_loop() never called.
+                // Mirrors Node.js keeping the process alive for pending async work.
+                if !self.event_loop_queue.is_empty() {
+                    self.run_event_loop(None)?;
+                }
+                Ok(())
             }
             _ => Err(RuntimeError::InvalidOperation(
                 "main is not a function".to_string(),
