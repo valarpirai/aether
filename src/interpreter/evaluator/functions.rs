@@ -1,6 +1,6 @@
 use crate::interpreter::environment::{Environment, RuntimeError, StackFrame};
 use crate::interpreter::io_pool::{IoPool, IoTask};
-use crate::interpreter::value::Value;
+use crate::interpreter::value::{PromiseState, Value};
 use crate::parser::ast::Expr;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -294,6 +294,30 @@ impl Evaluator {
                     return Ok(Value::Null);
                 }
 
+                // on_ready(promise, callback) — register callback in event loop queue
+                if name == "on_ready" {
+                    if args.len() != 2 {
+                        return Err(RuntimeError::ArityMismatch {
+                            expected: 2,
+                            got: args.len(),
+                        });
+                    }
+                    let promise_val = self.eval_expr(&args[0])?;
+                    let callback = self.eval_expr(&args[1])?;
+                    return self.register_on_ready(promise_val, callback);
+                }
+
+                // event_loop() — run until all queued callbacks have fired
+                if name == "event_loop" {
+                    if !args.is_empty() {
+                        return Err(RuntimeError::ArityMismatch {
+                            expected: 0,
+                            got: args.len(),
+                        });
+                    }
+                    return self.run_event_loop();
+                }
+
                 // Async I/O dispatch when pool is active
                 if let Some(pool) = self.io_pool.clone() {
                     if let Some(promise) = self.try_submit_io_task(&name, args, &pool)? {
@@ -513,5 +537,67 @@ impl Evaluator {
                 got: other.type_name().to_string(),
             }),
         }
+    }
+
+    /// Register a callback to fire when a promise resolves.
+    /// If the promise is already resolved, the callback fires immediately.
+    /// If it is IoWaiting, the receiver is moved into the event loop queue.
+    fn register_on_ready(
+        &mut self,
+        promise_val: Value,
+        callback: Value,
+    ) -> Result<Value, RuntimeError> {
+        match promise_val {
+            Value::Promise(state_rc) => {
+                let state = {
+                    let mut s = state_rc.borrow_mut();
+                    std::mem::replace(&mut *s, PromiseState::Resolved(Value::Null))
+                };
+                match state {
+                    PromiseState::IoWaiting(rx) => {
+                        self.event_loop_queue.push(rx, callback);
+                    }
+                    PromiseState::Resolved(val) => {
+                        self.call_value(callback, vec![val])?;
+                    }
+                    PromiseState::Pending { func, args } => {
+                        let result = self.exec_async_body(func, args)?;
+                        self.call_value(callback, vec![result])?;
+                    }
+                }
+            }
+            other => {
+                // Non-promise: call callback immediately with the value
+                self.call_value(callback, vec![other])?;
+            }
+        }
+        Ok(Value::Null)
+    }
+
+    /// Run the event loop until all queued callbacks have fired.
+    /// Polls receivers with try_recv (non-blocking). Sleeps 1ms when nothing
+    /// is ready to avoid busy-spinning.
+    pub(crate) fn run_event_loop(&mut self) -> Result<Value, RuntimeError> {
+        loop {
+            if self.event_loop_queue.is_empty() {
+                break;
+            }
+
+            let ready = self.event_loop_queue.drain_ready();
+
+            if ready.is_empty() {
+                std::thread::sleep(std::time::Duration::from_millis(1));
+                continue;
+            }
+
+            for (result, callback) in ready {
+                let val = result.map_err(RuntimeError::InvalidOperation)?;
+                self.call_value(callback, vec![val])?;
+                // Callbacks may have pushed new on_ready entries; they will be
+                // picked up in the next iteration of this loop.
+            }
+        }
+
+        Ok(Value::Null)
     }
 }

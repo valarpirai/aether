@@ -25,6 +25,8 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 - Module system: `import`, `from ... import`, aliases
 - Structs with fields, methods, and `self` binding
 - Async/await — `async fn`, `await`, `Promise.all`, I/O thread pool
+- Event loop — `on_ready(promise, callback)`, `event_loop()` for callback-based async
+- Null safety — `??` null coalescing, `?.` optional chaining
 - REPL with history and tab-completion
 
 ## Documentation Index
@@ -55,6 +57,7 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 | [JSON.md](docs/JSON.md) | JSON parsing and serialization | ✅ |
 | [TIME.md](docs/TIME.md) | Time functions: clock(), sleep() | ✅ |
 | [HTTP.md](docs/HTTP.md) | HTTP client: http_get(), http_post() | ✅ |
+| [EVENT_LOOP.md](docs/EVENT_LOOP.md) | Callback-based async: on_ready, event_loop | ✅ |
 
 ## Quick Reference for Claude Code
 
@@ -176,6 +179,8 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/DEVELOPMENT.md#
 | **Iterators** | `has_next()`, `next()`, for-in over array/dict/set/string/iterator |
 | **Async/await** | `async fn`, `await expr`, Promise caching; `Promise.all([p1, p2])` |
 | **I/O thread pool** | `set_workers(n)`, `AETHER_WORKERS` env var; async `http_get`, `sleep`, `read_file`, `write_file`, `http_post` |
+| **Event loop** | `on_ready(promise, callback)`, `event_loop()`; callback-based async; chained callbacks |
+| **Null safety** | `??` null coalescing (short-circuit), `?.` optional member/method chaining |
 | **JSON** | `json_parse()`, `json_stringify()` via serde_json |
 | **HTTP** | `http_get(url)`, `http_post(url, body)` via reqwest (blocking or async) |
 | **Time** | `clock()` (Unix epoch float), `sleep(secs)` |
@@ -196,14 +201,15 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/DEVELOPMENT.md#
 | Phase 5 Sprint 2: Advanced Types (structs, sets, iterators) | 420 |
 | Phase 5 Sprint 3: Async/await + I/O pool | 476 |
 | Phase 5 Sprint 4: Error context + stack traces | ~547 |
+| Phase 5 Sprint 5: Null safety + Event loop | ~693 |
 
-### Test Coverage (2026-04-28)
+### Test Coverage (2026-04-29)
 
-- **Total**: ~547 tests passing (99 unit + ~448 integration)
-- **Ignored/skipped**: 5 http tests (require network), 1 known recursion stack-overflow
+- **Total**: ~693 tests passing (134 unit + ~559 integration)
+- **Ignored/skipped**: 5 http tests (require network), 2 known recursion stack-overflow
 - **Code quality**: cargo clippy clean (5 acceptable `mutable_key_type` warnings for HashSet)
 
-**Unit tests (99):**
+**Unit tests (134):**
 
 | Suite | Count |
 |-------|-------|
@@ -211,14 +217,16 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/DEVELOPMENT.md#
 | Parser | 53 |
 | Interpreter | 17 |
 | Built-ins | 15 |
+| Other unit | 35 |
 
-**Integration tests (~448):**
+**Integration tests (~559):**
 
 | Suite | Count |
 |-------|-------|
 | `stdlib_collections_test` | 38 |
 | `integration_test` | 29 |
 | `dict_test` | 27 |
+| `null_coalesce_test` | 23 |
 | `stdlib_math_test` | 26 |
 | `json_test` | 25 |
 | `stdlib_string_test` | 24 |
@@ -229,6 +237,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/DEVELOPMENT.md#
 | `clippy_fix_regression_test` | 20 |
 | `stdlib_testing_test` | 19 |
 | `string_indexing_test` | 16 |
+| `event_loop_test` | 15 |
 | `slice_test` | 15 |
 | `struct_test` | 14 |
 | `io_pool_test` | 14 |
@@ -242,18 +251,18 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/DEVELOPMENT.md#
 | `spread_test` | 9 |
 | `string_methods_test` | 8 |
 | `member_access_test` | 8 |
-| `gc_test` | 7 |
+| `gc_test` | 6 |
 | `io_test` | 5 |
 | `http_test` | 5 (ignored — network) |
 | `closure_leak_test` | 4 |
-| `small_recursion_test` | 2 |
-| `recursion_limit_test` | 2 |
+| `small_recursion_test` | 1 |
+| `recursion_limit_test` | 1 |
 
 ### Backlog
 
 See **[docs/BACKLOG.md](docs/BACKLOG.md)** for the full prioritised backlog (~30 features across 6 tiers).
 
-Top-of-backlog highlights: `match` statement, `finally` block, `??`/`?.` operators, destructuring, `format()`, multi-line strings, variadic args, enums.
+Top-of-backlog highlights: `match` statement, destructuring, `format()`, variadic args, enums, TCP/UDP server support.
 
 ## Development Resources
 

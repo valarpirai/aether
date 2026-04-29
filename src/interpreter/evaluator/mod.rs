@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use super::environment::{Environment, RuntimeError, StackFrame};
+use super::event_loop::EventLoopQueue;
 use super::io_pool::IoPool;
 use super::value::Value;
 use crate::parser::ast::Stmt;
@@ -43,6 +44,8 @@ pub struct Evaluator {
     pub current_file: Option<PathBuf>,
     /// Optional I/O thread pool for async-native builtins (Phase 2)
     pub(crate) io_pool: Option<Arc<IoPool>>,
+    /// Event loop queue: pending (receiver, callback) pairs for on_ready/event_loop
+    pub(crate) event_loop_queue: EventLoopQueue,
     /// Most recently seen line number (updated by Stmt::Line markers)
     pub current_line: usize,
     /// Call stack for stack-trace generation in error objects
@@ -65,6 +68,7 @@ impl Evaluator {
             loading_stack: Vec::new(),
             current_file: None,
             io_pool: None,
+            event_loop_queue: EventLoopQueue::new(),
             current_line: 0,
             call_stack: Vec::new(),
         };
@@ -83,6 +87,7 @@ impl Evaluator {
             loading_stack: Vec::new(),
             current_file: None,
             io_pool: None,
+            event_loop_queue: EventLoopQueue::new(),
             current_line: 0,
             call_stack: Vec::new(),
         };
@@ -403,6 +408,26 @@ impl Evaluator {
                 name: "set_workers".to_string(),
                 arity: 1,
                 func: |_| Ok(Value::Null), // intercepted in eval_call before reaching here
+            },
+        );
+
+        // on_ready(promise, callback) — intercepted in eval_call
+        self.environment.define(
+            "on_ready".to_string(),
+            Value::BuiltinFn {
+                name: "on_ready".to_string(),
+                arity: 2,
+                func: |_| Ok(Value::Null),
+            },
+        );
+
+        // event_loop() — intercepted in eval_call
+        self.environment.define(
+            "event_loop".to_string(),
+            Value::BuiltinFn {
+                name: "event_loop".to_string(),
+                arity: 0,
+                func: |_| Ok(Value::Null),
             },
         );
 
