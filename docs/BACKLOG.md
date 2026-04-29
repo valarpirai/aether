@@ -15,6 +15,7 @@ Items without a milestone are unscheduled.
 | Triple-quoted multi-line strings `"""..."""` | 2026-04-29 |
 | Labeled `break` / `continue` for nested loops | 2026-04-29 |
 | File utilities: `list_dir`, `path_join`, `rename`, `rm` | 2026-04-29 |
+| Event loop — `on_ready(promise, callback)`, `event_loop()` | 2026-04-29 |
 
 ---
 

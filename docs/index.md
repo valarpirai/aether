@@ -12,6 +12,7 @@ A general-purpose, dynamically typed programming language implemented in Rust �
 - **Dynamic Typing** — Runtime type checking with clear error messages
 - **Automatic Memory Management** — Reference-counted garbage collection (no GC pauses)
 - **Async/Await** — `async fn`, `await`, `Promise.all`, configurable I/O thread pool
+- **Event Loop** — `on_ready(promise, callback)`, `event_loop()` for Node.js-style async
 - **First-Class Functions** — Closures, optional parameters, function expressions
 - **User-Defined Types** — Structs with fields, methods, and `self` binding
 - **Error Handling** — `try/catch/finally/throw` with `e.message` and `e.stack_trace`
@@ -59,7 +60,7 @@ fn main() {
 ## Status
 
 - **Phase**: 5 Complete ✅
-- **Tests**: ~593 passing (134 unit + ~459 integration)
+- **Tests**: ~693 passing (134 unit + ~559 integration)
 - **Code Quality**: 0 clippy warnings
 - **Documentation**: 20+ comprehensive guides
 
@@ -120,6 +121,7 @@ fn main() {
 
 ### Language Features
 - [Async/Await](ASYNC.html) — Promises, `async fn`, I/O thread pool
+- [Event Loop](EVENT_LOOP.html) — `on_ready`, `event_loop`, callback-based async
 - [Iterators](ITERATOR_PROTOCOL.html) — `has_next()` / `next()` protocol
 - [Structs](STRUCT.html) — User-defined types with methods
 - [Error Handling](ERROR_HANDLING.html) — Try/catch/finally/throw with stack traces
@@ -148,6 +150,7 @@ fn main() {
 | **Structs** | fields, methods, `self` binding, mutable fields |
 | **Iterators** | `has_next()`, `next()`, for-in over array/dict/set/string/iterator |
 | **Async/await** | `async fn`, `await expr`, Promise caching, `Promise.all` |
+| **Event loop** | `on_ready(promise, callback)`, `event_loop()`; chained callbacks; Node.js-style concurrency |
 | **I/O thread pool** | `set_workers(n)`, `AETHER_WORKERS`; async http, sleep, file I/O |
 | **JSON** | `json_parse()`, `json_stringify()` |
 | **HTTP** | `http_get(url)`, `http_post(url, body)` |
@@ -168,6 +171,7 @@ Browse the [examples directory](EXAMPLES.html) or jump straight to a topic:
 | [File Utilities](EXAMPLES.html#file-utilities) | list_dir, path_join, rename, rm |
 | [Shapes (Structs)](EXAMPLES.html#shapes) | User-defined types with methods |
 | [Async / Concurrent I/O](EXAMPLES.html#async) | Promise.all, thread pool |
+| [Event Loop](EXAMPLES.html#event-loop) | on_ready, chained callbacks |
 | [Data Processing](EXAMPLES.html#data-processing) | Functional pipeline |
 | [Collections](EXAMPLES.html#collections) | Arrays, dicts, sets |
 

@@ -675,3 +675,59 @@ fn main() {
     println("ends_with:", ends_with("hello", "lo"))
 }
 ```
+
+---
+
+## Event Loop {#event-loop}
+
+Node.js-style callback-based async I/O using `on_ready` and `event_loop`.
+
+```aether
+fn main() {
+    // Non-promise: fires immediately (no event_loop needed)
+    on_ready(42, fn(v) {
+        println("got:", v)    // got: 42
+    })
+
+    // Async I/O: fires after sleep completes
+    set_workers(2)
+    let p = sleep(0.01)
+    on_ready(p, fn(v) {
+        println("sleep done")
+    })
+
+    // Chained: inner callback registered from outer callback
+    let p2 = sleep(0.01)
+    on_ready(p2, fn(v) {
+        let p3 = sleep(0.01)
+        on_ready(p3, fn(v2) {
+            println("chained callback fired")
+        })
+    })
+
+    event_loop()    // waits for all callbacks including chained ones
+    println("all done")
+}
+```
+
+### Concurrent File Processing
+
+```aether
+fn main() {
+    set_workers(4)
+
+    let files = ["/tmp/a.txt", "/tmp/b.txt", "/tmp/c.txt"]
+    for f in files {
+        await write_file(f, "data:" + f)
+    }
+
+    for f in files {
+        let p = read_file(f)
+        on_ready(p, fn(content) {
+            println("read:", content)
+        })
+    }
+
+    event_loop()    // all reads run concurrently on worker threads
+}
+```
