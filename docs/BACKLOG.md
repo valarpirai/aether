@@ -5,6 +5,19 @@ Items without a milestone are unscheduled.
 
 ---
 
+## Recently Completed
+
+| Feature | Release |
+|---------|---------|
+| `finally` block | 2026-04-29 |
+| `??` null coalescing | 2026-04-29 |
+| `?.` optional chaining | 2026-04-29 |
+| Triple-quoted multi-line strings `"""..."""` | 2026-04-29 |
+| Labeled `break` / `continue` for nested loops | 2026-04-29 |
+| File utilities: `list_dir`, `path_join`, `rename`, `rm` | 2026-04-29 |
+
+---
+
 ## Tier 1 — High value, low complexity
 
 ### `match` statement
@@ -19,32 +32,6 @@ match shape {
 ```
 
 Stretch: structural patterns (`match point { {x: 0, y} => ... }`).
-
----
-
-### `finally` block
-Guaranteed cleanup whether or not an exception is thrown.
-
-```aether
-try {
-    let f = open("data.csv")
-    process(f)
-} catch(e) {
-    println("error:", e.message)
-} finally {
-    f.close()
-}
-```
-
----
-
-### `??` null coalescing and `?.` optional chaining
-Eliminate verbose null guards.
-
-```aether
-let name = user.name ?? "Anonymous"
-let city = user?.address?.city ?? "unknown"
-```
 
 ---
 
@@ -69,19 +56,6 @@ format("{:.2f}", 3.14159)       // "3.14"
 format("{:>10}", "hi")          // "        hi"
 format("{:0>5d}", 42)           // "00042"
 format("Hello, {}!", name)      // positional
-```
-
----
-
-### Multi-line strings / heredocs
-Embed SQL, HTML, JSON templates without manual concatenation.
-
-```aether
-let query = """
-    SELECT *
-    FROM users
-    WHERE active = true
-"""
 ```
 
 ---
@@ -273,17 +247,6 @@ fn read_config(path) {
     let f = open(path)
     defer f.close()
     return parse(f.read())
-}
-```
-
-### Labeled `break` / `continue`
-For nested loops.
-
-```aether
-outer: for row in grid {
-    for cell in row {
-        if (cell == target) { break outer }
-    }
 }
 ```
 

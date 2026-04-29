@@ -30,6 +30,108 @@ fn main() {
 
 ---
 
+## Null Safety — `??` and `?.` {#null-safety}
+
+```aether
+fn main() {
+    // ?? returns right side when left is null
+    let name = null
+    println(name ?? "anonymous")          // anonymous
+
+    let score = 0 ?? 100
+    println(score)                        // 0 (not null, stays 0)
+
+    // ?. returns null when object is null (no error)
+    let s = null
+    println(s?.upper())                   // null
+    println(s?.length)                    // null
+
+    // Combine ?. with ?? for safe access with fallback
+    println(s?.upper() ?? "UNKNOWN")      // UNKNOWN
+
+    let real = "hello"
+    println(real?.upper() ?? "UNKNOWN")   // HELLO
+
+    // Works on arrays and their methods
+    let arr = null
+    println(arr?.length ?? 0)             // 0
+    println(arr?.contains(1))             // null
+}
+```
+
+---
+
+## Multi-line Strings {#multiline-strings}
+
+```aether
+fn main() {
+    // Triple-quoted strings: raw content, leading newline stripped
+    let query = """
+SELECT *
+FROM users
+WHERE active = true
+ORDER BY name"""
+
+    println(query)
+
+    // Great for embedded templates or multi-line messages
+    let message = """
+Dear user,
+
+Your account has been updated.
+Please log in to see the changes.
+
+Thanks,
+The Aether Team"""
+
+    println(message)
+
+    // Works with string interpolation via concatenation
+    let table = "users"
+    let condition = "active = true"
+    let sql = "SELECT * FROM " + table + " WHERE " + condition
+    println(sql)
+}
+```
+
+---
+
+## Error Handling with `finally` {#error-handling}
+
+```aether
+fn risky_op(x) {
+    if x < 0 {
+        throw "negative value: " + x
+    }
+    return x * 2
+}
+
+fn main() {
+    // finally runs whether or not an exception is thrown
+    try {
+        let result = risky_op(5)
+        println("success:", result)
+    } catch(e) {
+        println("error:", e.message)
+    } finally {
+        println("cleanup complete")
+    }
+
+    println("---")
+
+    try {
+        let result = risky_op(-1)
+        println("success:", result)
+    } catch(e) {
+        println("error:", e.message)
+    } finally {
+        println("cleanup complete")
+    }
+}
+```
+
+---
+
 ## FizzBuzz {#fizzbuzz}
 
 ```aether
@@ -436,6 +538,22 @@ fn main() {
     println("exists:", file_exists("/tmp/app.log"))
     println("is_file:", is_file("/tmp/app.log"))
     println("is_dir:", is_dir("/tmp"))
+
+    // Directory listing
+    let entries = list_dir("/tmp")
+    println("files in /tmp:", len(entries))
+
+    // Path joining
+    let base = "/home/user"
+    let full = path_join(base, "projects", "aether", "src")
+    println("joined:", full)
+
+    // Rename and remove
+    write_file("/tmp/old_name.txt", "content")
+    rename("/tmp/old_name.txt", "/tmp/new_name.txt")
+    println("renamed:", file_exists("/tmp/new_name.txt"))
+    rm("/tmp/new_name.txt")
+    println("removed:", file_exists("/tmp/new_name.txt"))
 }
 ```
 

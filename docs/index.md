@@ -14,10 +14,12 @@ A general-purpose, dynamically typed programming language implemented in Rust �
 - **Async/Await** — `async fn`, `await`, `Promise.all`, configurable I/O thread pool
 - **First-Class Functions** — Closures, optional parameters, function expressions
 - **User-Defined Types** — Structs with fields, methods, and `self` binding
-- **Error Handling** — `try/catch/throw` with `e.message` and `e.stack_trace`
+- **Error Handling** — `try/catch/finally/throw` with `e.message` and `e.stack_trace`
+- **Null Safety** — `??` null coalescing and `?.` optional chaining
 - **Module System** — `import`, `from ... import`, aliases, filesystem resolution
 - **Collections** — Arrays, dicts, sets with comprehensive methods
-- **File I/O** — Read/write files, line-by-line streaming, binary I/O
+- **File I/O** — Read/write files, directory listing, path utilities
+- **Multi-line Strings** — Triple-quoted `"""..."""` strings with raw content
 - **Rich Standard Library** — 40+ functions written in Aether itself
 - **Interactive REPL** — Line editing with history and tab-completion
 
@@ -30,24 +32,34 @@ fn main() {
     let total = sum(filter(map(numbers, fn(x) { return x * x }), fn(x) { return x % 2 == 0 }))
     println("sum of even squares:", total)   // 220
 
-    // File I/O
-    let lines = read_lines("data.csv")
-    println("rows:", len(lines))
+    // Null safety: ?? and ?.
+    let name = null
+    println(name ?? "anonymous")          // anonymous
+    println(name?.upper() ?? "UNKNOWN")   // UNKNOWN
 
-    // Error handling with stack traces
+    // Error handling with finally
+    let f = null
     try {
         throw "something went wrong"
     } catch(e) {
         println("caught:", e.message)
-        println(e.stack_trace)
+    } finally {
+        println("cleanup always runs")
     }
+
+    // Multi-line string
+    let query = """
+        SELECT * FROM users
+        WHERE active = true
+    """
+    println(query)
 }
 ```
 
 ## Status
 
 - **Phase**: 5 Complete ✅
-- **Tests**: ~564 passing (99 unit + ~465 integration)
+- **Tests**: ~593 passing (134 unit + ~459 integration)
 - **Code Quality**: 0 clippy warnings
 - **Documentation**: 20+ comprehensive guides
 
@@ -110,8 +122,8 @@ fn main() {
 - [Async/Await](ASYNC.html) — Promises, `async fn`, I/O thread pool
 - [Iterators](ITERATOR_PROTOCOL.html) — `has_next()` / `next()` protocol
 - [Structs](STRUCT.html) — User-defined types with methods
-- [Error Handling](ERROR_HANDLING.html) — Try/catch/throw with stack traces
-- [String Features](STRING_FEATURES.html) — Indexing, interpolation, slicing, methods
+- [Error Handling](ERROR_HANDLING.html) — Try/catch/finally/throw with stack traces
+- [String Features](STRING_FEATURES.html) — Indexing, interpolation, multi-line strings, slicing, methods
 - [JSON](JSON.html) — Parsing and serialization
 - [HTTP](HTTP.html) — `http_get()`, `http_post()`
 - [Time](TIME.html) — `clock()`, `sleep()`
@@ -126,10 +138,12 @@ fn main() {
 |------|---------|
 | **Core language** | int, float, string, bool, null, array, dict, set; all operators; let, if/else, while, for, break, continue, return |
 | **Functions** | declarations, expressions, closures, optional params, recursion |
-| **Strings** | indexing, interpolation `${expr}`, slicing, `contains`, `index_of`, `replace`, `upper`/`lower`/`trim`/`split` |
+| **Strings** | indexing, interpolation `${expr}`, slicing, multi-line `"""..."""`, `contains`, `index_of`, `replace`, `upper`/`lower`/`trim`/`split` |
+| **Null safety** | `??` null coalescing, `?.` optional member access, `?.` optional method call |
 | **Collections** | array (push/pop/sort/slice/spread), dict (keys/values/contains), set (union/intersection/difference) |
-| **File I/O** | `read_file`, `write_file`, `read_lines`, `append_file`, `lines_iter` (streaming), `read_bytes`, `write_bytes`, `file_exists`, `is_file`, `is_dir`, `mkdir` |
-| **Error handling** | try/catch/throw; `e.message`, `e.stack_trace`; frames include filename and line |
+| **File I/O** | `read_file`, `write_file`, `read_lines`, `append_file`, `lines_iter`, `read_bytes`, `write_bytes`, `file_exists`, `is_file`, `is_dir`, `mkdir`, `list_dir`, `path_join`, `rename`, `rm` |
+| **Error handling** | try/catch/finally/throw; `e.message`, `e.stack_trace`; frames include filename and line |
+| **Loops** | while, for-in, labeled `break`/`continue` for nested loops |
 | **Modules** | `import mod`, `from mod import fn`, `import mod as alias` |
 | **Structs** | fields, methods, `self` binding, mutable fields |
 | **Iterators** | `has_next()`, `next()`, for-in over array/dict/set/string/iterator |
@@ -148,13 +162,13 @@ Browse the [examples directory](EXAMPLES.html) or jump straight to a topic:
 | Example | What it shows |
 |---------|--------------|
 | [Hello World](EXAMPLES.html#hello) | First program, interpolation |
-| [File Utilities](EXAMPLES.html#file-utilities) | basename, grep, head/tail, CSV reader |
-| [String Utilities](EXAMPLES.html#string-utilities) | All string operations |
+| [Null Safety](EXAMPLES.html#null-safety) | `??` and `?.` operators |
+| [Multi-line Strings](EXAMPLES.html#multiline-strings) | Triple-quoted strings |
+| [Error Handling](EXAMPLES.html#error-handling) | try/catch/finally, stack traces |
+| [File Utilities](EXAMPLES.html#file-utilities) | list_dir, path_join, rename, rm |
 | [Shapes (Structs)](EXAMPLES.html#shapes) | User-defined types with methods |
-| [Error Context](EXAMPLES.html#error-context) | Stack traces in catch blocks |
 | [Async / Concurrent I/O](EXAMPLES.html#async) | Promise.all, thread pool |
 | [Data Processing](EXAMPLES.html#data-processing) | Functional pipeline |
-| [Task Manager](EXAMPLES.html#task-manager) | Real-world struct usage |
 | [Collections](EXAMPLES.html#collections) | Arrays, dicts, sets |
 
 ## License
@@ -163,7 +177,7 @@ MIT License — see [LICENSE](https://github.com/valarpirai/aether/blob/main/LIC
 
 ---
 
-**Last Updated**: 2026-04-28  
+**Last Updated**: 2026-04-29  
 **Version**: 0.1.0  
 **Status**: Active Development
 
