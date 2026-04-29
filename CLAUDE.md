@@ -142,7 +142,7 @@ leaks --atExit -- ./target/debug/aether examples/<feature>_demo.ae
 
 # Run
 cargo run -- examples/error_context.ae
-AETHER_WORKERS=4 cargo run -- examples/concurrent_io.ae
+AETHER_IO_WORKERS=4 cargo run -- examples/concurrent_io.ae
 
 # Code quality
 cargo fmt
@@ -178,7 +178,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/DEVELOPMENT.md#
 | **Structs** | fields, methods, `self` binding, mutable fields via RefCell |
 | **Iterators** | `has_next()`, `next()`, for-in over array/dict/set/string/iterator |
 | **Async/await** | `async fn`, `await expr`, Promise caching; `Promise.all([p1, p2])` |
-| **I/O thread pool** | `set_workers(n)`, `AETHER_WORKERS` env var; async `http_get`, `sleep`, `read_file`, `write_file`, `http_post` |
+| **I/O thread pool** | `set_workers(n)`, `AETHER_IO_WORKERS` env var; async `http_get`, `sleep`, `read_file`, `write_file`, `http_post` |
 | **Event loop** | `on_ready(promise, callback)`, `event_loop()`; callback-based async; chained callbacks |
 | **Null safety** | `??` null coalescing (short-circuit), `?.` optional member/method chaining |
 | **JSON** | `json_parse()`, `json_stringify()` via serde_json |
@@ -187,7 +187,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/DEVELOPMENT.md#
 | **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, sign, join, repeat, reverse, starts_with, ends_with |
 | **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
 | **REPL** | rustyline with history (`~/.aether_history`), tab-completion, `_help`/`_env`/`_exit` |
-| **Configuration** | `AETHER_WORKERS`, `AETHER_CALL_DEPTH`, `HOME` (see [CONFIGURATION.md](docs/CONFIGURATION.md)) |
+| **Configuration** | `AETHER_IO_WORKERS`, `AETHER_CALL_DEPTH`, `HOME` (see [CONFIGURATION.md](docs/CONFIGURATION.md)) |
 
 ### Completed Milestones
 

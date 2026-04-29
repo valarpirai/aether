@@ -53,8 +53,8 @@ fn run_file(filename: &str) -> Result<(), String> {
     let mut parser = Parser::new(tokens);
     let program = parser.parse().map_err(|e| e.to_string())?;
 
-    // Execute — use I/O thread pool if AETHER_WORKERS is set
-    let mut evaluator = if let Some(n) = std::env::var("AETHER_WORKERS")
+    // Execute — use I/O thread pool if AETHER_IO_WORKERS is set
+    let mut evaluator = if let Some(n) = std::env::var("AETHER_IO_WORKERS")
         .ok()
         .and_then(|s| s.parse::<usize>().ok())
         .filter(|&n| n > 0)

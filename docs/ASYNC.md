@@ -128,7 +128,7 @@ println(results[1])   // posts
 
 **Environment variable** (at startup):
 ```bash
-AETHER_WORKERS=8 aether script.ae
+AETHER_IO_WORKERS=8 aether script.ae
 ```
 
 **Runtime** (from Aether code):

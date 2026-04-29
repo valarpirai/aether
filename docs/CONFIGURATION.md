@@ -8,7 +8,7 @@ This document lists every knob that controls Aether's behaviour, grouped by how 
 
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
-| `AETHER_WORKERS` | positive integer | _(none)_ | Enable the I/O thread pool with this many worker threads. When unset, I/O builtins (`http_get`, `sleep`, `read_file`, `write_file`, `http_post`) run synchronously on the main thread. When set, each call returns a `Promise` immediately and the I/O runs on a worker thread. |
+| `AETHER_IO_WORKERS` | positive integer | _(none)_ | Enable the I/O thread pool with this many worker threads. When unset, I/O builtins (`http_get`, `sleep`, `read_file`, `write_file`, `http_post`) run synchronously on the main thread. When set, each call returns a `Promise` immediately and the I/O runs on a worker thread. |
 | `AETHER_EVENT_LOOP_TIMEOUT` | positive float (seconds) | _(none)_ | Default timeout for `event_loop()` calls that pass no argument. `event_loop(n)` with an explicit argument always overrides this. When unset, `event_loop()` runs until the queue is empty with no deadline. |
 | `AETHER_QUEUE_LIMIT` | positive integer | `1024` | Maximum number of pending callbacks in the event loop queue. `on_ready()` throws a runtime error when this limit is reached (backpressure). Can also be changed at runtime via `set_queue_limit(n)`. |
 | `AETHER_CALL_DEPTH` | positive integer | `100` | Maximum Aether call stack depth before a `StackOverflow` error is raised. |
@@ -18,13 +18,13 @@ This document lists every knob that controls Aether's behaviour, grouped by how 
 
 ```bash
 # Run a script with a 4-worker I/O pool
-AETHER_WORKERS=4 aether examples/concurrent_io.ae
+AETHER_IO_WORKERS=4 aether examples/concurrent_io.ae
 
 # Limit event_loop() to 30 seconds and cap queue at 500 entries
 AETHER_EVENT_LOOP_TIMEOUT=30 AETHER_QUEUE_LIMIT=500 aether server.ae
 
 # Override worker count for a single benchmark run
-AETHER_WORKERS=8 aether bench.ae
+AETHER_IO_WORKERS=8 aether bench.ae
 ```
 
 ---
@@ -40,7 +40,7 @@ Replaces the I/O thread pool with a new pool of `n` workers.
 - **`n`**: positive integer
 - Can be called before or after any I/O calls.
 - A previous pool is discarded; in-flight tasks on the old pool complete normally (the old worker threads drain their queue before exiting).
-- If called without `AETHER_WORKERS` having been set, this is the first way to enable the pool.
+- If called without `AETHER_IO_WORKERS` having been set, this is the first way to enable the pool.
 
 ```aether
 set_workers(4)          // create/replace pool with 4 workers
@@ -75,7 +75,7 @@ These values are baked into the binary. Changing them requires recompiling.
 | Constant | Location | Value | Description |
 |----------|----------|-------|-------------|
 | `max_call_depth` | `evaluator/mod.rs` (constructors) | `100` | Maximum Aether call stack depth before a `StackOverflow` error is raised. Each Aether call uses ~10–20 Rust stack frames internally; 100 keeps the Rust stack comfortably under OS limits (~8 MB default). |
-| `IoPool::default_workers()` | `interpreter/io_pool.rs` | `max(available_parallelism − 1, 4)` | Worker count chosen when only `AETHER_WORKERS` is set (no explicit value override is currently exposed, but the formula is used for future `new_default_pool()` convenience). |
+| `IoPool::default_workers()` | `interpreter/io_pool.rs` | `max(available_parallelism − 1, 4)` | Worker count chosen when only `AETHER_IO_WORKERS` is set (no explicit value override is currently exposed, but the formula is used for future `new_default_pool()` convenience). |
 | REPL edit mode | `repl.rs` | Emacs | Key-binding style for the readline REPL (`Ctrl-A`, `Ctrl-E`, `Ctrl-K`, etc.). |
 | REPL completion style | `repl.rs` | List | Tab-completion shows a list of candidates rather than cycling. |
 | REPL history file name | `repl.rs` | `.aether_history` | Base name appended to `$HOME/`. |
@@ -88,7 +88,7 @@ These values are baked into the binary. Changing them requires recompiling.
 
 | Config | Mechanism | Scope |
 |--------|-----------|-------|
-| Number of I/O workers | `AETHER_WORKERS` env var | process lifetime |
+| Number of I/O workers | `AETHER_IO_WORKERS` env var | process lifetime |
 | Change workers at runtime | `set_workers(n)` builtin | immediate |
 | Default worker formula | hardcoded in `IoPool::default_workers()` | compile-time |
 
