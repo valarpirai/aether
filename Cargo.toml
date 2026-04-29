@@ -7,7 +7,7 @@ description = "A general-purpose, dynamically typed programming language with au
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/valarpirai/aether"
-keywords = ["interpreter", "programming-language", "dynamic", "repl"]
+keywords = ["interpreter", "language", "scripting", "repl", "dynamic-typing"]
 categories = ["development-tools"]
 
 [dependencies]
