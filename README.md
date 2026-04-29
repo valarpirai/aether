@@ -292,12 +292,12 @@ Contributions are welcome! Please see [CLAUDE.md](CLAUDE.md) for development gui
 | `io_pool.rs` | 9/10 | Thread-safe, primitives-only boundary, clean task types |
 | `environment.rs` / `evaluator/mod.rs` | 8/10 | Solid; three clear sub-structs (CallContext, ModuleLoader, AsyncRuntime) |
 | `builtins.rs` | 8/10 | Good coverage; structured typed errors; some HTTP option duplication |
-| `evaluator/functions.rs` / `members.rs` | 7/10 | Some code duplication in call setup and array mutation |
+| `evaluator/functions.rs` / `members.rs` | 8/10 | `write_back()` helper eliminated 5×6-line duplication in collection mutations |
 | Parser (`parse.rs`) | 7/10 | Clean AST; no error recovery; ~60 unnecessary clones |
-| Stdlib (`stdlib/*.ae`) | 6/10 | Missing `flatten`, `sqrt`, `pow`; no method-style `.split()`/`.trim()` |
+| Stdlib (`stdlib/*.ae`) | 8/10 | sqrt, pow, floor, ceil, round, log, gcd, lcm, flatten, zip, take, drop, count_by, group_by, uniq, sum_by |
 | Error handling | 8/10 | 16 typed RuntimeError variants; stack traces with filenames and line numbers |
 | Concurrency design | 5/10 | Callback-based; no cancellation; no composable async primitives |
-| **Overall** | **7.6/10** | Solid interpreter; clean pipeline; room to grow in stdlib and concurrency |
+| **Overall** | **8.1/10** | Solid interpreter; clean pipeline; rich stdlib; growing toward production-ready |
 
 ## License
 
