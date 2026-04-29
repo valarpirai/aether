@@ -1,0 +1,132 @@
+// Enum demo — tagged unions with unit and tuple variants
+
+fn main() {
+    println("=== Enum Demo ===")
+    println()
+
+    // --- 1. Simple unit variants ---
+    println("1. Unit variants (no fields)")
+    enum Direction { North South East West }
+
+    let dir = Direction.North
+    println("   direction:", dir)
+    println("   type:", type(dir))
+    println("   is North?", type(dir) == "Direction.North")
+    println()
+
+    // --- 2. Tuple variants with fields ---
+    println("2. Tuple variants with fields")
+    enum Shape {
+        Circle(radius)
+        Rect(width, height)
+        Triangle(base, height)
+        Point
+    }
+
+    let c = Shape.Circle(5)
+    let r = Shape.Rect(4, 6)
+    let p = Shape.Point
+
+    println("   circle:", c)
+    println("   rect:", r)
+    println("   point:", p)
+    println("   circle.radius:", c.radius)
+    println("   rect.width:", r.width)
+    println("   rect.height:", r.height)
+    println()
+
+    // --- 3. type() dispatch (before match is available) ---
+    println("3. Dispatch by type()")
+
+    fn area(s) {
+        if (type(s) == "Shape.Circle") {
+            return 3.14159 * s.radius * s.radius
+        } else if (type(s) == "Shape.Rect") {
+            return s.width * s.height
+        } else if (type(s) == "Shape.Triangle") {
+            return 0.5 * s.base * s.height
+        } else {
+            return 0
+        }
+    }
+
+    fn describe(s) {
+        if (type(s) == "Shape.Circle") {
+            return "circle with radius " + str(s.radius)
+        } else if (type(s) == "Shape.Rect") {
+            return "rectangle " + str(s.width) + "x" + str(s.height)
+        } else if (type(s) == "Shape.Triangle") {
+            return "triangle base=" + str(s.base) + " h=" + str(s.height)
+        } else {
+            return "point"
+        }
+    }
+
+    let shapes = [
+        Shape.Circle(3),
+        Shape.Rect(4, 5),
+        Shape.Triangle(6, 8),
+        Shape.Point
+    ]
+
+    for s in shapes {
+        println("  ", describe(s), "-> area:", area(s))
+    }
+    println()
+
+    // --- 4. Equality ---
+    println("4. Equality")
+    println("   Circle(5) == Circle(5)?", Shape.Circle(5) == Shape.Circle(5))
+    println("   Circle(5) == Circle(9)?", Shape.Circle(5) == Shape.Circle(9))
+    println("   Circle(5) == Point?    ", Shape.Circle(5) == Shape.Point)
+    println("   Point == Point?        ", Shape.Point == Shape.Point)
+    println()
+
+    // --- 5. Storing variants in a dict ---
+    println("5. Variants in collections")
+    enum Status { Active Inactive Suspended(reason) }
+
+    let users = [
+        {"name": "Alice", "status": Status.Active},
+        {"name": "Bob",   "status": Status.Inactive},
+        {"name": "Carol", "status": Status.Suspended("policy violation")}
+    ]
+
+    for u in users {
+        let s = u["status"]
+        if (type(s) == "Status.Suspended") {
+            println("  ", u["name"], "->", type(s), ":", s.reason)
+        } else {
+            println("  ", u["name"], "->", type(s))
+        }
+    }
+    println()
+
+    // --- 6. Recursive-style expression tree ---
+    println("6. Expression tree (AST-style)")
+    enum Expr {
+        Num(value)
+        Add(left, right)
+        Mul(left, right)
+    }
+
+    fn eval_expr(e) {
+        if (type(e) == "Expr.Num") {
+            return e.value
+        } else if (type(e) == "Expr.Add") {
+            return eval_expr(e.left) + eval_expr(e.right)
+        } else if (type(e) == "Expr.Mul") {
+            return eval_expr(e.left) * eval_expr(e.right)
+        }
+    }
+
+    // (2 + 3) * 4
+    let expr = Expr.Mul(
+        Expr.Add(Expr.Num(2), Expr.Num(3)),
+        Expr.Num(4)
+    )
+    println("   (2 + 3) * 4 =", eval_expr(expr))
+    println()
+
+    println("Done.")
+}
