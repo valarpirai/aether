@@ -31,18 +31,29 @@ fn main() {
     println("   Cargo.toml first line:", lines[0])
     println()
 
-    // --- Promise.all: submit all tasks before blocking on any ---
-    println("3. Promise.all — concurrent file reads...")
+    // --- Promise.all: I/O promises resolve in parallel, not sequentially.
+    //     Two 0.1s sleeps take ~0.1s total, not ~0.2s. ---
+    println("3. Promise.all — parallel I/O...")
+    let t3 = clock()
+    let ps1 = sleep(0.1)
+    let ps2 = sleep(0.1)
+    let ps3 = sleep(0.1)
+    await Promise.all([ps1, ps2, ps3])
+    let t4 = clock()
+    println("   Three 0.1s sleeps via Promise.all took:", t4 - t3, "seconds (expect ~0.1)")
+    println()
+
+    // --- Promise.all with file reads ---
+    println("4. Promise.all — concurrent file reads...")
     let p1 = read_file("Cargo.toml")
     let p2 = read_file("README.md")
-    // Both reads run in parallel
     let results = await Promise.all([p1, p2])
     println("   Cargo.toml size:", len(results[0]), "bytes")
     println("   README.md size:", len(results[1]), "bytes")
     println()
 
     // --- set_workers: change pool size at runtime ---
-    println("4. Changing worker count at runtime...")
+    println("5. Changing worker count at runtime...")
     set_workers(2)
     let p3 = sleep(0.05)
     await p3
@@ -50,7 +61,7 @@ fn main() {
     println()
 
     // --- Async http (requires network) ---
-    println("5. Async HTTP (requires network)...")
+    println("6. Async HTTP (requires network)...")
     try {
         let hp = http_get("https://httpbin.org/get")
         println("   http_get returned:", type(hp))   // promise

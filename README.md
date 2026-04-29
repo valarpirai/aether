@@ -297,12 +297,12 @@ Contributions are welcome! Please see [CLAUDE.md](CLAUDE.md) for development gui
 | `io_pool.rs` | 9/10 | Thread-safe, primitives-only boundary, clean task types |
 | `environment.rs` / `evaluator/mod.rs` | 8/10 | Solid; three clear sub-structs (CallContext, ModuleLoader, AsyncRuntime) |
 | `builtins.rs` | 8/10 | Good coverage; structured typed errors; some HTTP option duplication |
-| `evaluator/functions.rs` / `members.rs` | 8/10 | `write_back()` helper eliminated 5×6-line duplication in collection mutations |
+| `evaluator/functions.rs` / `members.rs` | 8/10 | `write_back()` helper eliminated 5×6-line duplication; `Promise.all` two-phase parallel I/O polling |
 | Parser (`parse.rs`) | 8/10 | `parse_params()` eliminates 5× duplication; `match` stmt with 6 pattern kinds; FatArrow/Pipe tokens; still no error recovery |
 | Stdlib (`stdlib/*.ae`) | 8/10 | sqrt, pow, floor, ceil, round, log, gcd, lcm, flatten, zip, take, drop, count_by, group_by, uniq, sum_by |
 | Error handling | 8/10 | 16 typed RuntimeError variants; stack traces with filenames and line numbers |
-| Concurrency design | 5/10 | Callback-based; no cancellation; no composable async primitives |
-| **Overall** | **8.2/10** | Solid interpreter; clean pipeline; rich stdlib; `match` statement; growing toward production-ready |
+| Concurrency design | 6/10 | `Promise.all` resolves I/O tasks in parallel (try_recv polling); event loop; still no cancellation or composable primitives |
+| **Overall** | **8.3/10** | Solid interpreter; clean pipeline; rich stdlib; `match` statement; parallel `Promise.all`; growing toward production-ready |
 
 ## License
 

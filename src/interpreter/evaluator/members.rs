@@ -1,8 +1,11 @@
 use crate::interpreter::environment::{Environment, RuntimeError};
-use crate::interpreter::value::{IteratorSource, Value};
+use crate::interpreter::io_pool::IoResult;
+use crate::interpreter::value::{IteratorSource, PromiseState, Value};
 use crate::parser::ast::Expr;
 use std::collections::HashSet;
 use std::rc::Rc;
+use std::sync::mpsc::TryRecvError;
+use std::time::Duration;
 
 use super::{ControlFlow, Evaluator};
 
@@ -605,7 +608,9 @@ impl Evaluator {
                 Ok(Value::Bool(found))
             }
 
-            // Promise.all([p1, p2, ...]) — await all promises and return array of results
+            // Promise.all([p1, p2, ...]) — await all promises and return array of results.
+            // IoWaiting promises are polled concurrently so N parallel I/O tasks take
+            // max(N) time instead of sum(N).
             (Value::Module { name, .. }, "all") if name.as_str() == "Promise" => {
                 if args.len() != 1 {
                     return Err(RuntimeError::ArityMismatch {
@@ -617,11 +622,93 @@ impl Evaluator {
                 match array_val {
                     Value::Array(promises) => {
                         let promises_vec: Vec<Value> = promises.iter().cloned().collect();
-                        let mut results = Vec::new();
-                        for p in promises_vec {
-                            results.push(self.await_value(p)?);
+                        let len = promises_vec.len();
+                        let mut results: Vec<Option<Value>> = vec![None; len];
+
+                        // Phase 1: classify each promise.
+                        // CPU-bound (Pending) and already-Resolved are handled immediately.
+                        // IoWaiting receivers are collected for concurrent Phase-2 polling.
+                        let mut io_pending: Vec<(
+                            usize,
+                            std::sync::mpsc::Receiver<IoResult>,
+                            Rc<std::cell::RefCell<PromiseState>>,
+                        )> = Vec::new();
+
+                        for (i, promise) in promises_vec.into_iter().enumerate() {
+                            match &promise {
+                                Value::Promise(state_rc) => {
+                                    let state = std::mem::replace(
+                                        &mut *state_rc.borrow_mut(),
+                                        PromiseState::Resolved(Value::Null),
+                                    );
+                                    match state {
+                                        PromiseState::Resolved(v) => {
+                                            *state_rc.borrow_mut() =
+                                                PromiseState::Resolved(v.clone());
+                                            results[i] = Some(v);
+                                        }
+                                        PromiseState::Pending { func, args } => {
+                                            // Put back then use await_value for CPU-bound execution
+                                            *state_rc.borrow_mut() =
+                                                PromiseState::Pending { func, args };
+                                            results[i] = Some(self.await_value(promise)?);
+                                        }
+                                        PromiseState::IoWaiting(rx) => {
+                                            // Keep state as Resolved(Null) placeholder; update in Phase 2
+                                            io_pending.push((i, rx, Rc::clone(state_rc)));
+                                        }
+                                    }
+                                }
+                                other => {
+                                    results[i] = Some(other.clone());
+                                }
+                            }
                         }
-                        Ok(Value::array(results))
+
+                        // Phase 2: poll all I/O receivers concurrently with try_recv.
+                        while !io_pending.is_empty() {
+                            let mut still = Vec::new();
+                            for (i, rx, state_rc) in io_pending {
+                                match rx.try_recv() {
+                                    Ok(io_result) => {
+                                        let val = match io_result {
+                                            IoResult::Str(Ok(s)) => Value::string(s),
+                                            IoResult::Str(Err(e)) => {
+                                                return Err(RuntimeError::IoError {
+                                                    operation: "Promise.all".to_string(),
+                                                    detail: e,
+                                                })
+                                            }
+                                            IoResult::Unit(Ok(())) => Value::Null,
+                                            IoResult::Unit(Err(e)) => {
+                                                return Err(RuntimeError::IoError {
+                                                    operation: "Promise.all".to_string(),
+                                                    detail: e,
+                                                })
+                                            }
+                                        };
+                                        *state_rc.borrow_mut() =
+                                            PromiseState::Resolved(val.clone());
+                                        results[i] = Some(val);
+                                    }
+                                    Err(TryRecvError::Empty) => still.push((i, rx, state_rc)),
+                                    Err(TryRecvError::Disconnected) => {
+                                        return Err(RuntimeError::ChannelClosed)
+                                    }
+                                }
+                            }
+                            io_pending = still;
+                            if !io_pending.is_empty() {
+                                std::thread::sleep(Duration::from_millis(1));
+                            }
+                        }
+
+                        // Phase 3: collect results in original order.
+                        let values: Vec<Value> = results
+                            .into_iter()
+                            .map(|r| r.unwrap_or(Value::Null))
+                            .collect();
+                        Ok(Value::array(values))
                     }
                     other => Err(RuntimeError::TypeError {
                         expected: "array of promises".to_string(),

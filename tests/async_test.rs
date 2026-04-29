@@ -257,3 +257,65 @@ let _ = await p
     let p = run_get(src, "p").unwrap();
     assert_eq!(format!("{}", p), "<promise:42>");
 }
+
+#[test]
+fn test_promise_all_parallel() {
+    // Functional: Promise.all with two I/O-backed sleeps returns both results.
+    let src = r#"
+async fn do_sleep(n) { sleep(n) }
+let p1 = do_sleep(0.01)
+let p2 = do_sleep(0.01)
+Promise.all([p1, p2])
+"#;
+    let mut scanner = aether_lang::lexer::Scanner::new(src);
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = aether_lang::parser::Parser::new(tokens);
+    let program = parser.parse().unwrap();
+    let mut evaluator = aether_lang::interpreter::Evaluator::new_with_pool(2);
+    for stmt in &program.statements[..program.statements.len() - 1] {
+        evaluator.exec_stmt(stmt).unwrap();
+    }
+    let last = program.statements.last().unwrap();
+    let result = if let aether_lang::parser::ast::Stmt::Expr(expr) = last {
+        evaluator.eval_expr(expr).unwrap()
+    } else {
+        panic!("expected expr");
+    };
+    match result {
+        aether_lang::interpreter::value::Value::Array(arr) => {
+            assert_eq!(arr.len(), 2, "Promise.all should return 2 results");
+        }
+        other => panic!("Expected array, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_promise_all_is_parallel_not_sequential() {
+    // Timing proof: two 50ms sleeps should complete in ~50ms (parallel),
+    // not ~100ms (sequential).
+    let src = r#"
+async fn do_sleep(n) { sleep(n) }
+let p1 = do_sleep(0.05)
+let p2 = do_sleep(0.05)
+Promise.all([p1, p2])
+"#;
+    let mut scanner = aether_lang::lexer::Scanner::new(src);
+    let tokens = scanner.scan_tokens().unwrap();
+    let mut parser = aether_lang::parser::Parser::new(tokens);
+    let program = parser.parse().unwrap();
+    let mut evaluator = aether_lang::interpreter::Evaluator::new_with_pool(2);
+    for stmt in &program.statements[..program.statements.len() - 1] {
+        evaluator.exec_stmt(stmt).unwrap();
+    }
+    let last = program.statements.last().unwrap();
+    let start = std::time::Instant::now();
+    if let aether_lang::parser::ast::Stmt::Expr(expr) = last {
+        evaluator.eval_expr(expr).unwrap();
+    }
+    let elapsed = start.elapsed();
+    assert!(
+        elapsed.as_millis() < 90,
+        "Promise.all with 2×50ms sleeps should complete in <90ms (parallel), took {}ms",
+        elapsed.as_millis()
+    );
+}
