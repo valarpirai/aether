@@ -1,6 +1,7 @@
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::Duration;
 
 /// Result type for I/O tasks (only primitive types cross thread boundaries)
 #[derive(Debug)]
@@ -9,16 +10,28 @@ pub enum IoResult {
     Unit(Result<(), String>),
 }
 
+/// Per-request HTTP options — primitive fields only, safe to send across threads.
+/// `None` fields fall back to env-var defaults when the client is built.
+#[derive(Debug, Default, Clone)]
+pub struct HttpOptions {
+    /// Override `AETHER_HTTP_TIMEOUT` (seconds)
+    pub timeout_secs: Option<u64>,
+    /// Override `AETHER_HTTP_USER_AGENT`
+    pub user_agent: Option<String>,
+}
+
 /// I/O task submitted to the worker pool
 #[derive(Debug)]
 pub enum IoTask {
     HttpGet {
         url: String,
+        opts: HttpOptions,
         tx: Sender<IoResult>,
     },
     HttpPost {
         url: String,
         body: String,
+        opts: HttpOptions,
         tx: Sender<IoResult>,
     },
     Sleep {
@@ -34,6 +47,37 @@ pub enum IoTask {
         content: String,
         tx: Sender<IoResult>,
     },
+}
+
+/// Build a reqwest blocking client, applying per-request opts on top of env-var defaults.
+///
+/// Env-var defaults:
+/// - `AETHER_HTTP_TIMEOUT`: request timeout in seconds (default 30)
+/// - `AETHER_HTTP_USER_AGENT`: User-Agent header value (default "aether/0.1")
+pub fn build_http_client_with_opts(opts: &HttpOptions) -> reqwest::blocking::Client {
+    let timeout_secs: u64 = opts
+        .timeout_secs
+        .or_else(|| {
+            std::env::var("AETHER_HTTP_TIMEOUT")
+                .ok()
+                .and_then(|v| v.parse().ok())
+        })
+        .unwrap_or(30);
+    let user_agent = opts
+        .user_agent
+        .clone()
+        .or_else(|| std::env::var("AETHER_HTTP_USER_AGENT").ok())
+        .unwrap_or_else(|| "aether/0.1".to_string());
+    reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(timeout_secs))
+        .user_agent(user_agent)
+        .build()
+        .unwrap_or_default()
+}
+
+/// Convenience wrapper with env-var defaults only (no per-request opts).
+pub fn build_http_client() -> reqwest::blocking::Client {
+    build_http_client_with_opts(&HttpOptions::default())
 }
 
 /// Thread pool for offloading blocking I/O. Worker threads only see primitive
@@ -53,14 +97,22 @@ impl IoPool {
             thread::spawn(move || loop {
                 let task = rx.lock().unwrap().recv();
                 match task {
-                    Ok(IoTask::HttpGet { url, tx }) => {
-                        let result = reqwest::blocking::get(&url)
+                    Ok(IoTask::HttpGet { url, opts, tx }) => {
+                        let client = build_http_client_with_opts(&opts);
+                        let result = client
+                            .get(&url)
+                            .send()
                             .and_then(|r| r.text())
                             .map_err(|e| e.to_string());
                         let _ = tx.send(IoResult::Str(result));
                     }
-                    Ok(IoTask::HttpPost { url, body, tx }) => {
-                        let client = reqwest::blocking::Client::new();
+                    Ok(IoTask::HttpPost {
+                        url,
+                        body,
+                        opts,
+                        tx,
+                    }) => {
+                        let client = build_http_client_with_opts(&opts);
                         let result = client
                             .post(&url)
                             .body(body)
@@ -70,7 +122,7 @@ impl IoPool {
                         let _ = tx.send(IoResult::Str(result));
                     }
                     Ok(IoTask::Sleep { secs, tx }) => {
-                        thread::sleep(std::time::Duration::from_secs_f64(secs));
+                        thread::sleep(Duration::from_secs_f64(secs));
                         let _ = tx.send(IoResult::Unit(Ok(())));
                     }
                     Ok(IoTask::ReadFile { path, tx }) => {

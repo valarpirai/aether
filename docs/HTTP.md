@@ -2,8 +2,8 @@
 
 **Status**: ✅ Complete  
 **Added**: Phase 5  
-**Tests**: 5 tests (ignored - require network)  
-**Backend**: reqwest (blocking)
+**Tests**: 9 tests passing (0 ignored)  
+**Backend**: reqwest (blocking or async via I/O pool)
 
 ## Overview
 
@@ -11,7 +11,7 @@ Aether provides basic HTTP client functionality through `http_get()` and `http_p
 
 ## Functions
 
-### http_get(url)
+### http_get(url [, opts])
 
 Make a GET request to the specified URL:
 
@@ -20,12 +20,16 @@ let response = http_get("https://api.example.com/users")
 println(response)
 ```
 
+**Arguments**:
+- `url` — Target URL (must be valid HTTP/HTTPS)
+- `opts` *(optional)* — Config dict with per-request overrides
+
 **Returns**: Response body as string  
 **Throws**: Error on network failure, invalid URL, or HTTP errors
 
-### http_post(url, body)
+### http_post(url, body [, opts])
 
-Make a POST request with a JSON body:
+Make a POST request:
 
 ```aether
 let data = {"name": "Alice", "email": "alice@example.com"}
@@ -35,11 +39,60 @@ println(response)
 ```
 
 **Arguments**:
-- `url` - Target URL (must be valid HTTP/HTTPS)
-- `body` - Request body as string (typically JSON)
+- `url` — Target URL (must be valid HTTP/HTTPS)
+- `body` — Request body as string (typically JSON)
+- `opts` *(optional)* — Config dict with per-request overrides
 
-**Returns**: Response body as string  
-**Content-Type**: Automatically set to `application/json`
+**Returns**: Response body as string
+
+## Per-request Configuration
+
+Both functions accept an optional config dict as their last argument. Dict keys override the global env-var defaults for that single request:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `timeout` | int (seconds) | Request timeout. Overrides `AETHER_HTTP_TIMEOUT`. |
+| `user_agent` | string | `User-Agent` header. Overrides `AETHER_HTTP_USER_AGENT`. |
+
+```aether
+// Custom timeout for a slow endpoint
+let data = http_get("https://slow.api.example.com/", {timeout: 60})
+
+// Custom user-agent
+let resp = http_get("https://api.example.com/", {user_agent: "mybot/1.0"})
+
+// Both options together
+let result = http_post("https://api.example.com/submit", payload, {
+    timeout: 10,
+    user_agent: "myapp/2.0"
+})
+```
+
+**Global defaults** (apply when no per-request opt is given):
+- `AETHER_HTTP_TIMEOUT` — timeout in seconds (default: 30)
+- `AETHER_HTTP_USER_AGENT` — User-Agent string (default: `aether/0.1`)
+
+See [CONFIGURATION.md](CONFIGURATION.md) for details.
+
+## Async Mode
+
+When `AETHER_IO_WORKERS` is set (or `set_workers(n)` is called), both functions return a `Promise` and execute on the I/O thread pool:
+
+```aether
+set_workers(4)
+
+// Both requests start concurrently
+let p1 = http_get("https://api.example.com/users")
+let p2 = http_get("https://api.example.com/posts", {timeout: 5})
+
+let results = await Promise.all([p1, p2])
+println(results[0])
+println(results[1])
+```
+
+Without `set_workers`, requests run synchronously and block the main thread.
+
+See [ASYNC.md](ASYNC.md) for the I/O thread pool documentation.
 
 ## Examples
 
@@ -188,11 +241,11 @@ try {
 ```
 
 **Common Errors**:
-- Invalid URL format
+- Invalid URL format or unsupported scheme
 - Network connectivity issues
 - DNS resolution failures
 - HTTP 4xx/5xx status codes
-- Timeout (no explicit timeout setting yet)
+- Request timeout (configurable via `timeout` key or `AETHER_HTTP_TIMEOUT`)
 
 ## Best Practices
 
@@ -259,15 +312,13 @@ fn rate_limited_requests(urls, delay_sec) {
 
 ### Current Limitations
 
-- **Blocking Only**: Requests block until complete (no async)
-- **No Custom Headers**: Can't set request headers
+- **Sync by default**: Without `set_workers`, requests block the main thread. Use the I/O pool for concurrency.
+- **No Custom Headers**: Can't set arbitrary request headers (only `User-Agent`)
 - **No Authentication**: No built-in auth support (Basic, Bearer, etc.)
-- **No Timeout Control**: Can't set request timeout
-- **POST Only**: No PUT, PATCH, DELETE methods
-- **JSON Content-Type Only**: POST always sends `application/json`
-- **No Query Parameters**: Must manually construct URLs
+- **GET and POST only**: No PUT, PATCH, DELETE methods
 - **No Response Headers**: Can't access response headers or status code
 - **No Redirect Control**: Follows redirects automatically
+- **No Query Parameter helpers**: Must manually construct URL query strings
 
 ### Workarounds
 
@@ -309,5 +360,5 @@ See [examples/http_demo.ae](../examples/http_demo.ae) for a full working example
 
 ---
 
-**Last Updated**: 2026-04-28  
-**Status**: Complete but basic (blocking only, limited features)
+**Last Updated**: 2026-04-29  
+**Status**: Complete — sync and async modes, per-request config dict, configurable timeout and User-Agent

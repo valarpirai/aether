@@ -6,7 +6,23 @@
 
 ## Overview
 
-Aether provides powerful string manipulation features including direct character access, template interpolation, slicing, and spread operations.
+Aether provides powerful string manipulation features including direct character access, template interpolation, slicing, spread operations, and multi-line strings.
+
+## Multi-line Strings
+
+Triple-quoted strings (`"""..."""`) span multiple lines without escape sequences:
+
+```aether
+let body = """
+{
+    "name": "Alice",
+    "role": "admin"
+}
+"""
+println(body)
+```
+
+Content between the triple quotes is taken verbatim, including embedded newlines and double quotes.
 
 ## String Indexing
 
@@ -233,7 +249,7 @@ let msg = "User " + name + " has " + str(count) + " items"
 
 ```aether
 fn safe_char_at(text, index) {
-    if (index < 0 or index >= len(text)) {
+    if (index < 0 || index >= len(text)) {
         return ""
     }
     return text[index]

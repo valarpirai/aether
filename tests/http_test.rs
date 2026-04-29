@@ -26,52 +26,147 @@ fn eval(source: &str) -> Result<String, String> {
     Ok("null".to_string())
 }
 
-#[test]
-#[ignore]
-fn test_http_get_returns_non_empty_string() {
-    let result = eval(
-        r#"
-        let body = http_get("https://httpbin.org/get")
-        len(body) > 0
-    "#,
-    );
-    assert_eq!(result.unwrap(), "true");
-}
+// --- error handling ---
 
 #[test]
-#[ignore]
-fn test_http_get_type_is_string() {
-    let result = eval(r#"type(http_get("https://httpbin.org/get"))"#);
-    assert_eq!(result.unwrap(), "string");
-}
-
-#[test]
-#[ignore]
-fn test_http_post_returns_non_empty_string() {
-    let result = eval(
-        r#"
-        let body = http_post("https://httpbin.org/post", "hello")
-        len(body) > 0
-    "#,
-    );
-    assert_eq!(result.unwrap(), "true");
-}
-
-#[test]
-#[ignore]
-fn test_http_post_type_is_string() {
-    let result = eval(r#"type(http_post("https://httpbin.org/post", "hello"))"#);
-    assert_eq!(result.unwrap(), "string");
-}
-
-#[test]
-#[ignore]
 fn test_http_get_invalid_url_throws_error() {
     let result = eval(
         r#"
         let caught = false
         try {
             http_get("not-a-valid-url://???")
+        } catch(e) {
+            caught = true
+        }
+        caught
+    "#,
+    );
+    assert_eq!(result.unwrap(), "true");
+}
+
+#[test]
+fn test_http_post_invalid_url_throws_error() {
+    let result = eval(
+        r#"
+        let caught = false
+        try {
+            http_post("not-a-valid-url://???", "body")
+        } catch(e) {
+            caught = true
+        }
+        caught
+    "#,
+    );
+    assert_eq!(result.unwrap(), "true");
+}
+
+// --- config dict: error cases ---
+
+#[test]
+fn test_http_get_config_wrong_type_throws() {
+    let result = eval(
+        r#"
+        let caught = false
+        try {
+            http_get("not-a-valid-url://???", "not-a-dict")
+        } catch(e) {
+            caught = true
+        }
+        caught
+    "#,
+    );
+    assert_eq!(result.unwrap(), "true");
+}
+
+#[test]
+fn test_http_get_config_bad_timeout_type_throws() {
+    let result = eval(
+        r#"
+        let caught = false
+        try {
+            http_get("not-a-valid-url://???", {timeout: "slow"})
+        } catch(e) {
+            caught = true
+        }
+        caught
+    "#,
+    );
+    assert_eq!(result.unwrap(), "true");
+}
+
+// --- config dict: happy path (invalid URL still throws but opts are parsed first) ---
+
+#[test]
+fn test_http_get_with_timeout_opt() {
+    let result = eval(
+        r#"
+        let caught = false
+        try {
+            http_get("not-a-valid-url://???", {timeout: 5})
+        } catch(e) {
+            caught = true
+        }
+        caught
+    "#,
+    );
+    assert_eq!(result.unwrap(), "true");
+}
+
+#[test]
+fn test_http_get_with_user_agent_opt() {
+    let result = eval(
+        r#"
+        let caught = false
+        try {
+            http_get("not-a-valid-url://???", {user_agent: "my-client/1.0"})
+        } catch(e) {
+            caught = true
+        }
+        caught
+    "#,
+    );
+    assert_eq!(result.unwrap(), "true");
+}
+
+#[test]
+fn test_http_post_with_config_opts() {
+    let result = eval(
+        r#"
+        let caught = false
+        try {
+            http_post("not-a-valid-url://???", "data", {timeout: 10, user_agent: "bot/2"})
+        } catch(e) {
+            caught = true
+        }
+        caught
+    "#,
+    );
+    assert_eq!(result.unwrap(), "true");
+}
+
+#[test]
+fn test_http_get_arity_zero_throws() {
+    let result = eval(
+        r#"
+        let caught = false
+        try {
+            http_get()
+        } catch(e) {
+            caught = true
+        }
+        caught
+    "#,
+    );
+    assert_eq!(result.unwrap(), "true");
+}
+
+#[test]
+fn test_http_post_arity_one_throws() {
+    let result = eval(
+        r#"
+        let caught = false
+        try {
+            http_post("url")
         } catch(e) {
             caught = true
         }

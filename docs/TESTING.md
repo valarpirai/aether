@@ -16,49 +16,64 @@ This document provides comprehensive guidance on testing the Aether interpreter.
 
 ```
 tests/
-├── integration_test.rs       # Core end-to-end program tests
-├── member_access_test.rs     # Member access feature tests
-├── array_methods_test.rs     # Array method tests
-├── string_methods_test.rs    # String method tests
-├── string_indexing_test.rs   # String indexing tests
-├── string_interp_test.rs     # String interpolation tests
-├── function_expr_test.rs     # Function expression tests
-├── closure_leak_test.rs      # Closure tests
-├── dict_test.rs              # Dict literal and method tests
-├── error_handling_test.rs    # try/catch/throw tests
-├── module_test.rs            # Module system tests
-├── io_test.rs                # IO builtin tests
-├── recursion_limit_test.rs   # Recursion depth tests
-├── small_recursion_test.rs   # Small recursion tests
-├── stdlib_test.rs            # Core stdlib tests
-├── stdlib_testing_test.rs    # Testing framework tests
-├── stdlib_collections_test.rs # Collections stdlib tests
-├── stdlib_math_test.rs       # Math stdlib tests
-└── stdlib_string_test.rs     # String stdlib tests
+├── integration_test.rs          # Core end-to-end program tests (29)
+├── member_access_test.rs        # Member access feature tests (8)
+├── array_methods_test.rs        # Array method tests (22)
+├── string_methods_test.rs       # String method tests (8)
+├── string_indexing_test.rs      # String indexing tests (16)
+├── string_interp_test.rs        # String interpolation tests (9)
+├── function_expr_test.rs        # Function expression tests (13)
+├── closure_leak_test.rs         # Closure memory tests (4)
+├── dict_test.rs                 # Dict literal and method tests (27)
+├── set_test.rs                  # Set type tests (24)
+├── error_handling_test.rs       # try/catch/throw/finally tests (10)
+├── error_context_test.rs        # Stack trace and error context tests (11)
+├── module_test.rs               # Module system tests (13)
+├── io_test.rs                   # IO builtin tests (5)
+├── recursion_limit_test.rs      # Recursion depth tests (1, 1 ignored)
+├── small_recursion_test.rs      # Small recursion tests (1)
+├── gc_test.rs                   # GC / memory leak tests (7)
+├── http_test.rs                 # HTTP builtin tests (9)
+├── json_test.rs                 # JSON parse/stringify tests (25)
+├── time_test.rs                 # clock() and sleep() tests (10)
+├── async_test.rs                # async/await tests (21)
+├── io_pool_test.rs              # I/O thread pool tests (14)
+├── event_loop_test.rs           # Event loop tests (15)
+├── struct_test.rs               # Struct declaration and method tests (14)
+├── iterator_test.rs             # Iterator protocol tests (22)
+├── null_coalesce_test.rs        # ?? and ?. null safety tests (23)
+├── spread_test.rs               # Spread operator tests (9)
+├── slice_test.rs                # Slice syntax tests (15)
+├── clippy_fix_regression_test.rs # Clippy/regression tests (20)
+├── stdlib_test.rs               # Core stdlib tests (9)
+├── stdlib_testing_test.rs       # Testing framework tests (19)
+├── stdlib_collections_test.rs   # Collections stdlib tests (38)
+├── stdlib_math_test.rs          # Math stdlib tests (26)
+└── stdlib_string_test.rs        # String stdlib tests (24)
 
 src/
 ├── lexer/
-│   └── lexer_tests.rs        # Lexer unit tests
+│   └── lexer_tests.rs           # Lexer unit tests (14)
 ├── parser/
-│   └── parser_tests.rs       # Parser unit tests
+│   └── parser_tests.rs          # Parser unit tests (53)
 └── interpreter/
-    ├── interpreter_tests.rs  # Interpreter unit tests
-    └── builtins_tests.rs     # Built-ins unit tests
+    ├── interpreter_tests.rs     # Interpreter unit tests (17)
+    └── builtins_tests.rs        # Built-ins unit tests (15)
 ```
 
 ### Test Categories
 
-**Unit Tests** (99 tests):
+**Unit Tests** (134 tests):
 - Test individual components in isolation
 - Located in module test files (`*_tests.rs`)
 - Fast execution (< 1 second)
 - No dependencies between tests
 
-**Integration Tests** (234 tests):
+**Integration Tests** (~559 tests):
 - Test complete programs end-to-end
 - Located in `tests/` directory
 - Test feature interaction
-- Slower execution (few seconds)
+- Ignored: 2 tests (deep recursion stack overflow in debug builds — known limitation)
 
 ## Running Tests
 

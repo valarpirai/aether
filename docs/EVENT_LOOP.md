@@ -39,18 +39,40 @@ on_ready(p, fn(v) {
 event_loop()
 ```
 
-### `event_loop()`
+### `event_loop([timeout_secs])`
 
-Runs the event loop until all pending callbacks have fired.
+Runs the event loop until all pending callbacks have fired (or the optional timeout expires).
 
 - Non-blocking poll via `try_recv()` — does not block the interpreter per tick
 - Sleeps 1 ms when nothing is ready (avoids 100% CPU spin)
 - Picks up new registrations made inside callbacks (chaining works)
-- Returns `null` when queue is empty
+- Returns `null` when queue is empty or timeout reached
 
 ```aether
-event_loop()   // null
+event_loop()        // run until all callbacks fire
+event_loop(5.0)     // run for at most 5 seconds
 ```
+
+The global default timeout can be set via `AETHER_EVENT_LOOP_TIMEOUT` env var. The per-call argument always overrides it.
+
+### `set_queue_limit(n)`
+
+Caps the number of pending callbacks to `n`. `on_ready()` throws immediately if the queue is full (backpressure). Default: 1024 (or `AETHER_QUEUE_LIMIT` env var).
+
+```aether
+set_queue_limit(100)   // refuse more than 100 pending callbacks
+```
+
+### `set_task_timeout(secs)` / `set_task_timeout(null)`
+
+Sets a per-task deadline. Callbacks whose I/O doesn't resolve within `secs` seconds are dropped silently. Pass `null` to clear the deadline.
+
+```aether
+set_task_timeout(10)     // each on_ready callback must complete within 10s
+set_task_timeout(null)   // remove per-task timeout
+```
+
+The default per-task timeout can be set globally via `AETHER_EVENT_LOOP_TIMEOUT`.
 
 ## How It Differs from `await`
 
@@ -144,12 +166,14 @@ Located in `src/interpreter/event_loop.rs`.
 
 ```rust
 pub struct EventLoopEntry {
-    pub rx: Receiver<IoResult>,   // channel from I/O worker thread
-    pub callback: Value,          // Aether function to call on completion
+    pub rx: Receiver<IoResult>,       // channel from I/O worker thread
+    pub callback: Value,              // Aether function to call on completion
+    pub deadline: Option<Instant>,    // per-task timeout set at on_ready() time
 }
 
 pub struct EventLoopQueue {
     pub pending: Vec<EventLoopEntry>,
+    pub limit: usize,                 // from set_queue_limit / AETHER_QUEUE_LIMIT
 }
 ```
 
@@ -207,4 +231,4 @@ The same `EventLoopQueue` mechanism works for any `Receiver<IoResult>`, so TCP a
 | `test_on_ready_read_file_async` | Async read_file resolved via event_loop |
 | `test_on_ready_too_few_args_errors` | Arity error: on_ready(42) |
 | `test_on_ready_too_many_args_errors` | Arity error: on_ready(42, fn, 99) |
-| `test_event_loop_with_arg_errors` | Arity error: event_loop(1) |
+| `test_event_loop_with_arg_errors` | Wrong-type arg to event_loop() |

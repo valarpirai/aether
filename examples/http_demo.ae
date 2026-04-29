@@ -1,10 +1,11 @@
 // HTTP demo: fetch JSON from a public API and parse the response
+// Requires network access (httpbin.org).
 
 fn main() {
     println("=== HTTP Demo ===")
     println()
 
-    // GET request
+    // --- 1. Basic GET request ---
     println("1. Fetching public IP info...")
     try {
         let response = http_get("https://httpbin.org/get")
@@ -16,7 +17,7 @@ fn main() {
     }
     println()
 
-    // POST request with JSON body
+    // --- 2. POST request with JSON body ---
     println("2. Posting data...")
     try {
         let payload = json_stringify({"name": "Aether", "version": "1.0"})
@@ -28,8 +29,22 @@ fn main() {
     }
     println()
 
-    // Error handling for bad URL
-    println("3. Handling a bad URL...")
+    // --- 3. Per-request config dict (timeout + user-agent) ---
+    println("3. GET with custom timeout and user-agent...")
+    try {
+        let response = http_get("https://httpbin.org/get", {
+            timeout: 10,
+            user_agent: "aether-demo/1.0"
+        })
+        let data = json_parse(response)
+        println("   User-Agent echoed:", data["headers"]["User-Agent"])
+    } catch (e) {
+        println("   Error:", e)
+    }
+    println()
+
+    // --- 4. Error handling for bad URL ---
+    println("4. Handling a bad URL...")
     try {
         let response = http_get("https://this-domain-does-not-exist-xyz.invalid/api")
         println("   Response:", response)

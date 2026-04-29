@@ -1,6 +1,6 @@
 // Concurrent I/O demo — Phase 2: I/O thread pool
 //
-// Run with:  AETHER_WORKERS=4 aether examples/concurrent_io.ae
+// Run with:  AETHER_IO_WORKERS=4 aether examples/concurrent_io.ae
 // Or from code: set_workers(4) before any I/O calls
 
 fn main() {

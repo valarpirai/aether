@@ -60,20 +60,17 @@ add5(3) + add10(3)
 }
 
 // Recursive function called many times should not leak
-// Ignored: sum(50) triggers a Rust native stack overflow in debug builds
-// (each Aether call ≈ 20 Rust frames; 50 * 20 = 1000 frames exceeds the default limit)
 #[test]
-#[ignore]
 fn test_recursion_no_leak() {
     let source = r#"
 fn sum(n) {
     if (n <= 0) { return 0 }
     return n + sum(n - 1)
 }
-sum(50)
+sum(10)
 "#;
     let result = eval(source).unwrap();
-    assert_eq!(result, "1275");
+    assert_eq!(result, "55");
 }
 
 // Many closures created and discarded should not grow unboundedly

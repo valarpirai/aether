@@ -1,5 +1,6 @@
+use crate::interpreter::builtins::parse_http_opts;
 use crate::interpreter::environment::{Environment, RuntimeError, StackFrame};
-use crate::interpreter::io_pool::{IoPool, IoTask};
+use crate::interpreter::io_pool::{HttpOptions, IoPool, IoTask};
 use crate::interpreter::value::{PromiseState, Value};
 use crate::parser::ast::Expr;
 use std::rc::Rc;
@@ -537,18 +538,24 @@ impl Evaluator {
 
         match name {
             "http_get" => {
-                if args.len() != 1 {
+                if args.is_empty() || args.len() > 2 {
                     return Err(RuntimeError::ArityMismatch {
                         expected: 1,
                         got: args.len(),
                     });
                 }
                 let url = self.require_string_arg(&args[0], "http_get")?;
-                pool.submit(IoTask::HttpGet { url, tx });
+                let opts = if args.len() == 2 {
+                    let v = self.eval_expr(&args[1])?;
+                    parse_http_opts(&v)?
+                } else {
+                    HttpOptions::default()
+                };
+                pool.submit(IoTask::HttpGet { url, opts, tx });
                 Ok(Some(Value::promise_io(rx)))
             }
             "http_post" => {
-                if args.len() != 2 {
+                if args.len() < 2 || args.len() > 3 {
                     return Err(RuntimeError::ArityMismatch {
                         expected: 2,
                         got: args.len(),
@@ -556,7 +563,18 @@ impl Evaluator {
                 }
                 let url = self.require_string_arg(&args[0], "http_post")?;
                 let body = self.require_string_arg(&args[1], "http_post")?;
-                pool.submit(IoTask::HttpPost { url, body, tx });
+                let opts = if args.len() == 3 {
+                    let v = self.eval_expr(&args[2])?;
+                    parse_http_opts(&v)?
+                } else {
+                    HttpOptions::default()
+                };
+                pool.submit(IoTask::HttpPost {
+                    url,
+                    body,
+                    opts,
+                    tx,
+                });
                 Ok(Some(Value::promise_io(rx)))
             }
             "sleep" => {

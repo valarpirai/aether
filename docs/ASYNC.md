@@ -86,7 +86,7 @@ if (data != null) {
 
 ---
 
-## Phase 2: I/O Thread Pool (planned)
+## Phase 2: I/O Thread Pool
 
 The I/O thread pool enables truly concurrent I/O without changing the single-threaded interpreter.
 
@@ -137,6 +137,17 @@ set_workers(8)
 ```
 
 **Default:** `max(num_cpu_cores - 1, 4)` workers.
+
+### Per-request HTTP Options
+
+When using the I/O pool, `http_get` and `http_post` accept an optional config dict:
+
+```aether
+let p = http_get("https://slow.api.example.com/", {timeout: 60})
+let result = await p
+```
+
+See [HTTP.md](HTTP.md) for the full config dict reference.
 
 ### Why No Tokio?
 

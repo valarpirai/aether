@@ -386,11 +386,9 @@ struct Dog extends Animal implements Printable {
 | Feature | API sketch |
 |---------|-----------|
 | stderr / log levels | `eprintln(msg)`, `log.warn(msg)` |
-| Directory operations | `ls(path)`, `mkdir(path)`, `rm(path)`, `exists(path)` |
-| Path helpers | `path.join(a, b)`, `path.basename(p)`, `path.ext(p)` |
+| Path helpers | `path.basename(p)`, `path.ext(p)` — `path_join` already implemented |
 | Environment variables | `env("HOME")`, `env("PORT", "8080")` |
 | Regular expressions | `re.match(pattern, text)`, `re.find_all(p, t)` |
-| Raw strings | `r"no\escape\needed"` |
 
 ---
 

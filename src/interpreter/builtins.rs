@@ -4,7 +4,10 @@ use std::collections::HashSet;
 use std::rc::Rc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use super::{RuntimeError, Value};
+use super::{
+    io_pool::{build_http_client_with_opts, HttpOptions},
+    RuntimeError, Value,
+};
 use serde_json::Value as JsonValue;
 
 /// Built-in function: print(...values)
@@ -692,9 +695,56 @@ pub fn builtin_clock(args: &[Value]) -> Result<Value, RuntimeError> {
     Ok(Value::Float(secs))
 }
 
-/// Built-in function: http_get(url) -> string
+/// Parse an optional config dict into `HttpOptions`.
+/// Accepted keys: `timeout` (int seconds), `user_agent` (string).
+pub fn parse_http_opts(val: &Value) -> Result<HttpOptions, RuntimeError> {
+    let pairs = match val {
+        Value::Dict(p) => p.as_ref().clone(),
+        other => {
+            return Err(RuntimeError::TypeError {
+                expected: "dict".to_string(),
+                got: other.type_name().to_string(),
+            })
+        }
+    };
+
+    fn get<'a>(pairs: &'a [(Value, Value)], key: &str) -> Option<&'a Value> {
+        pairs.iter().find_map(|(k, v)| match k {
+            Value::String(s) if s.as_ref() == key => Some(v),
+            _ => None,
+        })
+    }
+
+    let timeout_secs = match get(&pairs, "timeout") {
+        Some(Value::Int(n)) => Some(*n as u64),
+        Some(Value::Float(f)) => Some(*f as u64),
+        Some(other) => {
+            return Err(RuntimeError::TypeError {
+                expected: "int".to_string(),
+                got: other.type_name().to_string(),
+            })
+        }
+        None => None,
+    };
+    let user_agent = match get(&pairs, "user_agent") {
+        Some(Value::String(s)) => Some(s.as_ref().clone()),
+        Some(other) => {
+            return Err(RuntimeError::TypeError {
+                expected: "string".to_string(),
+                got: other.type_name().to_string(),
+            })
+        }
+        None => None,
+    };
+    Ok(HttpOptions {
+        timeout_secs,
+        user_agent,
+    })
+}
+
+/// Built-in function: http_get(url [, opts]) -> string
 pub fn builtin_http_get(args: &[Value]) -> Result<Value, RuntimeError> {
-    if args.len() != 1 {
+    if args.is_empty() || args.len() > 2 {
         return Err(RuntimeError::ArityMismatch {
             expected: 1,
             got: args.len(),
@@ -709,16 +759,23 @@ pub fn builtin_http_get(args: &[Value]) -> Result<Value, RuntimeError> {
             })
         }
     };
-    let body = reqwest::blocking::get(&url)
+    let opts = if args.len() == 2 {
+        parse_http_opts(&args[1])?
+    } else {
+        HttpOptions::default()
+    };
+    let body = build_http_client_with_opts(&opts)
+        .get(&url)
+        .send()
         .map_err(|e| RuntimeError::InvalidOperation(format!("http_get failed: {}", e)))?
         .text()
         .map_err(|e| RuntimeError::InvalidOperation(format!("http_get read failed: {}", e)))?;
     Ok(Value::string(body))
 }
 
-/// Built-in function: http_post(url, body) -> string
+/// Built-in function: http_post(url, body [, opts]) -> string
 pub fn builtin_http_post(args: &[Value]) -> Result<Value, RuntimeError> {
-    if args.len() != 2 {
+    if args.len() < 2 || args.len() > 3 {
         return Err(RuntimeError::ArityMismatch {
             expected: 2,
             got: args.len(),
@@ -734,8 +791,12 @@ pub fn builtin_http_post(args: &[Value]) -> Result<Value, RuntimeError> {
         }
     };
     let body = format!("{}", args[1]);
-    let client = reqwest::blocking::Client::new();
-    let response_body = client
+    let opts = if args.len() == 3 {
+        parse_http_opts(&args[2])?
+    } else {
+        HttpOptions::default()
+    };
+    let response_body = build_http_client_with_opts(&opts)
         .post(&url)
         .body(body)
         .send()
