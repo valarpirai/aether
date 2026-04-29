@@ -15,7 +15,7 @@ Items without a milestone are unscheduled.
 | Triple-quoted multi-line strings `"""..."""` | 2026-04-29 |
 | Labeled `break` / `continue` for nested loops | 2026-04-29 |
 | File utilities: `list_dir`, `path_join`, `rename`, `rm` | 2026-04-29 |
-| Event loop — `on_ready(promise, callback)`, `event_loop()` | 2026-04-29 |
+| Event loop — `on_ready`, `event_loop`, per-task timeout, backpressure, error isolation | 2026-04-29 |
 
 ---
 
@@ -213,7 +213,109 @@ println(r.unwrap_or(0))
 
 ---
 
-## Tier 3 — Operators and syntax sugar
+## Tier 3 — Networking and concurrency
+
+### TCP / UDP server support
+Use the event loop for network programming. Requires OS-level async sockets feeding into `EventLoopQueue` via channels, mirroring how `sleep`/`read_file` work today.
+
+```aether
+fn main() {
+    set_workers(4)
+    let server = tcp_listen("0.0.0.0:8080")
+
+    fn accept_next() {
+        let conn = server.accept()           // returns Promise
+        on_ready(conn, fn(c) {
+            let req = await c.read()
+            await c.write("HTTP/1.1 200 OK\r\n\r\nHello")
+            c.close()
+            accept_next()                    // chain: accept next connection
+        })
+    }
+
+    accept_next()
+    event_loop()
+}
+```
+
+**What's needed:**
+- `tcp_listen(addr)` → `Value::TcpListener` (wraps `std::net::TcpListener`)
+- `server.accept()` → submits accept task to pool, returns Promise
+- `conn.read()` / `conn.write(data)` / `conn.close()` → async via pool
+- `IoTask::TcpAccept`, `IoTask::TcpRead`, `IoTask::TcpWrite` variants in `io_pool.rs`
+
+---
+
+### Persistent server event loop (`event_loop_forever()`)
+Current `event_loop()` exits when the queue is empty. A server needs to keep waiting for new work even when temporarily idle.
+
+```aether
+event_loop_forever()   // blocks until explicit shutdown() call
+shutdown()             // signals the loop to exit after current tick
+```
+
+**Implementation:** Replace the `is_empty() → break` logic with a `Condvar` wakeup. When `on_ready` pushes to an empty queue it signals the condvar; the loop blocks on the condvar instead of sleeping 1ms.
+
+---
+
+### Non-blocking network I/O (OS async sockets)
+Currently `reqwest::blocking` and `std::net` consume one I/O thread per in-flight request. For high-connection-count servers, switch to OS-level async (`epoll`/`kqueue`) via `mio` or `polling` crate — sockets complete without tying up thread pool slots.
+
+**Impact:** Allows thousands of concurrent connections with the same 4-worker pool. Prerequisite for production-grade HTTP/TCP servers.
+
+---
+
+### Worker threads (CPU-bound parallelism)
+Separate Aether interpreter instances for CPU-bound work, each with their own event loop. Communicate via message passing (no shared `Value`).
+
+```aether
+let w = spawn_worker("worker.ae")
+w.post({ task: "compress", data: large_array })
+on_ready(w.message(), fn(result) {
+    println("worker result:", result)
+})
+event_loop()
+```
+
+**Why:** The main interpreter is single-threaded; heavy computation blocks all callbacks. Worker threads offload CPU work without touching `Rc<T>` on the main thread. Each worker is a full `Evaluator` in its own OS thread; cross-thread values are serialised to JSON at the boundary.
+
+---
+
+### Error callback for failed / timed-out tasks
+Currently I/O errors and per-task timeouts are logged to stderr and the callback is skipped. Add an optional error handler so Aether code can react.
+
+```aether
+on_ready(p, fn(v) {
+    println("ok:", v)
+}, fn(err) {
+    println("failed:", err.message)   // timeout or I/O error
+})
+```
+
+Or error-first style (single callback, `null` on success path):
+```aether
+on_ready(p, fn(err, v) {
+    if err != null { println("error:", err) } else { println(v) }
+})
+```
+
+---
+
+### Stack trace attribution for event loop callbacks
+Callbacks registered via `on_ready` show as `<anonymous>` in stack traces. Track the source line of the `on_ready` call so error messages read:
+
+```
+RuntimeError at line 12: undefined variable 'x'
+  at <anonymous> (main.ae:12)
+  at on_ready callback registered at (main.ae:9)
+```
+
+**Implementation:** Store `call_site_line` and `call_site_file` in `EventLoopEntry` at `register_on_ready` time; include in the stack frame pushed by `call_value` for callbacks.
+
+---
+
+## Tier 4 — Operators and syntax sugar
+
 
 ### `**` power operator
 ```aether
@@ -253,7 +355,7 @@ fn read_config(path) {
 
 ---
 
-## Tier 4 — Type system
+## Tier 5 — Type system
 
 ### Type annotations (gradual)
 Optional static types that the interpreter checks at call boundaries.
@@ -279,7 +381,7 @@ struct Dog extends Animal implements Printable {
 
 ---
 
-## Tier 5 — I/O and stdlib
+## Tier 6 — I/O and stdlib
 
 | Feature | API sketch |
 |---------|-----------|
@@ -292,7 +394,7 @@ struct Dog extends Animal implements Printable {
 
 ---
 
-## Tier 6 — Tooling (longer horizon)
+## Tier 7 — Tooling (longer horizon)
 
 | Tool | Description |
 |------|-------------|
