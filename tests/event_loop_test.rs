@@ -195,18 +195,18 @@ fn test_on_ready_too_many_args_errors() {
     assert!(run("on_ready(42, fn(v) {}, 99)").is_err());
 }
 
-// ── event_loop timeout ────────────────────────────────────────────────────────
+// ── event_loop() global wall-clock cap (event_loop(secs)) ────────────────────
 
 #[test]
-fn test_event_loop_timeout_zero_exits_immediately() {
-    // With timeout=0, exits immediately even if callbacks are pending
+fn test_event_loop_global_cap_zero_exits_immediately() {
+    // event_loop(0): global cap of 0s — exits immediately even with pending tasks
     let src = "set_workers(2)\nlet p = sleep(10.0)\non_ready(p, fn(v) {})\nevent_loop(0)";
     assert_eq!(run(src).unwrap(), "null");
 }
 
 #[test]
-fn test_event_loop_timeout_sufficient_fires_callback() {
-    let f = tmp("timeout_ok");
+fn test_event_loop_global_cap_sufficient_fires_callback() {
+    let f = tmp("gcap_ok");
     let src = format!(
         "set_workers(2)\nlet p = sleep(0.01)\non_ready(p, fn(v) {{ await write_file(\"{}\", \"ok\") }})\nevent_loop(5.0)\nawait read_file(\"{}\")",
         f, f
@@ -220,8 +220,92 @@ fn test_event_loop_with_too_many_args_errors() {
 }
 
 #[test]
-fn test_event_loop_timeout_wrong_type_errors() {
+fn test_event_loop_global_cap_wrong_type_errors() {
     assert!(run("event_loop(\"bad\")").is_err());
+}
+
+// ── per-task timeout (set_task_timeout / AETHER_EVENT_LOOP_TIMEOUT) ───────────
+
+#[test]
+fn test_set_task_timeout_aborts_stuck_task() {
+    // Per-task timeout of 50ms; sleep(10s) should time out quickly
+    let src = concat!(
+        "set_workers(2)\n",
+        "set_task_timeout(0.05)\n",
+        "let p = sleep(10.0)\n",
+        "on_ready(p, fn(v) {})\n",
+        "event_loop()"
+    );
+    // Completes well under 1s because the task times out after 50ms
+    assert_eq!(run(src).unwrap(), "null");
+}
+
+#[test]
+fn test_set_task_timeout_does_not_abort_fast_task() {
+    // Task completes (10ms) before timeout (5s) — callback fires normally
+    let f = tmp("ptask_ok");
+    let src = format!(
+        concat!(
+            "set_workers(2)\n",
+            "set_task_timeout(5.0)\n",
+            "let p = sleep(0.01)\n",
+            "on_ready(p, fn(v) {{ await write_file(\"{}\", \"ok\") }})\n",
+            "event_loop()\n",
+            "await read_file(\"{}\")"
+        ),
+        f, f
+    );
+    assert_eq!(run(&src).unwrap(), "ok");
+}
+
+#[test]
+fn test_task_timeout_isolated_other_tasks_continue() {
+    // First task stuck (10s), second task fast (10ms).
+    // First task times out (50ms); second task callback should still fire.
+    let f = tmp("ptask_iso");
+    let src = format!(
+        concat!(
+            "set_workers(4)\n",
+            "set_task_timeout(0.05)\n",
+            "let p_stuck = sleep(10.0)\n",
+            "let p_fast  = sleep(0.01)\n",
+            "on_ready(p_stuck, fn(v) {{}})\n",
+            "on_ready(p_fast,  fn(v) {{ await write_file(\"{f}\", \"ok\") }})\n",
+            "event_loop()\n",
+            "await read_file(\"{f}\")"
+        ),
+        f = f
+    );
+    assert_eq!(run(&src).unwrap(), "ok");
+}
+
+#[test]
+fn test_set_task_timeout_null_clears_timeout() {
+    // set_task_timeout(null) removes the per-task deadline
+    let f = tmp("ptask_null");
+    let src = format!(
+        concat!(
+            "set_workers(2)\n",
+            "set_task_timeout(0.001)\n", // would time out almost instantly
+            "set_task_timeout(null)\n",  // clear it
+            "let p = sleep(0.01)\n",
+            "on_ready(p, fn(v) {{ await write_file(\"{}\", \"ok\") }})\n",
+            "event_loop()\n",
+            "await read_file(\"{}\")"
+        ),
+        f, f
+    );
+    assert_eq!(run(&src).unwrap(), "ok");
+}
+
+#[test]
+fn test_set_task_timeout_wrong_type_errors() {
+    assert!(run("set_task_timeout(\"bad\")").is_err());
+}
+
+#[test]
+fn test_set_task_timeout_zero_errors() {
+    assert!(run("set_task_timeout(0)").is_err());
 }
 
 // ── set_queue_limit backpressure ──────────────────────────────────────────────

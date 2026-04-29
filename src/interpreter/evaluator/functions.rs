@@ -360,6 +360,41 @@ impl Evaluator {
                     }
                 }
 
+                // set_task_timeout(secs|null) — per-task deadline for on_ready callbacks
+                if name == "set_task_timeout" {
+                    if args.len() != 1 {
+                        return Err(RuntimeError::ArityMismatch {
+                            expected: 1,
+                            got: args.len(),
+                        });
+                    }
+                    match self.eval_expr(&args[0])? {
+                        Value::Null => {
+                            self.event_loop_timeout = None;
+                            return Ok(Value::Null);
+                        }
+                        Value::Int(n) if n > 0 => {
+                            self.event_loop_timeout = Some(n as f64);
+                            return Ok(Value::Null);
+                        }
+                        Value::Float(f) if f > 0.0 => {
+                            self.event_loop_timeout = Some(f);
+                            return Ok(Value::Null);
+                        }
+                        Value::Int(_) | Value::Float(_) => {
+                            return Err(RuntimeError::InvalidOperation(
+                                "set_task_timeout requires a positive number or null".to_string(),
+                            ))
+                        }
+                        other => {
+                            return Err(RuntimeError::TypeError {
+                                expected: "positive number or null".to_string(),
+                                got: other.type_name().to_string(),
+                            })
+                        }
+                    }
+                }
+
                 // Async I/O dispatch when pool is active
                 if let Some(pool) = self.io_pool.clone() {
                     if let Some(promise) = self.try_submit_io_task(&name, args, &pool)? {
@@ -597,8 +632,12 @@ impl Evaluator {
                 };
                 match state {
                     PromiseState::IoWaiting(rx) => {
+                        // Attach per-task deadline from AETHER_EVENT_LOOP_TIMEOUT / set_task_timeout
+                        let deadline = self.event_loop_timeout.map(|secs| {
+                            std::time::Instant::now() + std::time::Duration::from_secs_f64(secs)
+                        });
                         self.event_loop_queue
-                            .push(rx, callback)
+                            .push(rx, callback, deadline)
                             .map_err(RuntimeError::InvalidOperation)?;
                     }
                     PromiseState::Resolved(val) => {
@@ -618,26 +657,32 @@ impl Evaluator {
         Ok(Value::Null)
     }
 
-    /// Run the event loop until all queued callbacks have fired or the optional
-    /// timeout (in seconds) expires. Polls with try_recv (non-blocking) and
-    /// sleeps 1ms per idle tick.
+    /// Run the event loop until all queued callbacks have fired.
+    ///
+    /// `loop_deadline`: optional wall-clock cap for the entire loop (from `event_loop(secs)`).
+    ///   Exits early if the deadline is reached, regardless of pending tasks.
+    ///
+    /// Per-task timeouts are independent: each entry carries its own deadline set
+    /// at on_ready() time (from AETHER_EVENT_LOOP_TIMEOUT / set_task_timeout).
+    /// A timed-out task is aborted in drain_ready() and logged; other tasks continue.
     ///
     /// Error isolation: I/O errors and callback exceptions do NOT abort the
     /// loop — they are logged to stderr and the remaining callbacks continue.
     pub(crate) fn run_event_loop(
         &mut self,
-        timeout_secs: Option<f64>,
+        loop_deadline: Option<f64>,
     ) -> Result<Value, RuntimeError> {
-        let deadline =
-            timeout_secs.map(|s| std::time::Instant::now() + std::time::Duration::from_secs_f64(s));
+        let loop_end = loop_deadline
+            .map(|s| std::time::Instant::now() + std::time::Duration::from_secs_f64(s));
 
         loop {
             if self.event_loop_queue.is_empty() {
                 break;
             }
 
-            if let Some(dl) = deadline {
-                if std::time::Instant::now() >= dl {
+            // Global loop cap (event_loop(secs) arg) — separate from per-task timeouts
+            if let Some(end) = loop_end {
+                if std::time::Instant::now() >= end {
                     break;
                 }
             }
@@ -652,17 +697,15 @@ impl Evaluator {
             for (result, callback) in ready {
                 match result {
                     Ok(val) => {
-                        // Callback errors are isolated — log and continue
                         if let Err(e) = self.call_value(callback, vec![val]) {
                             eprintln!("event_loop: callback error: {}", e);
                         }
                     }
                     Err(e) => {
-                        // I/O error — skip this callback, log the cause
-                        eprintln!("event_loop: I/O error (callback skipped): {}", e);
+                        // Covers both I/O errors and per-task timeouts ("task timed out")
+                        eprintln!("event_loop: task failed (callback skipped): {}", e);
                     }
                 }
-                // New on_ready calls from within a callback are picked up next iteration.
             }
         }
 

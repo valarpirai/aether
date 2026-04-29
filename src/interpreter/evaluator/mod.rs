@@ -469,6 +469,16 @@ impl Evaluator {
             },
         );
 
+        // set_task_timeout(secs|null) — per-task deadline; intercepted in eval_call
+        self.environment.define(
+            "set_task_timeout".to_string(),
+            Value::BuiltinFn {
+                name: "set_task_timeout".to_string(),
+                arity: 1,
+                func: |_| Ok(Value::Null),
+            },
+        );
+
         // Promise module — provides Promise.all([p1, p2]) syntax
         use std::collections::HashMap as StdHashMap;
         use std::rc::Rc as StdRc;
