@@ -1,6 +1,6 @@
 [package]
 name = "aether-lang"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Aether Contributors"]
 description = "A general-purpose, dynamically typed programming language with automatic memory management"
