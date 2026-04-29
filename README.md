@@ -237,37 +237,40 @@ EXAMPLES:
 
 ### What's Working
 - ✅ **Complete Interpreter** - Tree-walking interpreter with full language support
-- ✅ **485 Tests Passing** - 100% success rate (99 unit + 386 integration)
-- ✅ **Garbage Collection** - Reference-counted memory management (Rc-based)
-- ✅ **Standard Library** - 28+ functions written in Aether itself
+- ✅ **~706 Tests Passing** - 100% success rate (134 unit + ~572 integration)
+- ✅ **Garbage Collection** - Rc-based reference counting with `make_weak`/`upgrade_weak` for cycle breaking
+- ✅ **Standard Library** - 40+ functions written in Aether itself
   - Core: `range()`, `enumerate()`
-  - Collections: `map()`, `filter()`, `reduce()`, `find()`, `every()`, `some()`
-  - Math: `abs()`, `min()`, `max()`, `sum()`, `clamp()`, `sign()`
+  - Collections: `map()`, `filter()`, `reduce()`, `find()`, `every()`, `some()`, `sort()`, `concat()`, `flatten()`, `flat_map()`, `zip()`, `take()`, `drop()`, `count_by()`, `group_by()`, `uniq()`, `sum_by()`
+  - Math: `abs()`, `min()`, `max()`, `sum()`, `clamp()`, `sign()`, `sqrt()`, `pow()`, `floor()`, `ceil()`, `round()`, `log()`, `gcd()`, `lcm()`
   - String: `join()`, `repeat()`, `reverse()`, `starts_with()`, `ends_with()`
 - ✅ **Built-in Functions** - I/O, type introspection, conversions, JSON, time, HTTP
 - ✅ **Collection Methods** - Array, Dict, Set with comprehensive operations
 - ✅ **Set Type** - Unique collections with union, intersection, difference operations
 - ✅ **Structs** - User-defined types with fields and methods
+- ✅ **match statement** - Pattern matching with literal, wildcard, bind, enum-variant, and or-patterns
 - ✅ **Interactive REPL** - Line editing with history
 - ✅ **First-class Functions** - Functions with closures and recursion
 
 ### Test Coverage
-- **485 tests passing** ✅
-  - 99 unit tests
-  - 386 integration tests
+- **~706 tests passing** ✅
+  - 134 unit tests
+  - ~572 integration tests
 - **0 clippy warnings**
 - **100% success rate**
 
 ### Recent Achievements
-- 🎉 **Fixed 135 GB Memory Leak** - Implemented GC (99%+ memory reduction)
-- 🎉 **Stdlib Bootstrapping** - Standard library written in Aether, not Rust
-- 🎉 **Zero Deployment** - Stdlib embedded in binary using `include_str!()`
+- 🎉 **match statement** - Pattern matching with 6 pattern kinds (`|` or-patterns, enum variants, bind variables)
+- 🎉 **Parser refactor** - `parse_params()` helper eliminated 5× duplicated blocks; `FatArrow`/`Pipe` tokens
+- 🎉 **Expanded Stdlib** - Added sqrt, pow, floor/ceil/round, log, gcd, lcm, flatten, zip, take, drop, count_by, group_by, uniq, sum_by
+- 🎉 **Weak References** - `make_weak`/`upgrade_weak` builtins break GC cycles
+- 🎉 **Typed Errors** - 16 specific RuntimeError variants replace `InvalidOperation(String)` catch-all
 
-### Up Next (Phase 5 continued)
-- ⏳ Iterator protocol
-- ⏳ Async/await support
-- ⏳ Performance optimizations
-- ⏳ Feature documentation (structs, error handling, JSON, HTTP, etc.)
+### Up Next
+- ⏳ Parser error recovery (collect multiple errors instead of stopping at first)
+- ⏳ Destructuring assignment
+- ⏳ Variadic functions (`...args`)
+- ⏳ Performance optimizations (bytecode VM)
 
 See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed roadmap and [CLAUDE.md](CLAUDE.md) for complete project status.
 
@@ -293,11 +296,11 @@ Contributions are welcome! Please see [CLAUDE.md](CLAUDE.md) for development gui
 | `environment.rs` / `evaluator/mod.rs` | 8/10 | Solid; three clear sub-structs (CallContext, ModuleLoader, AsyncRuntime) |
 | `builtins.rs` | 8/10 | Good coverage; structured typed errors; some HTTP option duplication |
 | `evaluator/functions.rs` / `members.rs` | 8/10 | `write_back()` helper eliminated 5×6-line duplication in collection mutations |
-| Parser (`parse.rs`) | 7/10 | Clean AST; no error recovery; ~60 unnecessary clones |
+| Parser (`parse.rs`) | 8/10 | `parse_params()` eliminates 5× duplication; `match` stmt with 6 pattern kinds; FatArrow/Pipe tokens; still no error recovery |
 | Stdlib (`stdlib/*.ae`) | 8/10 | sqrt, pow, floor, ceil, round, log, gcd, lcm, flatten, zip, take, drop, count_by, group_by, uniq, sum_by |
 | Error handling | 8/10 | 16 typed RuntimeError variants; stack traces with filenames and line numbers |
 | Concurrency design | 5/10 | Callback-based; no cancellation; no composable async primitives |
-| **Overall** | **8.1/10** | Solid interpreter; clean pipeline; rich stdlib; growing toward production-ready |
+| **Overall** | **8.2/10** | Solid interpreter; clean pipeline; rich stdlib; `match` statement; growing toward production-ready |
 
 ## License
 
