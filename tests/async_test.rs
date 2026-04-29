@@ -1,9 +1,9 @@
 //! Tests for async/await language feature (Phase 1: Promise-based)
 
-use aether::interpreter::value::{PromiseState, Value};
-use aether::interpreter::Evaluator;
-use aether::lexer::Scanner;
-use aether::parser::Parser;
+use aether_lang::interpreter::value::{PromiseState, Value};
+use aether_lang::interpreter::Evaluator;
+use aether_lang::lexer::Scanner;
+use aether_lang::parser::Parser;
 
 fn run(source: &str) -> Result<Value, String> {
     let mut scanner = Scanner::new(source);
@@ -20,7 +20,7 @@ fn run(source: &str) -> Result<Value, String> {
         evaluator.exec_stmt(stmt).map_err(|e| e.to_string())?;
     }
     let last = stmts.last().unwrap();
-    if let aether::parser::ast::Stmt::Expr(expr) = last {
+    if let aether_lang::parser::ast::Stmt::Expr(expr) = last {
         return evaluator.eval_expr(expr).map_err(|e| e.to_string());
     }
     evaluator.exec_stmt(last).map_err(|e| e.to_string())?;

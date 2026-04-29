@@ -1,8 +1,8 @@
 //! Tests for module system
 
-use aether::interpreter::Evaluator;
-use aether::lexer::Scanner;
-use aether::parser::Parser;
+use aether_lang::interpreter::Evaluator;
+use aether_lang::lexer::Scanner;
+use aether_lang::parser::Parser;
 
 fn eval_in_dir(source: &str, dir: &str) -> Result<String, String> {
     // Change to test directory
@@ -31,7 +31,7 @@ fn eval(source: &str) -> Result<String, String> {
 
     // Evaluate last statement if it's an expression
     if let Some(last) = program.statements.last() {
-        if let aether::parser::ast::Stmt::Expr(expr) = last {
+        if let aether_lang::parser::ast::Stmt::Expr(expr) = last {
             let value = evaluator.eval_expr(expr).map_err(|e| e.to_string())?;
             return Ok(format!("{}", value));
         }

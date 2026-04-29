@@ -1,9 +1,9 @@
 //! Tests for member access (obj.property)
 //! These tests are written FIRST following TDD red-green-refactor
 
-use aether::interpreter::Evaluator;
-use aether::lexer::Scanner;
-use aether::parser::Parser;
+use aether_lang::interpreter::Evaluator;
+use aether_lang::lexer::Scanner;
+use aether_lang::parser::Parser;
 
 /// Helper to evaluate expression
 fn eval(source: &str) -> Result<String, String> {
@@ -22,7 +22,7 @@ fn eval(source: &str) -> Result<String, String> {
 
     // Evaluate last statement if it's an expression
     if let Some(last) = program.statements.last() {
-        if let aether::parser::ast::Stmt::Expr(expr) = last {
+        if let aether_lang::parser::ast::Stmt::Expr(expr) = last {
             let value = evaluator.eval_expr(expr).map_err(|e| e.to_string())?;
             return Ok(format!("{}", value));
         }

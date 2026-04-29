@@ -1,6 +1,6 @@
-use aether::interpreter::Evaluator;
-use aether::lexer::Scanner;
-use aether::parser::Parser;
+use aether_lang::interpreter::Evaluator;
+use aether_lang::lexer::Scanner;
+use aether_lang::parser::Parser;
 
 fn run(src: &str) -> Result<Evaluator, String> {
     let mut scanner = Scanner::new(src);

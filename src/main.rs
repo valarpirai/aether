@@ -2,10 +2,10 @@ use std::env;
 use std::fs;
 use std::process;
 
-use aether::interpreter::Evaluator;
-use aether::lexer::Scanner;
-use aether::parser::Parser;
-use aether::repl;
+use aether_lang::interpreter::Evaluator;
+use aether_lang::lexer::Scanner;
+use aether_lang::parser::Parser;
+use aether_lang::repl;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

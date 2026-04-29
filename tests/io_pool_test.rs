@@ -1,9 +1,9 @@
 //! Tests for Phase 2: I/O thread pool async builtins
 
-use aether::interpreter::value::{PromiseState, Value};
-use aether::interpreter::Evaluator;
-use aether::lexer::Scanner;
-use aether::parser::Parser;
+use aether_lang::interpreter::value::{PromiseState, Value};
+use aether_lang::interpreter::Evaluator;
+use aether_lang::lexer::Scanner;
+use aether_lang::parser::Parser;
 
 fn run_with_pool(source: &str, workers: usize) -> Result<Value, String> {
     let mut scanner = Scanner::new(source);
@@ -20,7 +20,7 @@ fn run_with_pool(source: &str, workers: usize) -> Result<Value, String> {
         evaluator.exec_stmt(stmt).map_err(|e| e.to_string())?;
     }
     let last = stmts.last().unwrap();
-    if let aether::parser::ast::Stmt::Expr(expr) = last {
+    if let aether_lang::parser::ast::Stmt::Expr(expr) = last {
         return evaluator.eval_expr(expr).map_err(|e| e.to_string());
     }
     evaluator.exec_stmt(last).map_err(|e| e.to_string())?;
@@ -102,7 +102,7 @@ fn test_sleep_without_pool_is_blocking() {
     let mut evaluator = Evaluator::new_without_stdlib();
     // register only builtins (no stdlib)
     let last = program.statements.last().unwrap();
-    if let aether::parser::ast::Stmt::Expr(expr) = last {
+    if let aether_lang::parser::ast::Stmt::Expr(expr) = last {
         let result = evaluator.eval_expr(expr).unwrap();
         assert_eq!(result, Value::Null);
     }

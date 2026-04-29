@@ -1,9 +1,9 @@
 //! Tests for stdlib/testing.ae - the Aether testing framework
 //! TDD: Written FIRST before implementing stdlib/testing.ae
 
-use aether::interpreter::Evaluator;
-use aether::lexer::Scanner;
-use aether::parser::Parser;
+use aether_lang::interpreter::Evaluator;
+use aether_lang::lexer::Scanner;
+use aether_lang::parser::Parser;
 
 fn run(source: &str) -> Result<String, String> {
     let mut scanner = Scanner::new(source);
@@ -17,7 +17,7 @@ fn run(source: &str) -> Result<String, String> {
     }
 
     if let Some(last) = program.statements.last() {
-        if let aether::parser::ast::Stmt::Expr(expr) = last {
+        if let aether_lang::parser::ast::Stmt::Expr(expr) = last {
             let value = evaluator.eval_expr(expr).map_err(|e| e.to_string())?;
             return Ok(format!("{}", value));
         }
