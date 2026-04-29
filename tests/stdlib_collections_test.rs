@@ -401,3 +401,120 @@ fn test_map_reduce_composition() {
     );
     assert_eq!(result.unwrap(), "30"); // 1 + 4 + 9 + 16
 }
+
+// flatten() tests
+#[test]
+fn test_flatten_basic() {
+    assert_eq!(
+        eval("flatten([[1,2],[3,4],[5]])").unwrap(),
+        "[1, 2, 3, 4, 5]"
+    );
+}
+
+#[test]
+fn test_flatten_mixed() {
+    assert_eq!(eval("flatten([[1,2],3,[4]])").unwrap(), "[1, 2, 3, 4]");
+}
+
+#[test]
+fn test_flatten_empty() {
+    assert_eq!(eval("flatten([])").unwrap(), "[]");
+}
+
+// flat_map() tests
+#[test]
+fn test_flat_map_basic() {
+    assert_eq!(
+        eval(r#"flat_map([1,2,3], fn(x) { return [x, x*2] })"#).unwrap(),
+        "[1, 2, 2, 4, 3, 6]"
+    );
+}
+
+// zip() tests
+#[test]
+fn test_zip_equal_length() {
+    assert_eq!(
+        eval("zip([1,2,3], [4,5,6])").unwrap(),
+        "[[1, 4], [2, 5], [3, 6]]"
+    );
+}
+
+#[test]
+fn test_zip_shorter_first() {
+    assert_eq!(eval("zip([1,2], [3,4,5])").unwrap(), "[[1, 3], [2, 4]]");
+}
+
+#[test]
+fn test_zip_empty() {
+    assert_eq!(eval("zip([], [1,2,3])").unwrap(), "[]");
+}
+
+// take() / drop() tests
+#[test]
+fn test_take_basic() {
+    assert_eq!(eval("take([10,20,30,40], 2)").unwrap(), "[10, 20]");
+}
+
+#[test]
+fn test_take_more_than_len() {
+    assert_eq!(eval("take([1,2,3], 10)").unwrap(), "[1, 2, 3]");
+}
+
+#[test]
+fn test_drop_basic() {
+    assert_eq!(eval("drop([10,20,30,40], 2)").unwrap(), "[30, 40]");
+}
+
+#[test]
+fn test_drop_all() {
+    assert_eq!(eval("drop([1,2,3], 5)").unwrap(), "[]");
+}
+
+// count_by() tests
+#[test]
+fn test_count_by_basic() {
+    let result = eval(
+        r#"
+        let counts = count_by(["a","b","a","c","b","b"], fn(x) { return x })
+        counts["a"]
+    "#,
+    )
+    .unwrap();
+    assert_eq!(result, "2");
+}
+
+// group_by() tests
+#[test]
+fn test_group_by_even_odd() {
+    let result = eval(
+        r#"
+        let groups = group_by([1,2,3,4,5], fn(n) {
+            if (n % 2 == 0) { return "even" }
+            return "odd"
+        })
+        len(groups["odd"])
+    "#,
+    )
+    .unwrap();
+    assert_eq!(result, "3");
+}
+
+// uniq() tests
+#[test]
+fn test_uniq_consecutive_dupes() {
+    assert_eq!(eval("uniq([1,1,2,2,3])").unwrap(), "[1, 2, 3]");
+}
+
+#[test]
+fn test_uniq_no_dupes() {
+    assert_eq!(eval("uniq([1,2,3])").unwrap(), "[1, 2, 3]");
+}
+
+// sum_by() tests
+#[test]
+fn test_sum_by_squares() {
+    assert_eq!(
+        eval(r#"sum_by([1,2,3,4,5], fn(x) { return x * x })"#).unwrap(),
+        "55"
+    );
+}

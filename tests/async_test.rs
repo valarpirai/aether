@@ -145,11 +145,6 @@ type(f)
 
 #[test]
 fn test_async_type_name_promise() {
-    let src = r#"
-async fn f() { return 1 }
-let p = f()
-type(p)
-"#;
     // type() is a builtin so we need stdlib — use a different check
     let src2 = r#"
 async fn f() { return 1 }

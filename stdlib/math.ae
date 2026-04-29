@@ -89,3 +89,122 @@ fn sign(n) {
     }
     return 0
 }
+
+// sqrt(n) - Square root using Newton's method
+fn sqrt(n) {
+    if (n < 0) {
+        return null
+    }
+    if (n == 0) {
+        return 0.0
+    }
+    let x = float(n)
+    let guess = x / 2.0
+    let i = 0
+    while (i < 50) {
+        let next = (guess + x / guess) / 2.0
+        if (abs(next - guess) < 0.0000000001) {
+            return next
+        }
+        guess = next
+        i = i + 1
+    }
+    return guess
+}
+
+// pow(base, exp) - Integer exponentiation (exp must be non-negative int)
+fn pow(base, exp) {
+    if (exp == 0) {
+        return 1
+    }
+    let result = 1
+    let b = base
+    let e = exp
+    while (e > 0) {
+        if (e % 2 == 1) {
+            result = result * b
+        }
+        b = b * b
+        e = e / 2
+    }
+    return result
+}
+
+// floor(n) - Round down to nearest integer
+fn floor(n) {
+    let i = int(n)
+    if (float(i) > n) {
+        return i - 1
+    }
+    return i
+}
+
+// ceil(n) - Round up to nearest integer
+fn ceil(n) {
+    let i = int(n)
+    if (float(i) < n) {
+        return i + 1
+    }
+    return i
+}
+
+// round(n) - Round to nearest integer
+fn round(n) {
+    return floor(n + 0.5)
+}
+
+// log(n, base) - Logarithm: log_base(n). Default base = e (natural log).
+// Uses identity: log_b(n) = ln(n) / ln(b) via Newton approximation for ln.
+fn log(n, base) {
+    if (n <= 0) {
+        return null
+    }
+    // Natural log via Halley's method: converges fast for n > 0
+    let x = float(n)
+    let guess = 0.0
+    // Reduce x to [0.5, 1.5] for faster convergence
+    let scale = 0
+    while (x > 1.5) {
+        x = x / 2.718281828459045
+        scale = scale + 1
+    }
+    while (x < 0.5) {
+        x = x * 2.718281828459045
+        scale = scale - 1
+    }
+    // Halley iteration for ln(x) near 1
+    let y = (x - 1.0) / (x + 1.0)
+    let y2 = y * y
+    let ln_x = 2.0 * (y + y2 * y / 3.0 + y2 * y2 * y / 5.0 + y2 * y2 * y2 * y / 7.0)
+    let ln_n = ln_x + float(scale)
+    if (type(base) == "null") {
+        return ln_n
+    }
+    if (base == 10) {
+        return ln_n / 2.302585092994046
+    }
+    if (base == 2) {
+        return ln_n / 0.6931471805599453
+    }
+    return ln_n / log(base, null)
+}
+
+// gcd(a, b) - Greatest common divisor (Euclidean algorithm)
+fn gcd(a, b) {
+    a = abs(a)
+    b = abs(b)
+    while (b != 0) {
+        let t = b
+        b = a % b
+        a = t
+    }
+    return a
+}
+
+// lcm(a, b) - Least common multiple
+fn lcm(a, b) {
+    if (a == 0 || b == 0) {
+        return 0
+    }
+    return abs(a * b) / gcd(a, b)
+}

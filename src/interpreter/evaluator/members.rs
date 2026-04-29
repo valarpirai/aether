@@ -147,6 +147,26 @@ impl Evaluator {
         }
     }
 
+    /// Write `new_val` back to the named variable or the instance field that
+    /// `object` expression points at. Used by all mutating collection methods
+    /// (push, pop, sort, set.add, set.remove, set.clear) to avoid repeating
+    /// the same 6-line write-back block.
+    fn write_back(&mut self, object: &Expr, new_val: Value) -> Result<(), RuntimeError> {
+        match object {
+            Expr::Identifier(name) => {
+                self.environment.set(name, new_val)?;
+            }
+            Expr::Member(obj_expr, field) => {
+                let owner = self.eval_expr(obj_expr)?;
+                if let Value::Instance { fields, .. } = owner {
+                    fields.borrow_mut().insert(field.clone(), new_val);
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
     pub(super) fn eval_method_call(
         &mut self,
         object: &Expr,
@@ -179,17 +199,7 @@ impl Evaluator {
 
                 let mut new_elements = Rc::clone(elements);
                 Rc::make_mut(&mut new_elements).push(item);
-                let new_array = Value::Array(new_elements);
-
-                if let Expr::Identifier(name) = object {
-                    self.environment.set(name, new_array)?;
-                } else if let Expr::Member(obj_expr, field) = object {
-                    let owner = self.eval_expr(obj_expr)?;
-                    if let Value::Instance { fields, .. } = owner {
-                        fields.borrow_mut().insert(field.clone(), new_array);
-                    }
-                }
-
+                self.write_back(object, Value::Array(new_elements))?;
                 Ok(Value::Null)
             }
             (Value::Array(elements), "pop") => {
@@ -202,16 +212,7 @@ impl Evaluator {
 
                 let mut new_elements = Rc::clone(elements);
                 let popped = Rc::make_mut(&mut new_elements).pop();
-                let new_array = Value::Array(new_elements);
-                if let Expr::Identifier(name) = object {
-                    self.environment.set(name, new_array)?;
-                } else if let Expr::Member(obj_expr, field) = object {
-                    let owner = self.eval_expr(obj_expr)?;
-                    if let Value::Instance { fields, .. } = owner {
-                        fields.borrow_mut().insert(field.clone(), new_array);
-                    }
-                }
-
+                self.write_back(object, Value::Array(new_elements))?;
                 Ok(popped.unwrap_or(Value::Null))
             }
             (Value::Array(elements), "contains") => {
@@ -293,15 +294,7 @@ impl Evaluator {
                         return Err(e);
                     }
                 }
-                let new_array = Value::Array(Rc::new(new_elements));
-                if let Expr::Identifier(name) = object {
-                    self.environment.set(name, new_array)?;
-                } else if let Expr::Member(obj_expr, field) = object {
-                    let owner = self.eval_expr(obj_expr)?;
-                    if let Value::Instance { fields, .. } = owner {
-                        fields.borrow_mut().insert(field.clone(), new_array);
-                    }
-                }
+                self.write_back(object, Value::Array(Rc::new(new_elements)))?;
                 Ok(Value::Null)
             }
             (Value::Array(elements), "concat") => {
@@ -453,17 +446,7 @@ impl Evaluator {
                 #[allow(clippy::mutable_key_type)]
                 let mut new_set = (**elements).clone();
                 new_set.insert(item);
-                let new_set_val = Value::set(new_set);
-
-                if let Expr::Identifier(name) = object {
-                    self.environment.set(name, new_set_val)?;
-                } else if let Expr::Member(obj_expr, field) = object {
-                    let owner = self.eval_expr(obj_expr)?;
-                    if let Value::Instance { fields, .. } = owner {
-                        fields.borrow_mut().insert(field.clone(), new_set_val);
-                    }
-                }
-
+                self.write_back(object, Value::set(new_set))?;
                 Ok(Value::Null)
             }
             (Value::Set(elements), "remove") => {
@@ -478,17 +461,7 @@ impl Evaluator {
                 #[allow(clippy::mutable_key_type)]
                 let mut new_set = (**elements).clone();
                 new_set.remove(&item);
-                let new_set_val = Value::set(new_set);
-
-                if let Expr::Identifier(name) = object {
-                    self.environment.set(name, new_set_val)?;
-                } else if let Expr::Member(obj_expr, field) = object {
-                    let owner = self.eval_expr(obj_expr)?;
-                    if let Value::Instance { fields, .. } = owner {
-                        fields.borrow_mut().insert(field.clone(), new_set_val);
-                    }
-                }
-
+                self.write_back(object, Value::set(new_set))?;
                 Ok(Value::Null)
             }
             (Value::Set(elements), "contains") => {
@@ -509,17 +482,7 @@ impl Evaluator {
                     });
                 }
 
-                let new_set_val = Value::set(HashSet::new());
-
-                if let Expr::Identifier(name) = object {
-                    self.environment.set(name, new_set_val)?;
-                } else if let Expr::Member(obj_expr, field) = object {
-                    let owner = self.eval_expr(obj_expr)?;
-                    if let Value::Instance { fields, .. } = owner {
-                        fields.borrow_mut().insert(field.clone(), new_set_val);
-                    }
-                }
-
+                self.write_back(object, Value::set(HashSet::new()))?;
                 Ok(Value::Null)
             }
             (Value::Set(elements), "to_array") => {

@@ -103,3 +103,116 @@ fn concat(arr1, arr2) {
     }
     return result
 }
+
+// flatten(array) - One level of nesting removed; sub-arrays are spliced in
+fn flatten(array) {
+    let result = []
+    for item in array {
+        if (type(item) == "array") {
+            for inner in item {
+                result.push(inner)
+            }
+        } else {
+            result.push(item)
+        }
+    }
+    return result
+}
+
+// flat_map(array, fn) - map then flatten one level
+fn flat_map(array, func) {
+    return flatten(map(array, func))
+}
+
+// zip(arr1, arr2) - Pair elements by index; stops at the shorter array
+fn zip(arr1, arr2) {
+    let result = []
+    let n = len(arr1)
+    if (len(arr2) < n) {
+        n = len(arr2)
+    }
+    let i = 0
+    while (i < n) {
+        result.push([arr1[i], arr2[i]])
+        i = i + 1
+    }
+    return result
+}
+
+// take(array, n) - First n elements
+fn take(array, n) {
+    if (n >= len(array)) {
+        return array
+    }
+    let result = []
+    let i = 0
+    while (i < n) {
+        result.push(array[i])
+        i = i + 1
+    }
+    return result
+}
+
+// drop(array, n) - All elements after the first n
+fn drop(array, n) {
+    let result = []
+    let i = n
+    while (i < len(array)) {
+        result.push(array[i])
+        i = i + 1
+    }
+    return result
+}
+
+// count_by(array, fn) - Count elements by a classifier key (returns dict)
+fn count_by(array, func) {
+    let counts = {}
+    for item in array {
+        let key = str(func(item))
+        if (!counts.contains(key)) {
+            counts[key] = 0
+        }
+        counts[key] = counts[key] + 1
+    }
+    return counts
+}
+
+// group_by(array, fn) - Group elements into a dict keyed by classifier result
+fn group_by(array, func) {
+    let groups = {}
+    for item in array {
+        let key = str(func(item))
+        if (!groups.contains(key)) {
+            groups[key] = []
+        }
+        let bucket = groups[key]
+        bucket.push(item)
+        groups[key] = bucket
+    }
+    return groups
+}
+
+// uniq(array) - Remove consecutive duplicates (stable, preserves order)
+fn uniq(array) {
+    if (len(array) == 0) {
+        return []
+    }
+    let result = [array[0]]
+    let i = 1
+    while (i < len(array)) {
+        if (array[i] != result[len(result) - 1]) {
+            result.push(array[i])
+        }
+        i = i + 1
+    }
+    return result
+}
+
+// sum_by(array, fn) - Sum numeric results of applying fn to each element
+fn sum_by(array, func) {
+    let total = 0
+    for item in array {
+        total = total + func(item)
+    }
+    return total
+}
