@@ -24,7 +24,7 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 - Error handling: `try/catch/throw` with `e.message` and `e.stack_trace`
 - Module system: `import`, `from ... import`, aliases
 - Structs with fields, methods, and `self` binding
-- Async/await — `async fn`, `await`, `Promise.all`, I/O thread pool
+- Async/await — `async fn`, `await`, `Promise.all`, `Promise.race`, I/O thread pool
 - Event loop — `on_ready(promise, callback)`, `event_loop()` for callback-based async
 - Null safety — `??` null coalescing, `?.` optional chaining
 - REPL with history and tab-completion
@@ -177,7 +177,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/DEVELOPMENT.md#
 | **Modules** | `import mod`, `from mod import fn`, `import mod as alias`; filesystem + embedded stdlib |
 | **Structs** | fields, methods, `self` binding, mutable fields via RefCell |
 | **Iterators** | `has_next()`, `next()`, for-in over array/dict/set/string/iterator |
-| **Async/await** | `async fn`, `await expr`, Promise caching; `Promise.all([p1, p2])` |
+| **Async/await** | `async fn`, `await expr`, Promise caching; `Promise.all([p1, p2])`, `Promise.race([p1, p2])` |
 | **I/O thread pool** | `set_workers(n)`, `AETHER_IO_WORKERS` env var; async `http_get`, `sleep`, `read_file`, `write_file`, `http_post` |
 | **Event loop** | `on_ready(promise, callback)`, `event_loop()`; callback-based async; chained callbacks |
 | **Null safety** | `??` null coalescing (short-circuit), `?.` optional member/method chaining |

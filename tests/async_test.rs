@@ -319,3 +319,76 @@ Promise.all([p1, p2])
         elapsed.as_millis()
     );
 }
+
+// ---- Promise.race tests ----
+
+fn run_with_pool(source: &str, workers: usize) -> Result<Value, String> {
+    let mut scanner = aether_lang::lexer::Scanner::new(source);
+    let tokens = scanner.scan_tokens().map_err(|e| e.to_string())?;
+    let mut parser = aether_lang::parser::Parser::new(tokens);
+    let program = parser.parse().map_err(|e| e.to_string())?;
+    let mut evaluator = aether_lang::interpreter::Evaluator::new_with_pool(workers);
+    let stmts = &program.statements;
+    for stmt in &stmts[..stmts.len() - 1] {
+        evaluator.exec_stmt(stmt).map_err(|e| e.to_string())?;
+    }
+    let last = stmts.last().unwrap();
+    if let aether_lang::parser::ast::Stmt::Expr(expr) = last {
+        return evaluator.eval_expr(expr).map_err(|e| e.to_string());
+    }
+    evaluator.exec_stmt(last).map_err(|e| e.to_string())?;
+    Ok(Value::Null)
+}
+
+#[test]
+fn test_promise_race_returns_first_resolved() {
+    // p1 sleeps 10ms, p2 sleeps 100ms — race should return p1's result (null from sleep).
+    let src = r#"
+async fn do_sleep(n) { sleep(n) }
+let p1 = do_sleep(0.01)
+let p2 = do_sleep(0.1)
+Promise.race([p1, p2])
+"#;
+    let result = run_with_pool(src, 2).unwrap();
+    assert_eq!(result, Value::Null, "sleep resolves to null");
+}
+
+#[test]
+fn test_promise_race_already_resolved() {
+    // If a promise is already resolved, race returns it immediately.
+    let src = r#"
+async fn fast() { return 42 }
+let p1 = fast()
+let _ = await p1
+async fn slow() { sleep(1.0) }
+let p2 = slow()
+Promise.race([p1, p2])
+"#;
+    let result = run_with_pool(src, 2).unwrap();
+    assert_eq!(result, Value::Int(42));
+}
+
+#[test]
+fn test_promise_race_is_faster_than_slowest() {
+    // race on [50ms, 200ms] should complete in ~50ms, not ~200ms.
+    let src = r#"
+async fn do_sleep(n) { sleep(n) }
+let p1 = do_sleep(0.05)
+let p2 = do_sleep(0.2)
+Promise.race([p1, p2])
+"#;
+    let start = std::time::Instant::now();
+    run_with_pool(src, 2).unwrap();
+    let elapsed = start.elapsed();
+    assert!(
+        elapsed.as_millis() < 120,
+        "Promise.race should complete in ~50ms not ~200ms, took {}ms",
+        elapsed.as_millis()
+    );
+}
+
+#[test]
+fn test_promise_race_empty_array_errors() {
+    let src = r#"Promise.race([])"#;
+    assert!(run_with_pool(src, 1).is_err());
+}

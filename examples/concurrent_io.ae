@@ -52,8 +52,18 @@ fn main() {
     println("   README.md size:", len(results[1]), "bytes")
     println()
 
+    // --- Promise.race: resolves with whichever promise finishes first ---
+    println("5. Promise.race — first to finish wins...")
+    let r1 = sleep(0.05)
+    let r2 = sleep(0.2)
+    let t5 = clock()
+    await Promise.race([r1, r2])
+    let t6 = clock()
+    println("   race([50ms, 200ms]) took:", t6 - t5, "seconds (expect ~0.05)")
+    println()
+
     // --- set_workers: change pool size at runtime ---
-    println("5. Changing worker count at runtime...")
+    println("6. Changing worker count at runtime...")
     set_workers(2)
     let p3 = sleep(0.05)
     await p3
@@ -61,7 +71,7 @@ fn main() {
     println()
 
     // --- Async http (requires network) ---
-    println("6. Async HTTP (requires network)...")
+    println("7. Async HTTP (requires network)...")
     try {
         let hp = http_get("https://httpbin.org/get")
         println("   http_get returned:", type(hp))   // promise
