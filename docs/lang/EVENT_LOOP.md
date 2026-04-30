@@ -1,98 +1,116 @@
 # Event Loop
 
-The event loop is a callback-based alternative to `await` for running concurrent I/O. Instead of blocking on each result, you register a callback with `on_ready()` and let `event_loop()` drive all callbacks to completion.
+The event loop drives async callbacks to completion. In most programs, it runs automatically — you rarely need to call it directly.
 
-## on_ready(value, callback)
+## value.then(callback)
 
-Registers a callback to fire when a value is ready.
+Registers a callback to fire when a value is ready. This is the primary way to attach async callbacks.
 
-- If `value` is an I/O Promise (returned by `http_get`, `sleep`, `read_file`, etc. with workers active): the callback fires when the I/O completes
-- If `value` is any other value: the callback fires synchronously and immediately
-
-The callback receives the resolved value as its argument.
-
-```aether
-set_workers(2)
-
-let p = sleep(0.5)
-on_ready(p, fn(v) {
-    println("sleep finished")
-})
-
-event_loop()
-```
-
-## event_loop([timeout_secs])
-
-Runs until all pending callbacks have fired, then returns `null`. Optionally accepts a timeout in seconds.
-
-```aether
-event_loop()       // run until all callbacks fire
-event_loop(5.0)    // run for at most 5 seconds
-```
-
-Callbacks registered inside a callback are picked up by the same `event_loop()` call — the loop continues until the queue is completely empty.
-
-## Concurrent I/O with the event loop
+- **I/O Promise** (returned by `http_get`, `sleep`, etc. when workers are active): callback fires when the I/O completes
+- **Any other value**: callback fires immediately with that value
 
 ```aether
 set_workers(4)
 
-let p1 = sleep(0.01)
-let p2 = sleep(0.02)
-
-on_ready(p1, fn(v) {
-    await write_file("/tmp/out1.txt", "done1")
+let p = http_get("https://api.example.com/users")
+p.then(fn(data) {
+    println(data)
 })
-on_ready(p2, fn(v) {
-    await write_file("/tmp/out2.txt", "done2")
-})
-
-event_loop()
 ```
 
-Both sleeps run concurrently on the thread pool. Both callbacks fire before `event_loop()` returns.
+Because the event loop drains automatically when `main()` returns, no explicit `event_loop()` call is needed for this pattern.
+
+## Auto-drain at main() exit
+
+When `main()` finishes, the runtime automatically drains any pending callbacks before the program exits. This mirrors how Node.js keeps the process alive for pending async work.
+
+```aether
+fn main() {
+    set_workers(4)
+
+    http_get("https://api.example.com/users").then(fn(users) {
+        println(users)
+    })
+
+    http_get("https://api.example.com/posts").then(fn(posts) {
+        println(posts)
+    })
+
+    // Both callbacks fire automatically — no event_loop() needed
+}
+```
 
 ## Chained callbacks
 
-Register a new callback from inside a callback — the outer `event_loop()` handles it:
+Callbacks registered inside a callback are also drained — the runtime keeps going until the queue is completely empty.
+
+```aether
+fn main() {
+    set_workers(2)
+
+    sleep(0.01).then(fn(v) {
+        sleep(0.01).then(fn(v2) {
+            println("both done")
+        })
+    })
+}
+```
+
+## on_ready(value, callback)
+
+`on_ready` is the older function-based form of `.then()`. Both are equivalent.
 
 ```aether
 set_workers(2)
-
-let p = sleep(0.01)
-on_ready(p, fn(v) {
-    let p2 = sleep(0.01)
-    on_ready(p2, fn(v2) {
-        println("both done")
-    })
+on_ready(sleep(0.5), fn(v) {
+    println("done")
 })
-
-event_loop()
 ```
 
-## Non-Promise values fire immediately
+## event_loop([timeout_secs])
 
-`on_ready` with a non-Promise fires synchronously — `event_loop()` is not needed:
+Explicitly runs the event loop until all pending callbacks have fired. Use this when you need callbacks to complete before the next line of code (rather than at `main()` exit).
 
 ```aether
-on_ready(42, fn(v) {
-    println(v)   // prints 42 immediately
+set_workers(4)
+
+http_get("https://api.example.com/data").then(fn(data) {
+    await write_file("/tmp/result.txt", data)
 })
+
+event_loop()   // wait for the write to finish
+
+let content = await read_file("/tmp/result.txt")
+println(content)
+```
+
+Accepts an optional timeout in seconds:
+
+```aether
+event_loop(5.0)   // give up after 5 seconds
+```
+
+## .then() vs await
+
+| | `await` | `.then()` |
+|-|---------|-----------|
+| Style | Pull — caller waits for result | Push — callback receives result |
+| Result | Returned directly | Passed to callback |
+| Use when | You need the result on the next line | Fire-and-forget, or dispatching many I/O tasks |
+
+```aether
+// await — sequential
+let users = await http_get("https://api.example.com/users")
+let posts = await http_get("https://api.example.com/posts")
+
+// .then() — concurrent (both start immediately)
+http_get("https://api.example.com/users").then(fn(u) { process_users(u) })
+http_get("https://api.example.com/posts").then(fn(p) { process_posts(p) })
 ```
 
 ## Queue controls
 
-`set_queue_limit(n)` — caps the number of pending callbacks. `on_ready()` throws if the queue is full. Default: 1024 (override with `AETHER_QUEUE_LIMIT`).
+These are operational knobs, not part of normal programs. See [Configuration](CONFIGURATION.html) for details.
 
-`set_task_timeout(secs)` / `set_task_timeout(null)` — sets a per-task deadline; callbacks that don't resolve in time are silently dropped. Pass `null` to remove the deadline.
-
-## await vs event_loop
-
-| | `await` | `event_loop` |
-|-|---------|-------------|
-| Style | Pull — caller waits for result | Push — callback receives result |
-| Main thread | Blocks until I/O resolves | Polls without blocking |
-| Multiple I/O | Sequential (or `Promise.all`) | All run concurrently |
-
-Use `await` when you need the result before the next line. Use the event loop for fire-and-forget patterns or when dispatching many I/O tasks concurrently.
+- `set_queue_limit(n)` — cap the number of pending callbacks (backpressure)
+- `set_task_timeout(secs)` / `set_task_timeout(null)` — per-callback deadline

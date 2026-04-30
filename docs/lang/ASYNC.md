@@ -95,7 +95,7 @@ By default, I/O functions like `http_get`, `http_post`, `sleep`, `read_file`, an
 set_workers(4)   // or set AETHER_IO_WORKERS=4 env var
 ```
 
-Once workers are active, calling any I/O function submits the task to the pool and immediately returns a Promise. Use `await` or `Promise.all` to collect results.
+Once workers are active, calling any I/O function submits the task to the pool and immediately returns a Promise. Use `await`, `Promise.all`, or `.then()` to collect results.
 
 **Default worker count:** `max(cpu_count - 1, 4)` when `AETHER_IO_WORKERS` is set.
 
