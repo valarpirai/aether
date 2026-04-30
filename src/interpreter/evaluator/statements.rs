@@ -1,6 +1,6 @@
 use crate::interpreter::environment::RuntimeError;
 use crate::interpreter::value::{IteratorSource, Value};
-use crate::parser::ast::{Pattern, Stmt};
+use crate::parser::ast::{ArrayDestructureElem, DestructurePattern, Pattern, Stmt};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -16,6 +16,14 @@ impl Evaluator {
             Stmt::Let(name, initializer) => {
                 let value = self.eval_expr(initializer)?;
                 self.environment.define(name.clone(), value);
+                Ok(ControlFlow::None)
+            }
+            Stmt::LetDestructure {
+                pattern,
+                initializer,
+            } => {
+                let val = self.eval_expr(initializer)?;
+                self.exec_destructure(pattern, val)?;
                 Ok(ControlFlow::None)
             }
             Stmt::Assign(target, value) => {
@@ -378,5 +386,82 @@ impl Evaluator {
             }
         }
         Ok(ControlFlow::None)
+    }
+
+    fn exec_destructure(
+        &mut self,
+        pattern: &DestructurePattern,
+        val: Value,
+    ) -> Result<(), RuntimeError> {
+        match pattern {
+            DestructurePattern::Array(elems) => {
+                let arr = match &val {
+                    Value::Array(rc) => rc.as_ref().clone(),
+                    _ => {
+                        return Err(RuntimeError::TypeError {
+                            expected: "array".to_string(),
+                            got: val.type_name().to_string(),
+                        })
+                    }
+                };
+                let rest_pos = elems
+                    .iter()
+                    .position(|e| matches!(e, ArrayDestructureElem::Rest(_)));
+                let prefix_len = rest_pos.unwrap_or(elems.len());
+                for (i, elem) in elems[..prefix_len].iter().enumerate() {
+                    if let ArrayDestructureElem::Binding { name, default } = elem {
+                        let v = arr.get(i).cloned().unwrap_or(Value::Null);
+                        let v = if matches!(v, Value::Null) {
+                            if let Some(def) = default {
+                                self.eval_expr(def)?
+                            } else {
+                                Value::Null
+                            }
+                        } else {
+                            v
+                        };
+                        if name != "_" {
+                            self.environment.define(name.clone(), v);
+                        }
+                    }
+                }
+                if let Some(pos) = rest_pos {
+                    if let ArrayDestructureElem::Rest(name) = &elems[pos] {
+                        let tail: Vec<Value> = arr[prefix_len..].to_vec();
+                        self.environment.define(name.clone(), Value::array(tail));
+                    }
+                }
+            }
+            DestructurePattern::Dict(entries) => {
+                let pairs = match &val {
+                    Value::Dict(rc) => rc.as_ref().clone(),
+                    _ => {
+                        return Err(RuntimeError::TypeError {
+                            expected: "dict".to_string(),
+                            got: val.type_name().to_string(),
+                        })
+                    }
+                };
+                for entry in entries {
+                    let v = pairs
+                        .iter()
+                        .find(|(k, _)| matches!(k, Value::String(s) if s.as_ref() == entry.key.as_str()))
+                        .map(|(_, v)| v.clone())
+                        .unwrap_or(Value::Null);
+                    let v = if matches!(v, Value::Null) {
+                        if let Some(def) = &entry.default {
+                            self.eval_expr(def)?
+                        } else {
+                            Value::Null
+                        }
+                    } else {
+                        v
+                    };
+                    let bind_name = entry.alias.as_ref().unwrap_or(&entry.key);
+                    self.environment.define(bind_name.clone(), v);
+                }
+            }
+        }
+        Ok(())
     }
 }

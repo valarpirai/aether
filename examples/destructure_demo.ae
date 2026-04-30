@@ -1,0 +1,53 @@
+fn main() {
+    // --- Array destructuring ---
+    println("=== Array destructuring ===")
+    let [a, b, c] = [10, 20, 30]
+    println("a=" + a + " b=" + b + " c=" + c)
+
+    // Default value when array is short
+    let [x, y = 99] = [1]
+    println("x=" + x + " y=" + y)   // y=99
+
+    // Skip with _
+    let [_, second, _] = [100, 200, 300]
+    println("second=" + second)
+
+    // Rest collects the tail
+    let [head, ...tail] = [1, 2, 3, 4, 5]
+    println("head=" + head)
+    println("tail length=" + len(tail))
+
+    // --- Dict destructuring ---
+    println()
+    println("=== Dict destructuring ===")
+    let point = {"x": 3, "y": 7}
+    let {x, y} = point
+    println("x=" + x + " y=" + y)
+
+    // Rename: port: p binds to p
+    let config = {"host": "db.internal", "port": 5432}
+    let {host, port: p} = config
+    println("host=" + host + " port=" + p)
+
+    // Default for missing key
+    let {timeout: t = 30} = {"host": "api.example.com"}
+    println("timeout=" + t)   // 30
+
+    // --- In functions ---
+    println()
+    println("=== Functions ===")
+
+    fn swap(pair) {
+        let [a, b] = pair
+        return [b, a]
+    }
+    let swapped = swap([1, 2])
+    println("swapped: " + swapped[0] + ", " + swapped[1])
+
+    fn connect(cfg) {
+        let {host, port: p = 5432, timeout: t = 30} = cfg
+        return host + ":" + str(p) + " (timeout=" + t + "s)"
+    }
+    println(connect({"host": "localhost", "port": 3306}))
+    println(connect({"host": "replica.db"}))
+}

@@ -22,23 +22,11 @@ Items without a milestone are unscheduled.
 | Bitwise operators — `&` `\|` `^` `~` `<<` `>>` (integers only) | 2026-04-30 |
 | Ternary expression — `condition ? then : else` | 2026-04-30 |
 | `match` statement — literal, wildcard, bind, or-patterns, enum variants | 2026-04-30 |
+| Destructuring assignment — array, dict, rest, rename, defaults | 2026-04-30 |
 
 ---
 
 ## Tier 1 — High value, low complexity
-
-### Destructuring assignment
-Unpack arrays and dicts directly into variables.
-
-```aether
-let [a, b, c] = [1, 2, 3]
-let {x, y} = point
-let [head, ...tail] = items
-let {host, port: p} = config        // rename on unpack
-let [first, second = 0] = values    // default value
-```
-
----
 
 ### `format()` / string format specifiers
 Formatted output beyond `"${}"` interpolation.

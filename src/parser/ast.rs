@@ -158,10 +158,42 @@ pub enum Stmt {
         subject: Expr,
         arms: Vec<(Pattern, Box<Stmt>)>,
     },
+    /// Destructuring let: let [a, b] = arr  /  let {x, y} = dict
+    LetDestructure {
+        pattern: DestructurePattern,
+        initializer: Expr,
+    },
     /// Line number marker — injected by the parser, updates evaluator's current_line
     Line(usize),
     /// Debugger breakpoint — pauses execution and opens the interactive debug REPL
     Debugger,
+}
+
+/// Top-level pattern for destructuring let statements
+#[derive(Debug, Clone, PartialEq)]
+pub enum DestructurePattern {
+    Array(Vec<ArrayDestructureElem>),
+    Dict(Vec<DictDestructureElem>),
+}
+
+/// One element inside an array destructure pattern
+#[derive(Debug, Clone, PartialEq)]
+pub enum ArrayDestructureElem {
+    /// Normal binding, with optional default: `a` or `a = 0`
+    Binding { name: String, default: Option<Expr> },
+    /// Rest binding: `...tail`
+    Rest(String),
+}
+
+/// One entry inside a dict destructure pattern
+#[derive(Debug, Clone, PartialEq)]
+pub struct DictDestructureElem {
+    /// Key to look up in the dict
+    pub key: String,
+    /// Renamed binding: `{port: p}` → alias = Some("p")
+    pub alias: Option<String>,
+    /// Default when key is absent or null: `{x = 0}`
+    pub default: Option<Expr>,
 }
 
 /// Pattern for match arms

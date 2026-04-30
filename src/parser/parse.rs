@@ -167,6 +167,13 @@ impl Parser {
 
     // Parse let declaration: let name = expr
     fn let_declaration(&mut self) -> Result<Stmt, ParseError> {
+        if self.check(&TokenKind::LeftBracket) {
+            return self.parse_array_destructure();
+        }
+        if self.check(&TokenKind::LeftBrace) {
+            return self.parse_dict_destructure();
+        }
+
         let name = if let TokenKind::Identifier(n) = &self.peek().kind {
             n.clone()
         } else {
@@ -181,6 +188,103 @@ impl Parser {
         let initializer = self.expression()?;
 
         Ok(Stmt::Let(name, initializer))
+    }
+
+    fn parse_array_destructure(&mut self) -> Result<Stmt, ParseError> {
+        use crate::parser::ast::{ArrayDestructureElem, DestructurePattern};
+        self.consume(TokenKind::LeftBracket, "[")?;
+        let mut elems = Vec::new();
+        while !self.check(&TokenKind::RightBracket) && !self.is_at_end() {
+            if self.match_token(&[TokenKind::Spread]) {
+                let name = if let TokenKind::Identifier(n) = &self.peek().kind {
+                    n.clone()
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        expected: "identifier after ...".to_string(),
+                        found: self.peek().clone(),
+                    });
+                };
+                self.advance();
+                elems.push(ArrayDestructureElem::Rest(name));
+                break;
+            }
+            let name = if let TokenKind::Identifier(n) = &self.peek().kind {
+                n.clone()
+            } else {
+                return Err(ParseError::UnexpectedToken {
+                    expected: "identifier or ...".to_string(),
+                    found: self.peek().clone(),
+                });
+            };
+            self.advance();
+            let default = if self.match_token(&[TokenKind::Equal]) {
+                Some(self.expression()?)
+            } else {
+                None
+            };
+            elems.push(ArrayDestructureElem::Binding { name, default });
+            if !self.match_token(&[TokenKind::Comma]) {
+                break;
+            }
+        }
+        self.consume(TokenKind::RightBracket, "]")?;
+        self.consume(TokenKind::Equal, "=")?;
+        let initializer = self.expression()?;
+        Ok(Stmt::LetDestructure {
+            pattern: DestructurePattern::Array(elems),
+            initializer,
+        })
+    }
+
+    fn parse_dict_destructure(&mut self) -> Result<Stmt, ParseError> {
+        use crate::parser::ast::{DestructurePattern, DictDestructureElem};
+        self.consume(TokenKind::LeftBrace, "{")?;
+        let mut entries = Vec::new();
+        while !self.check(&TokenKind::RightBrace) && !self.is_at_end() {
+            let key = if let TokenKind::Identifier(n) = &self.peek().kind {
+                n.clone()
+            } else {
+                return Err(ParseError::UnexpectedToken {
+                    expected: "identifier".to_string(),
+                    found: self.peek().clone(),
+                });
+            };
+            self.advance();
+            let alias = if self.match_token(&[TokenKind::Colon]) {
+                let a = if let TokenKind::Identifier(n) = &self.peek().kind {
+                    n.clone()
+                } else {
+                    return Err(ParseError::UnexpectedToken {
+                        expected: "identifier after ':'".to_string(),
+                        found: self.peek().clone(),
+                    });
+                };
+                self.advance();
+                Some(a)
+            } else {
+                None
+            };
+            let default = if self.match_token(&[TokenKind::Equal]) {
+                Some(self.expression()?)
+            } else {
+                None
+            };
+            entries.push(DictDestructureElem {
+                key,
+                alias,
+                default,
+            });
+            if !self.match_token(&[TokenKind::Comma]) {
+                break;
+            }
+        }
+        self.consume(TokenKind::RightBrace, "}")?;
+        self.consume(TokenKind::Equal, "=")?;
+        let initializer = self.expression()?;
+        Ok(Stmt::LetDestructure {
+            pattern: DestructurePattern::Dict(entries),
+            initializer,
+        })
     }
 
     // Parse function declaration: fn name(params) { body }
