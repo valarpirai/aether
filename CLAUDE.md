@@ -38,8 +38,7 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 | [STRINGS.md](docs/lang/STRINGS.md) | Literals, indexing, slicing, interpolation, methods |
 | [STRUCT.md](docs/lang/STRUCT.md) | User-defined types with fields and methods |
 | [ERROR_HANDLING.md](docs/lang/ERROR_HANDLING.md) | try/catch/throw with stack traces |
-| [ASYNC.md](docs/lang/ASYNC.md) | async fn, await, Promise.all/race/allSettled, I/O pool |
-| [EVENT_LOOP.md](docs/lang/EVENT_LOOP.md) | Callback-based async: on_ready, event_loop |
+| [ASYNC.md](docs/lang/ASYNC.md) | async fn, await, .then(), Promise.all/race/allSettled, I/O pool |
 | [ITERATORS.md](docs/lang/ITERATORS.md) | Iterator protocol, built-in and custom iterators |
 | [MODULE_SYSTEM.md](docs/lang/MODULE_SYSTEM.md) | import, from…import, stdlib modules |
 | [STDLIB.md](docs/lang/STDLIB.md) | range, map, filter, reduce, math, string, testing |
@@ -62,6 +61,7 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 | [PARSER.md](docs/dev/PARSER.md) | Parser implementation |
 | [INTERPRETER.md](docs/dev/INTERPRETER.md) | Interpreter / evaluator sub-modules |
 | [GC_DESIGN.md](docs/dev/GC_DESIGN.md) | Rc-based garbage collection design |
+| [EVENT_LOOP.md](docs/dev/EVENT_LOOP.md) | Event loop internals: on_ready, event_loop, queue controls |
 
 ## Quick Reference for Claude Code
 
