@@ -11,7 +11,6 @@ fn eval(source: &str) -> Result<String, String> {
     let program = parser.parse().map_err(|e| e.to_string())?;
     let mut evaluator = Evaluator::new_without_stdlib();
 
-    // Execute all statements
     for stmt in &program.statements {
         evaluator.exec_stmt(stmt).map_err(|e| e.to_string())?;
     }
@@ -19,17 +18,29 @@ fn eval(source: &str) -> Result<String, String> {
     Ok("success".to_string())
 }
 
+// Each Aether call consumes ~20 Rust frames; debug frames are large (~8 KB each).
+// 100 Aether calls × 20 frames × 8 KB ≈ 16 MB — exceeds the 8 MB default thread stack.
+// Running in a 32 MB thread gives the Aether depth-limit check room to fire first.
+fn eval_large_stack(source: &'static str) -> Result<String, String> {
+    std::thread::Builder::new()
+        .stack_size(32 * 1024 * 1024)
+        .spawn(move || eval(source))
+        .unwrap()
+        .join()
+        .unwrap()
+}
+
 #[test]
-#[ignore = "infinite recursion overflows Rust native stack before Aether depth limit is hit in debug builds"]
 fn test_recursion_limit_exceeded() {
-    let source = r#"
+    let result = eval_large_stack(
+        r#"
 fn infinite() {
     return infinite()
 }
 
 infinite()
-"#;
-    let result = eval(source);
+"#,
+    );
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(
@@ -41,9 +52,9 @@ infinite()
 }
 
 #[test]
-#[ignore = "countdown(50) overflows Rust native stack in debug builds before Aether depth check fires"]
 fn test_deep_recursion_within_limit() {
-    let source = r#"
+    let result = eval_large_stack(
+        r#"
 fn countdown(n) {
     if (n <= 0) {
         return 0
@@ -52,8 +63,8 @@ fn countdown(n) {
 }
 
 countdown(50)
-"#;
-    let result = eval(source);
+"#,
+    );
     assert!(
         result.is_ok(),
         "Expected success for depth 50, got: {:?}",
