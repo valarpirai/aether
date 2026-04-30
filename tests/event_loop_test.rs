@@ -361,3 +361,91 @@ fn test_callback_error_does_not_abort_remaining() {
     );
     assert_eq!(run(&src).unwrap(), "ran");
 }
+
+// ── promise.then() ────────────────────────────────────────────────────────────
+
+fn run_main(source: &str) -> Result<(), String> {
+    let mut scanner = Scanner::new(source);
+    let tokens = scanner.scan_tokens().map_err(|e| e.to_string())?;
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().map_err(|e| e.to_string())?;
+    let mut evaluator = Evaluator::new_without_stdlib();
+    for stmt in &program.statements {
+        evaluator.exec_stmt(stmt).map_err(|e| e.to_string())?;
+    }
+    evaluator.call_main().map_err(|e| e.to_string())
+}
+
+#[test]
+fn test_promise_then_non_promise_fires_immediately() {
+    let f = tmp("then_nonpromise");
+    let src = format!(
+        concat!(
+            "let p = \"hello\"\n",
+            "p.then(fn(v) {{ await write_file(\"{}\", v) }})\n",
+            "await read_file(\"{}\")"
+        ),
+        f, f
+    );
+    assert_eq!(run(&src).unwrap(), "hello");
+}
+
+#[test]
+fn test_promise_then_io_fires_after_event_loop() {
+    let f = tmp("then_io");
+    let src = format!(
+        concat!(
+            "set_workers(2)\n",
+            "let p = sleep(0.01)\n",
+            "p.then(fn(v) {{ await write_file(\"{}\", \"then_ok\") }})\n",
+            "event_loop()\n",
+            "await read_file(\"{}\")"
+        ),
+        f, f
+    );
+    assert_eq!(run(&src).unwrap(), "then_ok");
+}
+
+#[test]
+fn test_promise_then_chained() {
+    let f = tmp("then_chain");
+    let src = format!(
+        concat!(
+            "set_workers(2)\n",
+            "let p = sleep(0.01)\n",
+            "p.then(fn(v) {{\n",
+            "    let p2 = sleep(0.01)\n",
+            "    p2.then(fn(v2) {{ await write_file(\"{}\", \"chained\") }})\n",
+            "}})\n",
+            "event_loop()\n",
+            "await read_file(\"{}\")"
+        ),
+        f, f
+    );
+    assert_eq!(run(&src).unwrap(), "chained");
+}
+
+#[test]
+fn test_promise_then_arity_error() {
+    let src = "let p = 42\np.then()";
+    assert!(run(src).is_err());
+}
+
+#[test]
+fn test_auto_drain_fires_without_explicit_event_loop() {
+    // When main() returns with pending callbacks, the runtime drains them automatically.
+    // No explicit event_loop() call needed.
+    let f = tmp("auto_drain");
+    let src = format!(
+        concat!(
+            "fn main() {{\n",
+            "    set_workers(2)\n",
+            "    let p = sleep(0.01)\n",
+            "    p.then(fn(v) {{ await write_file(\"{}\", \"auto\") }})\n",
+            "}}\n"
+        ),
+        f
+    );
+    run_main(&src).unwrap();
+    assert_eq!(run(&format!("await read_file(\"{}\")", f)).unwrap(), "auto");
+}

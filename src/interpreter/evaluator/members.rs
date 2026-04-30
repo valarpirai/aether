@@ -1122,6 +1122,21 @@ impl Evaluator {
                 Ok(Value::iterator(IteratorSource::Set(items)))
             }
 
+            // value.then(callback) — register callback, fires when value is ready.
+            // Promise (IoWaiting): enqueues callback in the event loop.
+            // Promise (Pending/Resolved) or non-promise: fires callback immediately.
+            // Mirrors on_ready() so code works uniformly with or without set_workers().
+            (_, "then") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let callback = self.eval_expr(&args[0])?;
+                self.register_on_ready(obj_val.clone(), callback)
+            }
+
             // Undefined method
             (obj, meth) => Err(RuntimeError::MethodNotFound {
                 type_name: obj.type_name().to_string(),

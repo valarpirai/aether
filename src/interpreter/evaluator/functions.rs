@@ -654,7 +654,7 @@ impl Evaluator {
     /// Register a callback to fire when a promise resolves.
     /// If the promise is already resolved, the callback fires immediately.
     /// If it is IoWaiting, the receiver is moved into the event loop queue.
-    fn register_on_ready(
+    pub(super) fn register_on_ready(
         &mut self,
         promise_val: Value,
         callback: Value,
