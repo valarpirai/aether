@@ -98,7 +98,9 @@ pub(crate) struct DebugState {
 
 impl DebugState {
     fn new() -> Self {
-        Self { mode: StepMode::Running }
+        Self {
+            mode: StepMode::Running,
+        }
     }
 }
 
@@ -182,6 +184,13 @@ impl Evaluator {
         self.calls.max_depth = depth;
     }
 
+    /// Populate the global `args` array with the script's command-line arguments.
+    /// Each element is a string. Called by the CLI after creating the evaluator.
+    pub fn set_script_args(&mut self, script_args: &[String]) {
+        let values: Vec<Value> = script_args.iter().map(|s| Value::string(s)).collect();
+        self.environment.define("args".to_string(), Value::array(values));
+    }
+
     /// Most recently seen source line (updated by Stmt::Line markers)
     pub fn current_line(&self) -> usize {
         self.calls.current_line
@@ -196,7 +205,11 @@ impl Evaluator {
 
     /// Read up to `radius` lines around `target` from `path`. Returns None if the file
     /// cannot be read. Each entry is (line_number, line_text).
-    fn read_source_context(path: &std::path::Path, target: usize, radius: usize) -> Option<Vec<(usize, String)>> {
+    fn read_source_context(
+        path: &std::path::Path,
+        target: usize,
+        radius: usize,
+    ) -> Option<Vec<(usize, String)>> {
         let source = std::fs::read_to_string(path).ok()?;
         let lines: Vec<&str> = source.lines().collect();
         let first = target.saturating_sub(radius + 1);
@@ -319,12 +332,18 @@ impl Evaluator {
                     let mut scanner = Scanner::new(expr);
                     let tokens = match scanner.scan_tokens() {
                         Ok(t) => t,
-                        Err(e) => { eprintln!("[error] {}", e); continue; }
+                        Err(e) => {
+                            eprintln!("[error] {}", e);
+                            continue;
+                        }
                     };
                     let mut parser = Parser::new(tokens);
                     let program = match parser.parse() {
                         Ok(p) => p,
-                        Err(e) => { eprintln!("[error] {}", e); continue; }
+                        Err(e) => {
+                            eprintln!("[error] {}", e);
+                            continue;
+                        }
                     };
                     if program.statements.is_empty() {
                         continue;

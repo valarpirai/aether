@@ -10,11 +10,6 @@ use aether_lang::repl;
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() > 2 {
-        eprintln!("Usage: aether [script.ae]");
-        process::exit(1);
-    }
-
     // No arguments -> start REPL
     if args.len() == 1 {
         if let Err(e) = repl::run() {
@@ -24,9 +19,10 @@ fn main() {
         return;
     }
 
-    // Argument provided -> run file
+    // First argument is the script; everything after it are script arguments
     let filename = &args[1];
-    if let Err(e) = run_file(filename) {
+    let script_args = &args[2..];
+    if let Err(e) = run_file(filename, script_args) {
         eprintln!("Error: {}", e);
         process::exit(1);
     }
@@ -40,7 +36,7 @@ fn format_runtime_error(msg: String, line: usize) -> String {
     }
 }
 
-fn run_file(filename: &str) -> Result<(), String> {
+fn run_file(filename: &str, script_args: &[String]) -> Result<(), String> {
     // Read file
     let source = fs::read_to_string(filename)
         .map_err(|e| format!("Failed to read file '{}': {}", filename, e))?;
@@ -66,6 +62,9 @@ fn run_file(filename: &str) -> Result<(), String> {
 
     // Record the script file path for stack traces
     evaluator.current_file = Some(std::path::PathBuf::from(filename));
+
+    // Expose script arguments as the global `args` array
+    evaluator.set_script_args(script_args);
 
     // Override recursion depth limit if AETHER_CALL_DEPTH is set
     if let Some(depth) = std::env::var("AETHER_CALL_DEPTH")

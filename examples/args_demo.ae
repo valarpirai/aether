@@ -1,0 +1,8 @@
+fn main() {
+    print("arg count: " + len(args))
+    let i = 0
+    while (i < len(args)) {
+        print("args[" + i + "] = " + args[i])
+        i = i + 1
+    }
+}
