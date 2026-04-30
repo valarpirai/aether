@@ -267,9 +267,7 @@ impl Evaluator {
 
     fn eval_power(&self, left: Value, right: Value) -> Result<Value, RuntimeError> {
         match (left, right) {
-            (Value::Int(a), Value::Int(b)) if b >= 0 => {
-                Ok(Value::Int(a.wrapping_pow(b as u32)))
-            }
+            (Value::Int(a), Value::Int(b)) if b >= 0 => Ok(Value::Int(a.wrapping_pow(b as u32))),
             (Value::Int(a), Value::Int(b)) => Ok(Value::Float((a as f64).powi(b as i32))),
             (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a.powf(b))),
             (Value::Int(a), Value::Float(b)) => Ok(Value::Float((a as f64).powf(b))),
@@ -294,17 +292,12 @@ impl Evaluator {
         }
     }
 
-    fn eval_shift<F>(
-        left: Value,
-        right: Value,
-        op_name: &str,
-        op: F,
-    ) -> Result<Value, RuntimeError>
+    fn eval_shift<F>(left: Value, right: Value, op_name: &str, op: F) -> Result<Value, RuntimeError>
     where
         F: FnOnce(i64, u32) -> i64,
     {
         match (left, right) {
-            (Value::Int(a), Value::Int(b)) if b >= 0 && b < 64 => {
+            (Value::Int(a), Value::Int(b)) if (0..64).contains(&b) => {
                 Ok(Value::Int(op(a, b as u32)))
             }
             (Value::Int(_), Value::Int(b)) => Err(RuntimeError::InvalidOperation(format!(

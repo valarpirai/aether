@@ -1,6 +1,6 @@
 fn add(a, b) {
     let result = a + b
-    result
+    return result
 }
 
 fn main() {

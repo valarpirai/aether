@@ -187,8 +187,9 @@ impl Evaluator {
     /// Populate the global `args` array with the script's command-line arguments.
     /// Each element is a string. Called by the CLI after creating the evaluator.
     pub fn set_script_args(&mut self, script_args: &[String]) {
-        let values: Vec<Value> = script_args.iter().map(|s| Value::string(s)).collect();
-        self.environment.define("args".to_string(), Value::array(values));
+        let values: Vec<Value> = script_args.iter().map(Value::string).collect();
+        self.environment
+            .define("args".to_string(), Value::array(values));
     }
 
     /// Most recently seen source line (updated by Stmt::Line markers)

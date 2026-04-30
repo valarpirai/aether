@@ -14,7 +14,10 @@ fn eval(source: &str) -> Result<String, String> {
     }
     if let Some(last) = stmts.last() {
         if let aether_lang::parser::ast::Stmt::Expr(expr) = last {
-            return Ok(format!("{}", evaluator.eval_expr(expr).map_err(|e| e.to_string())?));
+            return Ok(format!(
+                "{}",
+                evaluator.eval_expr(expr).map_err(|e| e.to_string())?
+            ));
         }
         evaluator.exec_stmt(last).map_err(|e| e.to_string())?;
     }
