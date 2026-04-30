@@ -21,25 +21,11 @@ Items without a milestone are unscheduled.
 | `**` power operator (right-associative, int/float) | 2026-04-30 |
 | Bitwise operators — `&` `\|` `^` `~` `<<` `>>` (integers only) | 2026-04-30 |
 | Ternary expression — `condition ? then : else` | 2026-04-30 |
+| `match` statement — literal, wildcard, bind, or-patterns, enum variants | 2026-04-30 |
 
 ---
 
 ## Tier 1 — High value, low complexity
-
-### `match` statement
-Pattern matching on values; replaces chained `if/else` for discriminated unions and literal checks.
-
-```aether
-match shape {
-    "circle"  => println("round")
-    "square"  => println("four sides")
-    _         => println("unknown")
-}
-```
-
-Stretch: structural patterns (`match point { {x: 0, y} => ... }`).
-
----
 
 ### Destructuring assignment
 Unpack arrays and dicts directly into variables.
