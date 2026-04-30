@@ -22,6 +22,10 @@ fn main() {
     // First argument is the script; everything after it are script arguments
     let filename = &args[1];
     let script_args = &args[2..];
+    if script_args.len() > 100 {
+        eprintln!("Error: too many arguments (max 100, got {})", script_args.len());
+        process::exit(1);
+    }
     if let Err(e) = run_file(filename, script_args) {
         eprintln!("Error: {}", e);
         process::exit(1);

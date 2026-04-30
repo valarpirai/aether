@@ -56,3 +56,11 @@ fn test_args_elements_are_strings() {
     let result = eval_with_args(r#"type(args[0])"#, &["42"]);
     assert_eq!(result.unwrap(), "string");
 }
+
+// exactly 100 args is accepted
+#[test]
+fn test_args_at_limit() {
+    let hundred: Vec<&str> = (0..100).map(|_| "x").collect();
+    let result = eval_with_args("len(args)", &hundred);
+    assert_eq!(result.unwrap(), "100");
+}
