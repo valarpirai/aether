@@ -85,3 +85,7 @@ fn retry(func, max_attempts) {
 - No date/time formatting or timezone support
 - `sleep()` is not interruptible (use small intervals if you need cancellation)
 - Minimum sleep duration depends on the OS scheduler; sleep of 0 or negative is a no-op
+
+## Related
+
+- [Async/Await](ASYNC.md) — `await sleep(n)` when workers are active; `.then()` for non-blocking callbacks

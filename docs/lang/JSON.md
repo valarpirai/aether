@@ -77,3 +77,7 @@ fn safe_parse(text) {
 - Output is compact — no indentation or pretty printing
 - Dict keys must be strings for `json_stringify`
 - Functions, sets, and struct instances cannot be serialized
+
+## Related
+
+- [HTTP](HTTP.md) — fetch JSON over the network with `http_get` / `http_post`

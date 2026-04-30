@@ -33,6 +33,54 @@ let result = await double(10)  // 20
 let x = await 42   // x = 42
 ```
 
+## .then(callback)
+
+`.then(callback)` attaches a callback to any value. The callback receives the resolved value as its first argument.
+
+| Value type | When callback fires |
+|-----------|-------------------|
+| I/O Promise (`set_workers` active) | After the I/O completes; enqueued in the event loop |
+| CPU/async Promise | Immediately, inline |
+| Non-Promise (any value) | Immediately, with the value passed through |
+
+This mirrors `on_ready()` so the same code works whether or not `set_workers` is active.
+
+```aether
+fn main() {
+    set_workers(2)
+
+    let p = sleep(0.1)
+    p.then(fn(v) {
+        println("sleep done")
+    })
+    // event_loop() drains pending callbacks; or they auto-drain when main() returns
+}
+```
+
+### Chaining
+
+Callbacks can register further `.then()` calls to sequence work:
+
+```aether
+fn main() {
+    set_workers(2)
+
+    let p = http_get("https://api.example.com/users")
+    p.then(fn(body) {
+        let users = json_parse(body)
+        let p2 = http_get("https://api.example.com/posts")
+        p2.then(fn(body2) {
+            println("users:", users["count"])
+            println("posts:", json_parse(body2)["count"])
+        })
+    })
+}
+```
+
+### Auto-drain
+
+When `main()` returns with pending `.then()` callbacks still queued, the runtime drains them automatically — no explicit `event_loop()` call required for simple cases.
+
 ## Promise combinators
 
 ### Promise.all(array)
@@ -165,3 +213,11 @@ fn main() {
 | `Promise.all` | All I/O runs concurrently; waits for all |
 | `Promise.race` | Returns the first to complete |
 | `Promise.allSettled` | Waits for all; never throws |
+| `.then(callback)` | Callback fires inline (CPU promise / value) or via event loop (I/O promise) |
+
+## Related
+
+- [HTTP](HTTP.md) — `http_get` / `http_post` return Promises when workers are active
+- [Time](TIME.md) — `sleep` returns a Promise when workers are active
+- [JSON](JSON.md) — parse HTTP response bodies as structured data
+- [Configuration](CONFIGURATION.md) — `set_workers`, `AETHER_IO_WORKERS`

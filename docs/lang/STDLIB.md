@@ -1,6 +1,35 @@
 # Standard Library
 
-The Aether standard library is available automatically — no import needed for most functions. It provides utilities for collections, math, strings, and testing.
+Most standard library functions are available automatically — no import needed. The `testing` module must be imported explicitly.
+
+## Quick Reference
+
+| Function | Module | Signature |
+|----------|--------|-----------|
+| `range` | core | `range(end)` / `range(start, end)` → array |
+| `enumerate` | core | `enumerate(array)` → `[[index, value], ...]` |
+| `map` | collections | `map(array, fn)` → array |
+| `filter` | collections | `filter(array, fn)` → array |
+| `reduce` | collections | `reduce(array, fn, initial)` → value |
+| `find` | collections | `find(array, fn)` → value or null |
+| `every` | collections | `every(array, fn)` → bool |
+| `some` | collections | `some(array, fn)` → bool |
+| `abs` | math | `abs(n)` → number |
+| `min` | math | `min(a, b)` / `min(array)` → number |
+| `max` | math | `max(a, b)` / `max(array)` → number |
+| `sum` | math | `sum(array)` → number |
+| `clamp` | math | `clamp(value, min_val, max_val)` → number |
+| `sign` | math | `sign(n)` → -1, 0, or 1 |
+| `join` | string | `join(array, separator)` → string |
+| `repeat` | string | `repeat(string, n)` → string |
+| `reverse` | string | `reverse(string)` → string |
+| `starts_with` | string | `starts_with(string, prefix)` → bool |
+| `ends_with` | string | `ends_with(string, suffix)` → bool |
+| `assert_eq` | testing* | `assert_eq(actual, expected)` |
+| `test` | testing* | `test(name, fn)` |
+| `test_summary` | testing* | `test_summary()` |
+
+*Requires explicit import: `from testing import assert_eq, test, test_summary`
 
 ## Core (`core.ae`)
 

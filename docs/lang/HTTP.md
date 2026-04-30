@@ -123,3 +123,9 @@ try {
 - No access to response status code or headers
 - No built-in authentication — pass API keys in the URL or body
 - Redirects are followed automatically
+
+## Related
+
+- [Async/Await](ASYNC.md) — `await`, `Promise.all`, `.then()` for concurrent requests
+- [JSON](JSON.md) — parse response bodies as structured data
+- [Configuration](CONFIGURATION.md) — `set_workers`, `AETHER_HTTP_TIMEOUT`, `AETHER_HTTP_USER_AGENT`

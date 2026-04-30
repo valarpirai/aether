@@ -9,8 +9,8 @@ Aether's behavior can be tuned through environment variables (set before launch)
 | `AETHER_IO_WORKERS` | _(unset)_ | Enable the I/O thread pool with this many worker threads. When unset, `http_get`, `sleep`, `read_file`, `write_file`, and `http_post` run synchronously. When set, each call returns a Promise and runs on a worker thread. |
 | `AETHER_HTTP_TIMEOUT` | `30` | Default request timeout in seconds for `http_get` and `http_post`. |
 | `AETHER_HTTP_USER_AGENT` | `aether/0.1` | Default `User-Agent` header for HTTP requests. |
-| `AETHER_EVENT_LOOP_TIMEOUT` | _(none)_ | Default timeout in seconds for `event_loop()` calls with no argument. When unset, `event_loop()` runs until the queue is empty. |
-| `AETHER_QUEUE_LIMIT` | `1024` | Maximum pending callbacks in the event loop queue. `on_ready()` throws when this limit is reached. |
+| `AETHER_EVENT_LOOP_TIMEOUT` | _(none)_ | Default timeout in seconds for `event_loop()` calls with no argument. When unset, `event_loop()` runs until the queue is empty. Used with `.then()` / `on_ready()` callback-based async. |
+| `AETHER_QUEUE_LIMIT` | `1024` | Maximum pending `.then()` / `on_ready()` callbacks that can be queued at once. Throws when this limit is reached. |
 | `AETHER_CALL_DEPTH` | `100` | Maximum call stack depth before a `StackOverflow` error is raised. |
 | `HOME` | OS default | REPL history is saved to `$HOME/.aether_history`. History is disabled for the session if `HOME` is unset. |
 
