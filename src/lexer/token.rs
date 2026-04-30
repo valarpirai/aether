@@ -46,6 +46,7 @@ pub enum TokenKind {
     Await,
     Finally,
     Match,
+    Debugger,
 
     // Operators
     Plus,    // +

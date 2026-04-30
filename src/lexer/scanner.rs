@@ -416,6 +416,7 @@ impl Scanner {
             "await" => TokenKind::Await,
             "finally" => TokenKind::Finally,
             "match" => TokenKind::Match,
+            "debugger" => TokenKind::Debugger,
             _ => TokenKind::Identifier(text.clone()),
         };
 

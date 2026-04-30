@@ -1,0 +1,14 @@
+fn add(a, b) {
+    let result = a + b
+    result
+}
+
+fn main() {
+    let x = 10
+    let y = 20
+
+    debugger
+
+    let sum = add(x, y)
+    print("sum = " + sum)
+}

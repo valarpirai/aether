@@ -251,6 +251,9 @@ impl Parser {
         if self.match_token(&[TokenKind::Match]) {
             return self.parse_match_statement();
         }
+        if self.match_token(&[TokenKind::Debugger]) {
+            return Ok(Stmt::Debugger);
+        }
         self.expression_statement()
     }
 

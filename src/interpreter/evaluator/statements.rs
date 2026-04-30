@@ -165,6 +165,20 @@ impl Evaluator {
             }
             Stmt::Line(n) => {
                 self.calls.current_line = *n;
+                let should_pause = match &self.debug.mode {
+                    super::StepMode::Step => true,
+                    super::StepMode::Next(depth) => self.calls.depth <= *depth,
+                    _ => false,
+                };
+                if should_pause {
+                    self.debug.mode = super::StepMode::Paused;
+                    self.trigger_debugger();
+                }
+                Ok(ControlFlow::None)
+            }
+            Stmt::Debugger => {
+                self.debug.mode = super::StepMode::Paused;
+                self.trigger_debugger();
                 Ok(ControlFlow::None)
             }
         }

@@ -147,6 +147,8 @@ pub enum Stmt {
     },
     /// Line number marker — injected by the parser, updates evaluator's current_line
     Line(usize),
+    /// Debugger breakpoint — pauses execution and opens the interactive debug REPL
+    Debugger,
 }
 
 /// Pattern for match arms

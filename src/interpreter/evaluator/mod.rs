@@ -79,6 +79,29 @@ impl AsyncRuntime {
     }
 }
 
+/// Controls whether execution pauses at the next Stmt::Line marker
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum StepMode {
+    /// Normal execution — debugger is not active
+    Running,
+    /// Waiting at a breakpoint for a user command
+    Paused,
+    /// Pause at the very next Stmt::Line (step into)
+    Step,
+    /// Pause at the next Stmt::Line where call depth <= the stored depth (step over)
+    Next(usize),
+}
+
+pub(crate) struct DebugState {
+    pub(crate) mode: StepMode,
+}
+
+impl DebugState {
+    fn new() -> Self {
+        Self { mode: StepMode::Running }
+    }
+}
+
 /// Tree-walking interpreter for Aether programs
 pub struct Evaluator {
     /// Current environment (variables in scope)
@@ -91,6 +114,8 @@ pub struct Evaluator {
     pub(crate) modules: ModuleLoader,
     /// I/O thread pool and event loop queue
     pub(crate) async_rt: AsyncRuntime,
+    /// Debugger step mode — checked on every Stmt::Line
+    pub(crate) debug: DebugState,
 }
 
 impl Evaluator {
@@ -148,6 +173,7 @@ impl Evaluator {
             calls: CallContext::new(100),
             modules: ModuleLoader::new(),
             async_rt: AsyncRuntime::new(queue, Self::env_event_loop_timeout()),
+            debug: DebugState::new(),
         }
     }
 
@@ -166,6 +192,166 @@ impl Evaluator {
         self.current_file
             .as_ref()
             .and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
+    }
+
+    /// Read up to `radius` lines around `target` from `path`. Returns None if the file
+    /// cannot be read. Each entry is (line_number, line_text).
+    fn read_source_context(path: &std::path::Path, target: usize, radius: usize) -> Option<Vec<(usize, String)>> {
+        let source = std::fs::read_to_string(path).ok()?;
+        let lines: Vec<&str> = source.lines().collect();
+        let first = target.saturating_sub(radius + 1);
+        let last = (target + radius).min(lines.len());
+        Some(
+            lines[first..last]
+                .iter()
+                .enumerate()
+                .map(|(i, l)| (first + i + 1, l.to_string()))
+                .collect(),
+        )
+    }
+
+    /// Print source context centered on the current line, with a `>` marker.
+    fn print_source_context(&self) {
+        let line = self.calls.current_line;
+        let file_path = match &self.current_file {
+            Some(p) => p.clone(),
+            None => {
+                eprintln!("[source not available]");
+                return;
+            }
+        };
+        match Self::read_source_context(&file_path, line, 2) {
+            None => eprintln!("[source not available]"),
+            Some(ctx) => {
+                eprintln!();
+                for (n, text) in &ctx {
+                    if *n == line {
+                        eprintln!(">  {}: {}", n, text);
+                    } else {
+                        eprintln!("   {}: {}", n, text);
+                    }
+                }
+                eprintln!();
+            }
+        }
+    }
+
+    /// Pause execution, show context, and loop on stdin until the user resumes.
+    /// Sets self.debug.mode before returning so the evaluator knows how to continue.
+    pub(crate) fn trigger_debugger(&mut self) {
+        use crate::lexer::Scanner;
+        use crate::parser::Parser;
+        use std::io::{BufRead, Write};
+
+        let file_display = self
+            .current_file
+            .as_ref()
+            .and_then(|p| p.to_str())
+            .unwrap_or("<repl>")
+            .to_string();
+        let line = self.calls.current_line;
+
+        eprintln!("[debugger] Paused at {}:{}", file_display, line);
+        self.print_source_context();
+        eprintln!("Commands: c/continue  n/next  s/step  bt/backtrace  vars  q/quit  <expr>");
+
+        let stdin = std::io::stdin();
+
+        loop {
+            print!("(dbg) ");
+            std::io::stdout().flush().ok();
+
+            let mut input = String::new();
+            match stdin.lock().read_line(&mut input) {
+                Ok(0) | Err(_) => {
+                    // EOF — resume so non-interactive runs (tests, pipes) aren't blocked
+                    self.debug.mode = StepMode::Running;
+                    break;
+                }
+                Ok(_) => {}
+            }
+
+            match input.trim() {
+                "" => continue,
+
+                "c" | "continue" => {
+                    self.debug.mode = StepMode::Running;
+                    break;
+                }
+
+                "n" | "next" => {
+                    self.debug.mode = StepMode::Next(self.calls.depth);
+                    break;
+                }
+
+                "s" | "step" => {
+                    self.debug.mode = StepMode::Step;
+                    break;
+                }
+
+                "q" | "quit" => std::process::exit(0),
+
+                "bt" | "backtrace" => {
+                    if self.calls.stack.is_empty() {
+                        eprintln!("  (top level)");
+                    } else {
+                        for frame in self.calls.stack.iter().rev() {
+                            let f = frame.call_site_file.as_deref().unwrap_or("<native>");
+                            eprintln!("  {} at {}:{}", frame.fn_name, f, frame.call_site_line);
+                        }
+                    }
+                }
+
+                "vars" | "env" => {
+                    let bindings = self.environment.bindings();
+                    if bindings.is_empty() {
+                        eprintln!("  (no local variables)");
+                    } else {
+                        let mut pairs: Vec<_> = bindings.iter().collect();
+                        pairs.sort_by_key(|(k, _)| k.as_str());
+                        for (name, val) in pairs {
+                            eprintln!("  {} = {}", name, val);
+                        }
+                    }
+                }
+
+                expr => {
+                    let mut scanner = Scanner::new(expr);
+                    let tokens = match scanner.scan_tokens() {
+                        Ok(t) => t,
+                        Err(e) => { eprintln!("[error] {}", e); continue; }
+                    };
+                    let mut parser = Parser::new(tokens);
+                    let program = match parser.parse() {
+                        Ok(p) => p,
+                        Err(e) => { eprintln!("[error] {}", e); continue; }
+                    };
+                    if program.statements.is_empty() {
+                        continue;
+                    }
+                    let stmts = program.statements;
+                    let last = stmts.last().unwrap().clone();
+                    for stmt in &stmts[..stmts.len() - 1] {
+                        if let Err(e) = self.exec_stmt(stmt) {
+                            eprintln!("[error] {}", e);
+                            break;
+                        }
+                    }
+                    match &last {
+                        Stmt::Expr(e) => match self.eval_expr(e) {
+                            Ok(val) if !matches!(val, Value::Null) => eprintln!("{}", val),
+                            Ok(_) => {}
+                            Err(e) => eprintln!("[error] {}", e),
+                        },
+                        _ => {
+                            if let Err(e) = self.exec_stmt(&last) {
+                                eprintln!("[error] {}", e);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// Register all built-in functions in the environment
