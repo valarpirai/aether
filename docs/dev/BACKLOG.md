@@ -16,6 +16,11 @@ Items without a milestone are unscheduled.
 | Labeled `break` / `continue` for nested loops | 2026-04-29 |
 | File utilities: `list_dir`, `path_join`, `rename`, `rm` | 2026-04-29 |
 | Event loop — `on_ready`, `event_loop`, per-task timeout, backpressure, error isolation | 2026-04-29 |
+| Debugger — `debugger` statement with step/next/continue/backtrace | 2026-04-30 |
+| Command-line args — global `args` array, max 100 | 2026-04-30 |
+| `**` power operator (right-associative, int/float) | 2026-04-30 |
+| Bitwise operators — `&` `\|` `^` `~` `<<` `>>` (integers only) | 2026-04-30 |
+| Ternary expression — `condition ? then : else` | 2026-04-30 |
 
 ---
 
@@ -317,31 +322,6 @@ RuntimeError at line 12: undefined variable 'x'
 ## Tier 4 — Operators and syntax sugar
 
 
-### `**` power operator
-```aether
-let cube = x ** 3
-let dist = (dx ** 2 + dy ** 2) ** 0.5
-```
-
-### Bitwise operators
-`&`, `|`, `^`, `~`, `<<`, `>>`
-```aether
-let flags = READ | WRITE
-let masked = value & 0xFF
-let shifted = 1 << n
-```
-
-### Integer division `//`
-```aether
-let pages = total_items // per_page
-```
-
-### Ternary / inline-if expression
-```aether
-let label = count == 1 ? "item" : "items"
-let abs_x = if x >= 0 then x else -x
-```
-
 ### `defer` statement (Go-style)
 Execute a statement when the current function returns, regardless of how.
 
@@ -352,6 +332,8 @@ fn read_config(path) {
     return parse(f.read())
 }
 ```
+
+Note: `try/finally` already covers the same use case.
 
 ---
 
@@ -401,7 +383,7 @@ struct Dog extends Animal implements Printable {
 | `aether test` | Built-in test runner |
 | Package manager | `aether.toml`, versioned deps, registry |
 | REPL multi-line input | Paste multi-line code blocks in the REPL |
-| Debugger | Breakpoints, step-through, variable inspection |
+| ~~Debugger~~ | ~~Breakpoints, step-through, variable inspection~~ — **shipped 2026-04-30** |
 | Bytecode compiler | Replace tree-walking interpreter; 5–20× speedup |
 
 ---

@@ -1,26 +1,49 @@
+// --- Power ---
+
 fn main() {
-    // Power
-    print("2 ** 10 = " + (2 ** 10))
-    print("2 ** 3 ** 2 = " + (2 ** 3 ** 2))   // right-associative: 2 ** 9 = 512
+    print("=== Power ===")
+    print("2 ** 10  = " + (2 ** 10))
+    print("2**3**2  = " + (2 ** 3 ** 2))    // right-assoc: 2**(3**2) = 512
+    print("sqrt(16) = " + (16 ** 0.5))
+    print("2**-1    = " + (2 ** -1))         // negative exp -> float
 
-    // Bitwise
-    print("12 & 10 = " + (12 & 10))             // 8
-    print("12 | 3  = " + (12 | 3))              // 15
-    print("15 ^ 10 = " + (15 ^ 10))             // 5
-    print("~0      = " + (~0))                   // -1
-    print("1 << 4  = " + (1 << 4))              // 16
-    print("16 >> 2 = " + (16 >> 2))             // 4
-
-    // Ternary
-    let x = 7
-    let label = x > 5 ? "big" : "small"
-    print("x is " + label)
-
-    // Flags pattern
-    let READ = 1
+    // --- Bitwise ---
+    print("=== Bitwise ===")
+    let READ  = 1
     let WRITE = 2
-    let EXEC = 4
+    let EXEC  = 4
+
     let perms = READ | WRITE
-    print("can read:  " + ((perms & READ) != 0 ? "yes" : "no"))
-    print("can exec:  " + ((perms & EXEC) != 0 ? "yes" : "no"))
+    print("perms = " + perms)
+    print("can read:  " + ((perms & READ)  != 0 ? "yes" : "no"))
+    print("can write: " + ((perms & WRITE) != 0 ? "yes" : "no"))
+    print("can exec:  " + ((perms & EXEC)  != 0 ? "yes" : "no"))
+
+    let toggled = perms ^ READ              // toggle READ off
+    print("after toggle read: " + toggled)
+
+    print("~0 = " + (~0))                   // -1 (all bits set)
+
+    // --- Shifts ---
+    print("=== Shifts ===")
+    print("1 << 8  = " + (1 << 8))         // 256
+    print("256 >> 4 = " + (256 >> 4))      // 16
+
+    // Pack two bytes into one int (171=0xAB, 205=0xCD)
+    let hi = 171
+    let lo = 205
+    let packed = (hi << 8) | lo
+    print("packed  = " + packed)
+    print("hi byte = " + (packed >> 8))
+    print("lo byte = " + (packed & 255))
+
+    // --- Ternary ---
+    print("=== Ternary ===")
+    let score = 72
+    let grade = score >= 90 ? "A" : score >= 80 ? "B" : score >= 70 ? "C" : "F"
+    print("score " + score + " -> grade " + grade)
+
+    let n = -5
+    let abs_n = n >= 0 ? n : -n
+    print("abs(" + n + ") = " + abs_n)
 }
