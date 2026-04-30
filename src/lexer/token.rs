@@ -72,9 +72,16 @@ pub enum TokenKind {
     And,              // &&
     Or,               // ||
     Not,              // !
-    Pipe,             // | (for match or-patterns)
+    Pipe,             // | (match or-patterns and bitwise OR)
+    Ampersand,        // & (bitwise AND)
+    Caret,            // ^ (bitwise XOR)
+    Tilde,            // ~ (bitwise NOT)
+    StarStar,         // ** (power)
+    LessLess,         // << (shift left)
+    GreaterGreater,   // >> (shift right)
     QuestionQuestion, // ??
     QuestionDot,      // ?.
+    Question,         // ? (ternary)
 
     // Delimiters
     LeftParen,    // (

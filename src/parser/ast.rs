@@ -52,6 +52,8 @@ pub enum Expr {
     OptionalMember(Box<Expr>, String),
     /// Optional method call: expr?.method(args) — null if expr is null
     OptionalCall(Box<Expr>, String, Vec<Expr>),
+    /// Ternary expression: condition ? then_expr : else_expr
+    Ternary(Box<Expr>, Box<Expr>, Box<Expr>),
 }
 
 /// Binary operators
@@ -77,6 +79,16 @@ pub enum BinaryOp {
     Or,
     /// Null coalescing: a ?? b — returns a if not null, else b
     NullCoalesce,
+
+    // Bitwise
+    BitwiseAnd,
+    BitwiseOr,
+    BitwiseXor,
+    ShiftLeft,
+    ShiftRight,
+
+    /// Exponentiation: a ** b
+    Power,
 }
 
 /// Unary operators
@@ -84,6 +96,7 @@ pub enum BinaryOp {
 pub enum UnaryOp {
     Negate,
     Not,
+    BitwiseNot,
 }
 
 /// Statement AST node

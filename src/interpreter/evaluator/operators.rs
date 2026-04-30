@@ -23,6 +23,13 @@ impl Evaluator {
                 }),
             },
             UnaryOp::Not => Ok(Value::Bool(!value.is_truthy())),
+            UnaryOp::BitwiseNot => match value {
+                Value::Int(n) => Ok(Value::Int(!n)),
+                _ => Err(RuntimeError::TypeError {
+                    expected: "int".to_string(),
+                    got: value.type_name().to_string(),
+                }),
+            },
         }
     }
 
@@ -82,6 +89,12 @@ impl Evaluator {
                 }
             }
             BinaryOp::NullCoalesce => unreachable!("handled above"),
+            BinaryOp::Power => self.eval_power(left_val, right_val),
+            BinaryOp::BitwiseAnd => Self::eval_bitwise(left_val, right_val, |a, b| a & b),
+            BinaryOp::BitwiseOr => Self::eval_bitwise(left_val, right_val, |a, b| a | b),
+            BinaryOp::BitwiseXor => Self::eval_bitwise(left_val, right_val, |a, b| a ^ b),
+            BinaryOp::ShiftLeft => Self::eval_shift(left_val, right_val, "<<", |a, b| a << b),
+            BinaryOp::ShiftRight => Self::eval_shift(left_val, right_val, ">>", |a, b| a >> b),
         }
     }
 
@@ -249,6 +262,64 @@ impl Evaluator {
             _ => Err(RuntimeError::InvalidOperation(
                 "Invalid compound assignment operator".to_string(),
             )),
+        }
+    }
+
+    fn eval_power(&self, left: Value, right: Value) -> Result<Value, RuntimeError> {
+        match (left, right) {
+            (Value::Int(a), Value::Int(b)) if b >= 0 => {
+                Ok(Value::Int(a.wrapping_pow(b as u32)))
+            }
+            (Value::Int(a), Value::Int(b)) => Ok(Value::Float((a as f64).powi(b as i32))),
+            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a.powf(b))),
+            (Value::Int(a), Value::Float(b)) => Ok(Value::Float((a as f64).powf(b))),
+            (Value::Float(a), Value::Int(b)) => Ok(Value::Float(a.powi(b as i32))),
+            (left, right) => Err(RuntimeError::TypeError {
+                expected: "number".to_string(),
+                got: format!("{} and {}", left.type_name(), right.type_name()),
+            }),
+        }
+    }
+
+    fn eval_bitwise<F>(left: Value, right: Value, op: F) -> Result<Value, RuntimeError>
+    where
+        F: FnOnce(i64, i64) -> i64,
+    {
+        match (left, right) {
+            (Value::Int(a), Value::Int(b)) => Ok(Value::Int(op(a, b))),
+            (left, right) => Err(RuntimeError::TypeError {
+                expected: "int".to_string(),
+                got: format!("{} and {}", left.type_name(), right.type_name()),
+            }),
+        }
+    }
+
+    fn eval_shift<F>(
+        left: Value,
+        right: Value,
+        op_name: &str,
+        op: F,
+    ) -> Result<Value, RuntimeError>
+    where
+        F: FnOnce(i64, u32) -> i64,
+    {
+        match (left, right) {
+            (Value::Int(a), Value::Int(b)) if b >= 0 && b < 64 => {
+                Ok(Value::Int(op(a, b as u32)))
+            }
+            (Value::Int(_), Value::Int(b)) => Err(RuntimeError::InvalidOperation(format!(
+                "shift amount {} out of range (0..63)",
+                b
+            ))),
+            (left, right) => Err(RuntimeError::TypeError {
+                expected: "int".to_string(),
+                got: format!(
+                    "{} requires int operands, got {} and {}",
+                    op_name,
+                    left.type_name(),
+                    right.type_name()
+                ),
+            }),
         }
     }
 }

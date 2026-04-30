@@ -92,6 +92,13 @@ impl Evaluator {
                     self.eval_method_call(obj, method, args)
                 }
             }
+            Expr::Ternary(cond, then_expr, else_expr) => {
+                if self.eval_expr(cond)?.is_truthy() {
+                    self.eval_expr(then_expr)
+                } else {
+                    self.eval_expr(else_expr)
+                }
+            }
             Expr::Spread(_) => Err(RuntimeError::InvalidOperation(
                 "spread operator is only valid inside array literals".to_string(),
             )),

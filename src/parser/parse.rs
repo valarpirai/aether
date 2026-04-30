@@ -399,10 +399,26 @@ impl Parser {
 
     // Parse null coalescing: expr ?? expr (lower precedence than ||, short-circuit)
     fn null_coalesce(&mut self) -> Result<Expr, ParseError> {
-        let mut expr = self.logical_or()?;
+        let mut expr = self.ternary()?;
         while self.match_token(&[TokenKind::QuestionQuestion]) {
             let right = self.logical_or()?;
             expr = Expr::Binary(Box::new(expr), BinaryOp::NullCoalesce, Box::new(right));
+        }
+        Ok(expr)
+    }
+
+    // Parse ternary: condition ? then_expr : else_expr (right-associative)
+    fn ternary(&mut self) -> Result<Expr, ParseError> {
+        let expr = self.logical_or()?;
+        if self.match_token(&[TokenKind::Question]) {
+            let then_expr = self.expression()?;
+            self.consume(TokenKind::Colon, ":")?;
+            let else_expr = self.ternary()?;
+            return Ok(Expr::Ternary(
+                Box::new(expr),
+                Box::new(then_expr),
+                Box::new(else_expr),
+            ));
         }
         Ok(expr)
     }
@@ -421,13 +437,43 @@ impl Parser {
 
     // Parse logical AND: expr && expr
     fn logical_and(&mut self) -> Result<Expr, ParseError> {
-        let mut expr = self.equality()?;
+        let mut expr = self.bitwise_or()?;
 
         while self.match_token(&[TokenKind::And]) {
             let right = self.equality()?;
             expr = Expr::Binary(Box::new(expr), BinaryOp::And, Box::new(right));
         }
 
+        Ok(expr)
+    }
+
+    // Parse bitwise OR: expr | expr
+    fn bitwise_or(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.bitwise_xor()?;
+        while self.match_token(&[TokenKind::Pipe]) {
+            let right = self.bitwise_xor()?;
+            expr = Expr::Binary(Box::new(expr), BinaryOp::BitwiseOr, Box::new(right));
+        }
+        Ok(expr)
+    }
+
+    // Parse bitwise XOR: expr ^ expr
+    fn bitwise_xor(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.bitwise_and()?;
+        while self.match_token(&[TokenKind::Caret]) {
+            let right = self.bitwise_and()?;
+            expr = Expr::Binary(Box::new(expr), BinaryOp::BitwiseXor, Box::new(right));
+        }
+        Ok(expr)
+    }
+
+    // Parse bitwise AND: expr & expr
+    fn bitwise_and(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.equality()?;
+        while self.match_token(&[TokenKind::Ampersand]) {
+            let right = self.equality()?;
+            expr = Expr::Binary(Box::new(expr), BinaryOp::BitwiseAnd, Box::new(right));
+        }
         Ok(expr)
     }
 
@@ -474,7 +520,7 @@ impl Parser {
 
     // Parse addition and subtraction: expr + expr, expr - expr
     fn addition(&mut self) -> Result<Expr, ParseError> {
-        let mut expr = self.multiplication()?;
+        let mut expr = self.shift()?;
 
         while self.match_token(&[TokenKind::Plus, TokenKind::Minus]) {
             let op = match self.previous().kind {
@@ -489,9 +535,24 @@ impl Parser {
         Ok(expr)
     }
 
+    // Parse bit shifts: expr << expr, expr >> expr
+    fn shift(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.multiplication()?;
+        while self.match_token(&[TokenKind::LessLess, TokenKind::GreaterGreater]) {
+            let op = match self.previous().kind {
+                TokenKind::LessLess => BinaryOp::ShiftLeft,
+                TokenKind::GreaterGreater => BinaryOp::ShiftRight,
+                _ => unreachable!(),
+            };
+            let right = self.multiplication()?;
+            expr = Expr::Binary(Box::new(expr), op, Box::new(right));
+        }
+        Ok(expr)
+    }
+
     // Parse multiplication, division, and modulo: expr * expr, expr / expr, expr % expr
     fn multiplication(&mut self) -> Result<Expr, ParseError> {
-        let mut expr = self.unary()?;
+        let mut expr = self.power()?;
 
         while self.match_token(&[TokenKind::Star, TokenKind::Slash, TokenKind::Percent]) {
             let op = match self.previous().kind {
@@ -500,18 +561,32 @@ impl Parser {
                 TokenKind::Percent => BinaryOp::Modulo,
                 _ => unreachable!(),
             };
-            let right = self.unary()?;
+            let right = self.power()?;
             expr = Expr::Binary(Box::new(expr), op, Box::new(right));
         }
 
         Ok(expr)
     }
 
-    // Parse unary expressions: -expr, !expr
+    // Parse power: expr ** expr (right-associative)
+    fn power(&mut self) -> Result<Expr, ParseError> {
+        let base = self.unary()?;
+        if self.match_token(&[TokenKind::StarStar]) {
+            let exp = self.power()?;
+            return Ok(Expr::Binary(Box::new(base), BinaryOp::Power, Box::new(exp)));
+        }
+        Ok(base)
+    }
+
+    // Parse unary expressions: -expr, !expr, ~expr
     fn unary(&mut self) -> Result<Expr, ParseError> {
         if self.match_token(&[TokenKind::Await]) {
             let expr = self.unary()?;
             return Ok(Expr::Await(Box::new(expr)));
+        }
+        if self.match_token(&[TokenKind::Tilde]) {
+            let expr = self.unary()?;
+            return Ok(Expr::Unary(UnaryOp::BitwiseNot, Box::new(expr)));
         }
         if self.match_token(&[TokenKind::Minus, TokenKind::Not]) {
             let op = match self.previous().kind {

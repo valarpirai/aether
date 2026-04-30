@@ -118,7 +118,9 @@ impl Scanner {
                 self.add_token(kind, start_column);
             }
             '*' => {
-                let kind = if self.match_char('=') {
+                let kind = if self.match_char('*') {
+                    TokenKind::StarStar
+                } else if self.match_char('=') {
                     TokenKind::StarEqual
                 } else {
                     TokenKind::Star
@@ -161,6 +163,8 @@ impl Scanner {
             '<' => {
                 let kind = if self.match_char('=') {
                     TokenKind::LessEqual
+                } else if self.match_char('<') {
+                    TokenKind::LessLess
                 } else {
                     TokenKind::Less
                 };
@@ -169,18 +173,23 @@ impl Scanner {
             '>' => {
                 let kind = if self.match_char('=') {
                     TokenKind::GreaterEqual
+                } else if self.match_char('>') {
+                    TokenKind::GreaterGreater
                 } else {
                     TokenKind::Greater
                 };
                 self.add_token(kind, start_column);
             }
             '&' => {
-                if self.match_char('&') {
-                    self.add_token(TokenKind::And, start_column);
+                let kind = if self.match_char('&') {
+                    TokenKind::And
                 } else {
-                    return Err(LexerError::UnexpectedCharacter(c, self.line, start_column));
-                }
+                    TokenKind::Ampersand
+                };
+                self.add_token(kind, start_column);
             }
+            '^' => self.add_token(TokenKind::Caret, start_column),
+            '~' => self.add_token(TokenKind::Tilde, start_column),
             '|' => {
                 if self.match_char('|') {
                     self.add_token(TokenKind::Or, start_column);
@@ -194,7 +203,7 @@ impl Scanner {
                 } else if self.match_char('.') {
                     TokenKind::QuestionDot
                 } else {
-                    return Err(LexerError::UnexpectedCharacter(c, self.line, start_column));
+                    TokenKind::Question
                 };
                 self.add_token(kind, start_column);
             }

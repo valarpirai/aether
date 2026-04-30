@@ -1,0 +1,26 @@
+fn main() {
+    // Power
+    print("2 ** 10 = " + (2 ** 10))
+    print("2 ** 3 ** 2 = " + (2 ** 3 ** 2))   // right-associative: 2 ** 9 = 512
+
+    // Bitwise
+    print("12 & 10 = " + (12 & 10))             // 8
+    print("12 | 3  = " + (12 | 3))              // 15
+    print("15 ^ 10 = " + (15 ^ 10))             // 5
+    print("~0      = " + (~0))                   // -1
+    print("1 << 4  = " + (1 << 4))              // 16
+    print("16 >> 2 = " + (16 >> 2))             // 4
+
+    // Ternary
+    let x = 7
+    let label = x > 5 ? "big" : "small"
+    print("x is " + label)
+
+    // Flags pattern
+    let READ = 1
+    let WRITE = 2
+    let EXEC = 4
+    let perms = READ | WRITE
+    print("can read:  " + ((perms & READ) != 0 ? "yes" : "no"))
+    print("can exec:  " + ((perms & EXEC) != 0 ? "yes" : "no"))
+}
