@@ -36,6 +36,7 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 | Document | Description |
 |----------|-------------|
 | [STRINGS.md](docs/lang/STRINGS.md) | Literals, indexing, slicing, interpolation, methods |
+| [DESTRUCTURING.md](docs/lang/DESTRUCTURING.md) | Array and dict destructuring, rest, rename, defaults |
 | [STRUCT.md](docs/lang/STRUCT.md) | User-defined types with fields and methods |
 | [ERROR_HANDLING.md](docs/lang/ERROR_HANDLING.md) | try/catch/throw with stack traces |
 | [ASYNC.md](docs/lang/ASYNC.md) | async fn, await, .then(), Promise.all/race/allSettled, I/O pool |
@@ -174,6 +175,9 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | Area | Features |
 |------|---------|
 | **Core language** | int, float, string, bool, null, array, dict, set; all operators; let, if/else, while, for, break, continue, return |
+| **Operators** | arithmetic, comparison, logical, bitwise `& \| ^ ~ << >>`, power `**`, ternary `?:`, null coalesce `??`, optional chain `?.` |
+| **Pattern matching** | `match` statement — literals, wildcard `_`, binding, or-patterns `\|`, enum variant patterns |
+| **Destructuring** | `let [a, b, ...rest] = arr`, `let {host, port: p = 5432} = dict` — array/dict, rest, rename, defaults |
 | **Functions** | declarations, expressions, closures, optional params, recursion (depth limit 100) |
 | **Strings** | indexing, interpolation `${expr}`, slicing `str[1:3]`, spread `[...arr]`, upper/lower/trim/split |
 | **Collections** | array (push/pop/sort/concat/slice/spread), dict (keys/values/contains), set (union/intersection/difference/subset) |
@@ -207,9 +211,9 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | Phase 5 Sprint 4: Error context + stack traces | ~547 |
 | Phase 5 Sprint 5: Null safety + Event loop | ~693 |
 
-### Test Coverage (2026-04-29)
+### Test Coverage (2026-04-30)
 
-- **Total**: ~693 tests passing (134 unit + ~559 integration)
+- **Total**: ~859 tests passing (134 unit + ~725 integration)
 - **Ignored/skipped**: 5 http tests (require network), 2 known recursion stack-overflow
 - **Code quality**: cargo clippy clean (5 acceptable `mutable_key_type` warnings for HashSet)
 
@@ -223,14 +227,16 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | Built-ins | 15 |
 | Other unit | 35 |
 
-**Integration tests (~559):**
+**Integration tests (~725):**
 
 | Suite | Count |
 |-------|-------|
-| `stdlib_collections_test` | 38 |
-| `integration_test` | 29 |
+| `stdlib_collections_test` | 39 |
+| `parser_tests` | 54 |
+| `integration_test` | 30 |
+| `null_coalesce_test` | 31 |
+| `operators_test` | 31 |
 | `dict_test` | 27 |
-| `null_coalesce_test` | 23 |
 | `stdlib_math_test` | 26 |
 | `json_test` | 25 |
 | `stdlib_string_test` | 24 |
@@ -238,35 +244,43 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | `iterator_test` | 22 |
 | `array_methods_test` | 22 |
 | `async_test` | 21 |
+| `destructure_test` | 20 |
 | `clippy_fix_regression_test` | 20 |
 | `stdlib_testing_test` | 19 |
 | `string_indexing_test` | 16 |
 | `event_loop_test` | 15 |
 | `slice_test` | 15 |
+| `enum_test` | 14 |
 | `struct_test` | 14 |
 | `io_pool_test` | 14 |
+| `match_test` | 13 |
 | `module_test` | 13 |
 | `function_expr_test` | 13 |
 | `error_context_test` | 11 |
 | `time_test` | 10 |
 | `error_handling_test` | 10 |
+| `labeled_loop_test` | 10 |
 | `string_interp_test` | 9 |
 | `stdlib_test` | 9 |
 | `spread_test` | 9 |
+| `multiline_string_test` | 9 |
 | `string_methods_test` | 8 |
 | `member_access_test` | 8 |
+| `args_test` | 8 |
 | `gc_test` | 6 |
 | `io_test` | 5 |
 | `http_test` | 5 (ignored — network) |
 | `closure_leak_test` | 4 |
-| `small_recursion_test` | 1 |
-| `recursion_limit_test` | 1 |
+| `debugger_test` | 5 |
+| `file_io_test` | 2 |
+| `small_recursion_test` | 2 |
+| `recursion_limit_test` | 2 |
 
 ### Backlog
 
 See **[docs/dev/BACKLOG.md](docs/dev/BACKLOG.md)** for the full prioritised backlog (~30 features across 6 tiers).
 
-Top-of-backlog highlights: `match` statement, destructuring, `format()`, variadic args, enums, TCP/UDP server support.
+Top-of-backlog highlights: `format()`, variadic args, enums/tuples, named/default params, TCP/UDP server support.
 
 ## Development Resources
 

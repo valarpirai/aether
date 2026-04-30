@@ -215,6 +215,34 @@ let a = [1, 2, 3]
 let b = [...a, 4, 5]   // [1, 2, 3, 4, 5]
 ```
 
+#### 6.7 Power and Bitwise
+
+| Operator | Description |
+|----------|-------------|
+| `**` | Exponentiation (right-associative) |
+| `&` `\|` `^` | Bitwise AND / OR / XOR (integers only) |
+| `~` | Bitwise NOT |
+| `<<` `>>` | Shift left / right (0–63 bits) |
+
+```aether
+2 ** 10        // 1024
+2 ** 3 ** 2    // 512 (right-associative: 2 ** 9)
+1 | 2 | 4      // 7 (bit flags)
+255 & 15       // 15
+~0             // -1
+1 << 8         // 256
+```
+
+#### 6.8 Ternary
+
+```aether
+let grade = score >= 90 ? "A" : score >= 80 ? "B" : "C"
+```
+
+#### 6.9 Operator Precedence (high → low)
+
+`**` > unary `-` `!` `~` > `*` `/` `%` > `+` `-` > `<<` `>>` > comparisons > `&` > `^` > `\|` > `&&` > `\|\|` > `??` > `?:`
+
 ---
 
 ### 7. Strings
@@ -319,6 +347,50 @@ outer: for i in range(3) {
     }
 }
 ```
+
+#### 8.5 Match Statement
+
+Pattern matching on a value; first matching arm executes.
+
+```aether
+match shape {
+    "circle"       => println("round")
+    "square"       => println("four sides")
+    1 | 2 | 3      => println("small number")  // or-pattern
+    n              => println("got: " + n)      // binding
+    _              => println("unknown")        // wildcard
+}
+```
+
+Enum variant patterns:
+
+```aether
+enum Shape { Circle(radius) Rect(width, height) }
+match s {
+    Shape.Circle(r) => println("area: " + (3.14 * r * r))
+    Shape.Rect(w, h) => println("area: " + (w * h))
+}
+```
+
+`return` / `break` work inside match arms. No fallthrough.
+
+#### 8.6 Destructuring
+
+Unpack arrays and dicts directly into variables.
+
+```aether
+// Array — positional, rest, default
+let [a, b, c] = [1, 2, 3]
+let [head, ...tail] = items      // tail is an array
+let [x, y = 0] = coords          // default if missing
+
+// Dict — shorthand, rename, default
+let {host, port} = config
+let {port: p} = config           // rename: bind to p
+let {timeout: t = 30} = config   // default if key absent
+```
+
+`_` as an array element skips that position. Works anywhere `let` does — top-level and inside functions.
 
 ---
 
