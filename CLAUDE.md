@@ -31,33 +31,37 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 
 ## Documentation Index
 
-| Document | Description | Status |
-|----------|-------------|--------|
-| **Language & Project** | | |
-| [DESIGN.md](docs/DESIGN.md) | Complete language specification (types, syntax, features) | ✅ |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, roadmap, and feature checklist | ✅ |
-| [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Development guidelines and best practices | ✅ |
-| [TESTING.md](docs/TESTING.md) | Testing guide: TDD workflow, running tests, debugging | ✅ |
-| [CONFIGURATION.md](docs/CONFIGURATION.md) | All env vars, runtime builtins, and compile-time constants | ✅ |
-| [BACKLOG.md](docs/BACKLOG.md) | Prioritised feature backlog (6 tiers, ~30 features) | ✅ |
-| **Components** | | |
-| [LEXER.md](docs/LEXER.md) | Lexer implementation (tokenization, 14 tests) | ✅ |
-| [PARSER.md](docs/PARSER.md) | Parser implementation (recursive descent, 53 tests) | ✅ |
-| [INTERPRETER.md](docs/INTERPRETER.md) | Interpreter / evaluator split into sub-modules | ✅ |
-| [REPL.md](docs/REPL.md) | REPL and file execution | ✅ |
-| [STDLIB.md](docs/STDLIB.md) | Standard library written in Aether | ✅ |
-| [GC_DESIGN.md](docs/GC_DESIGN.md) | Rc-based garbage collection design | ✅ |
-| **Features** | | |
-| [STRUCT.md](docs/STRUCT.md) | User-defined types with fields and methods | ✅ |
-| [ERROR_HANDLING.md](docs/ERROR_HANDLING.md) | Try/catch/throw with stack traces | ✅ |
-| [STRING_FEATURES.md](docs/STRING_FEATURES.md) | Indexing, interpolation, slicing, spread | ✅ |
-| [ASYNC.md](docs/ASYNC.md) | Async/await and I/O thread pool | ✅ |
-| [ITERATOR_PROTOCOL.md](docs/ITERATOR_PROTOCOL.md) | Iterator protocol for collections | ✅ |
-| [MODULE_SYSTEM.md](docs/MODULE_SYSTEM.md) | Module imports and filesystem resolution | ✅ |
-| [JSON.md](docs/JSON.md) | JSON parsing and serialization | ✅ |
-| [TIME.md](docs/TIME.md) | Time functions: clock(), sleep() | ✅ |
-| [HTTP.md](docs/HTTP.md) | HTTP client: http_get(), http_post() | ✅ |
-| [EVENT_LOOP.md](docs/EVENT_LOOP.md) | Callback-based async: on_ready, event_loop | ✅ |
+### Language Reference (`docs/lang/`) — what Aether does and how to use it
+
+| Document | Description |
+|----------|-------------|
+| [STRINGS.md](docs/lang/STRINGS.md) | Literals, indexing, slicing, interpolation, methods |
+| [STRUCT.md](docs/lang/STRUCT.md) | User-defined types with fields and methods |
+| [ERROR_HANDLING.md](docs/lang/ERROR_HANDLING.md) | try/catch/throw with stack traces |
+| [ASYNC.md](docs/lang/ASYNC.md) | async fn, await, Promise.all/race/allSettled, I/O pool |
+| [EVENT_LOOP.md](docs/lang/EVENT_LOOP.md) | Callback-based async: on_ready, event_loop |
+| [ITERATORS.md](docs/lang/ITERATORS.md) | Iterator protocol, built-in and custom iterators |
+| [MODULE_SYSTEM.md](docs/lang/MODULE_SYSTEM.md) | import, from…import, stdlib modules |
+| [STDLIB.md](docs/lang/STDLIB.md) | range, map, filter, reduce, math, string, testing |
+| [HTTP.md](docs/lang/HTTP.md) | http_get(), http_post() |
+| [JSON.md](docs/lang/JSON.md) | json_parse(), json_stringify() |
+| [TIME.md](docs/lang/TIME.md) | clock(), sleep() |
+| [REPL.md](docs/lang/REPL.md) | Interactive REPL and file execution |
+| [CONFIGURATION.md](docs/lang/CONFIGURATION.md) | Env vars and runtime configuration builtins |
+
+### Developer Docs (`docs/dev/`) — how Aether is built
+
+| Document | Description |
+|----------|-------------|
+| [DESIGN.md](docs/dev/DESIGN.md) | Complete language specification |
+| [ARCHITECTURE.md](docs/dev/ARCHITECTURE.md) | System architecture and roadmap |
+| [DEVELOPMENT.md](docs/dev/DEVELOPMENT.md) | Development guidelines and best practices |
+| [TESTING.md](docs/dev/TESTING.md) | TDD workflow, running tests, debugging |
+| [BACKLOG.md](docs/dev/BACKLOG.md) | Prioritised feature backlog |
+| [LEXER.md](docs/dev/LEXER.md) | Lexer implementation |
+| [PARSER.md](docs/dev/PARSER.md) | Parser implementation |
+| [INTERPRETER.md](docs/dev/INTERPRETER.md) | Interpreter / evaluator sub-modules |
+| [GC_DESIGN.md](docs/dev/GC_DESIGN.md) | Rc-based garbage collection design |
 
 ## Quick Reference for Claude Code
 
@@ -159,7 +163,7 @@ After implementing any feature, before committing:
 4. **Memory check** — run `cargo test --test gc_test`; for new `Value` variants also run `leaks --atExit`
 5. **Code quality** — `cargo fmt && cargo clippy && cargo test -- --test-threads=1`
 
-Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/DEVELOPMENT.md#post-feature-checklist)**
+Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT.md#post-feature-checklist)**
 
 ## Project Status
 
@@ -187,7 +191,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/DEVELOPMENT.md#
 | **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, sign, join, repeat, reverse, starts_with, ends_with |
 | **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
 | **REPL** | rustyline with history (`~/.aether_history`), tab-completion, `_help`/`_env`/`_exit` |
-| **Configuration** | `AETHER_IO_WORKERS`, `AETHER_CALL_DEPTH`, `HOME` (see [CONFIGURATION.md](docs/CONFIGURATION.md)) |
+| **Configuration** | `AETHER_IO_WORKERS`, `AETHER_CALL_DEPTH`, `HOME` (see [CONFIGURATION.md](docs/lang/CONFIGURATION.md)) |
 
 ### Completed Milestones
 
@@ -260,17 +264,17 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/DEVELOPMENT.md#
 
 ### Backlog
 
-See **[docs/BACKLOG.md](docs/BACKLOG.md)** for the full prioritised backlog (~30 features across 6 tiers).
+See **[docs/dev/BACKLOG.md](docs/dev/BACKLOG.md)** for the full prioritised backlog (~30 features across 6 tiers).
 
 Top-of-backlog highlights: `match` statement, destructuring, `format()`, variadic args, enums, TCP/UDP server support.
 
 ## Development Resources
 
-- **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** — guidelines, TDD workflow, file-size limits (max 1000 lines), code organisation
-- **[TESTING.md](docs/TESTING.md)** — comprehensive testing guide with examples
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** — system design and roadmap
-- **[BACKLOG.md](docs/BACKLOG.md)** — feature backlog
-- **[CONFIGURATION.md](docs/CONFIGURATION.md)** — all knobs and env vars
+- **[DEVELOPMENT.md](docs/dev/DEVELOPMENT.md)** — guidelines, TDD workflow, file-size limits (max 1000 lines), code organisation
+- **[TESTING.md](docs/dev/TESTING.md)** — comprehensive testing guide with examples
+- **[ARCHITECTURE.md](docs/dev/ARCHITECTURE.md)** — system design and roadmap
+- **[BACKLOG.md](docs/dev/BACKLOG.md)** — feature backlog
+- **[CONFIGURATION.md](docs/lang/CONFIGURATION.md)** — all knobs and env vars
 - Component docs: LEXER.md, PARSER.md, INTERPRETER.md, REPL.md, STDLIB.md, GC_DESIGN.md
 
 ## Documentation
