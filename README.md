@@ -301,8 +301,8 @@ Contributions are welcome! Please see [CLAUDE.md](CLAUDE.md) for development gui
 | Parser (`parse.rs`) | 8/10 | `parse_params()` eliminates 5× duplication; `match` stmt with 6 pattern kinds; FatArrow/Pipe tokens; still no error recovery |
 | Stdlib (`stdlib/*.ae`) | 8/10 | sqrt, pow, floor, ceil, round, log, gcd, lcm, flatten, zip, take, drop, count_by, group_by, uniq, sum_by |
 | Error handling | 8/10 | 16 typed RuntimeError variants; stack traces with filenames and line numbers |
-| Concurrency design | 7/10 | Parallel `Promise.all` + `Promise.race` (try_recv polling); event loop; still no cancellation or composable primitives |
-| **Overall** | **8.4/10** | Solid interpreter; clean pipeline; rich stdlib; `match` statement; parallel `Promise.all`/`race`; growing toward production-ready |
+| Concurrency design | 7/10 | Parallel `Promise.all` + `Promise.race` + `Promise.allSettled`; event loop; still no cancellation or composable primitives |
+| **Overall** | **8.4/10** | Solid interpreter; clean pipeline; rich stdlib; `match` statement; parallel Promise combinators; growing toward production-ready |
 
 ## License
 

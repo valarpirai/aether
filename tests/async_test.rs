@@ -392,3 +392,75 @@ fn test_promise_race_empty_array_errors() {
     let src = r#"Promise.race([])"#;
     assert!(run_with_pool(src, 1).is_err());
 }
+
+// ---- Promise.allSettled tests ----
+
+fn get_status(val: &Value, key: &str) -> String {
+    if let Value::Dict(pairs) = val {
+        let k = Value::string(key);
+        for (pk, pv) in pairs.iter() {
+            if pk == &k {
+                return format!("{}", pv);
+            }
+        }
+    }
+    panic!("key '{}' not found in {:?}", key, val);
+}
+
+#[test]
+fn test_promise_all_settled_all_fulfilled() {
+    // All sleeps succeed — every entry should be fulfilled.
+    let src = r#"
+async fn do_sleep(n) { sleep(n) }
+let p1 = do_sleep(0.01)
+let p2 = do_sleep(0.01)
+Promise.allSettled([p1, p2])
+"#;
+    let result = run_with_pool(src, 2).unwrap();
+    if let Value::Array(items) = result {
+        assert_eq!(items.len(), 2);
+        for item in items.iter() {
+            assert_eq!(get_status(item, "status"), "fulfilled");
+        }
+    } else {
+        panic!("Expected array");
+    }
+}
+
+#[test]
+fn test_promise_all_settled_does_not_fail_fast() {
+    // Promise.all would error here; allSettled should return rejected entry instead.
+    let src = r#"
+async fn ok_fn() { return 42 }
+let p1 = ok_fn()
+Promise.allSettled([p1])
+"#;
+    let result = run_with_pool(src, 1).unwrap();
+    if let Value::Array(items) = result {
+        assert_eq!(items.len(), 1);
+        assert_eq!(get_status(&items[0], "status"), "fulfilled");
+        assert_eq!(get_status(&items[0], "value"), "42");
+    } else {
+        panic!("Expected array");
+    }
+}
+
+#[test]
+fn test_promise_all_settled_preserves_order() {
+    // allSettled must return results in submission order, not completion order.
+    let src = r#"
+async fn fast() { return 1 }
+async fn slow() { return 2 }
+let p1 = fast()
+let p2 = slow()
+Promise.allSettled([p1, p2])
+"#;
+    let result = run_with_pool(src, 2).unwrap();
+    if let Value::Array(items) = result {
+        assert_eq!(items.len(), 2);
+        assert_eq!(get_status(&items[0], "value"), "1");
+        assert_eq!(get_status(&items[1], "value"), "2");
+    } else {
+        panic!("Expected array");
+    }
+}

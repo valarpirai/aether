@@ -62,8 +62,17 @@ fn main() {
     println("   race([50ms, 200ms]) took:", t6 - t5, "seconds (expect ~0.05)")
     println()
 
+    // --- Promise.allSettled: collects all results, never throws ---
+    println("6. Promise.allSettled — collects all results including errors...")
+    let s1 = read_file("Cargo.toml")
+    let s2 = read_file("does_not_exist.txt")
+    let settled = await Promise.allSettled([s1, s2])
+    println("   Cargo.toml:", settled[0]["status"])   // fulfilled
+    println("   missing.txt:", settled[1]["status"])  // rejected
+    println()
+
     // --- set_workers: change pool size at runtime ---
-    println("6. Changing worker count at runtime...")
+    println("7. Changing worker count at runtime...")
     set_workers(2)
     let p3 = sleep(0.05)
     await p3
@@ -71,7 +80,7 @@ fn main() {
     println()
 
     // --- Async http (requires network) ---
-    println("7. Async HTTP (requires network)...")
+    println("8. Async HTTP (requires network)...")
     try {
         let hp = http_get("https://httpbin.org/get")
         println("   http_get returned:", type(hp))   // promise
