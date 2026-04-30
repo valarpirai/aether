@@ -5,6 +5,10 @@
 use aether_lang::interpreter::Evaluator;
 use aether_lang::lexer::Scanner;
 use aether_lang::parser::Parser;
+use std::sync::Mutex;
+
+// CWD is process-global; serialize all tests that call set_current_dir.
+static CWD_LOCK: Mutex<()> = Mutex::new(());
 
 fn eval(source: &str) -> Result<String, String> {
     let mut scanner = Scanner::new(source);
@@ -173,9 +177,10 @@ required_permissions.is_subset(user_permissions)
 
 #[test]
 fn use_case_import_utility_functions() {
-    // Module should provide reusable utilities
-    let result = std::env::set_current_dir("tests/test_modules");
-    assert!(result.is_ok(), "Should be able to change to test directory");
+    let _guard = CWD_LOCK.lock().unwrap();
+    let root = env!("CARGO_MANIFEST_DIR");
+    let test_modules = std::path::Path::new(root).join("tests/test_modules");
+    std::env::set_current_dir(&test_modules).expect("Should change to test_modules");
 
     let source = r#"
 from math_utils import double, triple
@@ -183,7 +188,7 @@ let x = 10
 double(x) + triple(x)
 "#;
     let result = eval(source);
-    std::env::set_current_dir("../..").ok();
+    std::env::set_current_dir(root).ok();
 
     assert_eq!(
         result.unwrap(),
@@ -194,8 +199,10 @@ double(x) + triple(x)
 
 #[test]
 fn use_case_import_with_alias_for_clarity() {
-    let result = std::env::set_current_dir("tests/test_modules");
-    assert!(result.is_ok());
+    let _guard = CWD_LOCK.lock().unwrap();
+    let root = env!("CARGO_MANIFEST_DIR");
+    let test_modules = std::path::Path::new(root).join("tests/test_modules");
+    std::env::set_current_dir(&test_modules).expect("Should change to test_modules");
 
     let source = r#"
 from math_utils import double as twice
@@ -203,7 +210,7 @@ let val = 7
 twice(val)
 "#;
     let result = eval(source);
-    std::env::set_current_dir("../..").ok();
+    std::env::set_current_dir(root).ok();
 
     assert_eq!(
         result.unwrap(),
@@ -214,8 +221,10 @@ twice(val)
 
 #[test]
 fn use_case_namespace_import_for_organization() {
-    let result = std::env::set_current_dir("tests/test_modules");
-    assert!(result.is_ok());
+    let _guard = CWD_LOCK.lock().unwrap();
+    let root = env!("CARGO_MANIFEST_DIR");
+    let test_modules = std::path::Path::new(root).join("tests/test_modules");
+    std::env::set_current_dir(&test_modules).expect("Should change to test_modules");
 
     let source = r#"
 import math_utils
@@ -223,7 +232,7 @@ let base = 4
 math_utils.square(base)
 "#;
     let result = eval(source);
-    std::env::set_current_dir("../..").ok();
+    std::env::set_current_dir(root).ok();
 
     assert_eq!(
         result.unwrap(),
