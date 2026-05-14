@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Interpreter"
+---
+
+[Home](../index.html) › Developer Docs › Interpreter
+
 # Aether Interpreter Documentation
 
 ## Overview
@@ -71,7 +78,7 @@ pub enum Value {
 - Mutable aggregate values (`Instance` fields, `Iterator` state, `Promise` state) use `Rc<RefCell<T>>`.
 - Helper constructors: `Value::string(s)`, `Value::array(v)`, `Value::dict(pairs)`, `Value::set(h)`, `Value::promise(func, args)`, `Value::promise_io(rx)`.
 
-See [GC_DESIGN.md](GC_DESIGN.md) for details.
+See [GC_DESIGN.md](GC_DESIGN.html) for details.
 
 ## Evaluator Struct
 
@@ -185,3 +192,6 @@ let mut eval = Evaluator::new_without_stdlib();
 
 **Last Updated**: 2026-04-29  
 **Status**: Complete
+
+---
+[← Parser](PARSER.html) &nbsp;&nbsp; [Garbage Collection →](GC_DESIGN.html)

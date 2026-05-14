@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Debugger"
+---
+
+[Home](../index.html) › Developer Docs › Debugger
+
 # Debugger
 
 The debugger pauses program execution at a `debugger` statement and drops into an interactive REPL where you can inspect variables, evaluate expressions, and step through code.
@@ -117,3 +124,6 @@ Reads source context, prints it, then loops reading commands from stdin until th
 | `src/interpreter/evaluator/statements.rs` | Handle `Stmt::Debugger`; add step check to `Stmt::Line` |
 | `tests/debugger_test.rs` | Automated tests for non-interactive paths |
 | `examples/debugger_demo.ae` | Demo program |
+
+---
+[← Home](../index.html)

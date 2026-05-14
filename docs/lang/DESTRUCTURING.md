@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Destructuring"
+---
+
+[Home](../index.html) › Language Reference › Destructuring
+
 # Destructuring
 
 Destructuring lets you unpack arrays and dicts directly into named variables in a single `let` statement.
@@ -116,3 +123,6 @@ fn swap(pair) {
     return [b, a]
 }
 ```
+
+---
+[← Structs](STRUCT.html) &nbsp;&nbsp; [Modules →](MODULE_SYSTEM.html)

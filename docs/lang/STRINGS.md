@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Strings"
+---
+
+[Home](../index.html) › Language Reference › Strings
+
 # Strings
 
 Strings in Aether are UTF-8 sequences. They support indexing, slicing, interpolation, multi-line literals, and a set of built-in methods.
@@ -122,3 +129,6 @@ println(last_first("Alice Johnson"))  // Johnson, Alice
 - Strings are immutable — all operations return new strings
 - Indexing returns single-character strings, not character codes
 - No regex support built-in
+
+---
+[← REPL](REPL.html) &nbsp;&nbsp; [Error Handling →](ERROR_HANDLING.html)

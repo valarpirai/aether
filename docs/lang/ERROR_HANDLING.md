@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Error Handling"
+---
+
+[Home](../index.html) › Language Reference › Error Handling
+
 # Error Handling
 
 Aether uses `try/catch/throw` for structured error handling. Errors propagate up the call stack until caught; an uncaught error terminates the program.
@@ -142,3 +149,6 @@ fn load_data(sources) {
 
 - One `catch` block per `try` — use conditionals inside `catch` to distinguish error types
 - No custom exception classes or type hierarchy
+
+---
+[← Strings](STRINGS.html) &nbsp;&nbsp; [Structs →](STRUCT.html)

@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Iterators"
+---
+
+[Home](../index.html) › Language Reference › Iterators
+
 # Iterators
 
 An iterator is any object with `has_next()` and `next()` methods. `for-in` loops work with any iterator automatically.
@@ -130,3 +137,6 @@ fn main() {
 
 - Built-in `map()` and `filter()` from `collections` work on arrays, not raw iterators
 - Iterator state is mutable — advancing one reference advances all references to the same iterator
+
+---
+[← Standard Library](STDLIB.html) &nbsp;&nbsp; [JSON →](JSON.html)

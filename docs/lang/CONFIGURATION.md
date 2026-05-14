@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Configuration"
+---
+
+[Home](../index.html) › Language Reference › Configuration
+
 # Configuration
 
 Aether's behavior can be tuned through environment variables (set before launch) and runtime built-in calls (called from `.ae` code).
@@ -74,3 +81,6 @@ let resp = http_post("https://api.example.com/", payload, {
 |-----|------|-----------|
 | `timeout` | int (seconds) | `AETHER_HTTP_TIMEOUT` |
 | `user_agent` | string | `AETHER_HTTP_USER_AGENT` |
+
+---
+[← Async](ASYNC.html) &nbsp;&nbsp; [Home →](../index.html)

@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Async / Await"
+---
+
+[Home](../index.html) › Language Reference › Async / Await
+
 # Async / Await
 
 Aether supports async programming with `async fn`, `await`, and a configurable I/O thread pool for concurrent I/O operations.
@@ -217,7 +224,10 @@ fn main() {
 
 ## Related
 
-- [HTTP](HTTP.md) — `http_get` / `http_post` return Promises when workers are active
-- [Time](TIME.md) — `sleep` returns a Promise when workers are active
-- [JSON](JSON.md) — parse HTTP response bodies as structured data
-- [Configuration](CONFIGURATION.md) — `set_workers`, `AETHER_IO_WORKERS`
+- [HTTP](HTTP.html) — `http_get` / `http_post` return Promises when workers are active
+- [Time](TIME.html) — `sleep` returns a Promise when workers are active
+- [JSON](JSON.html) — parse HTTP response bodies as structured data
+- [Configuration](CONFIGURATION.html) — `set_workers`, `AETHER_IO_WORKERS`
+
+---
+[← Time](TIME.html) &nbsp;&nbsp; [Configuration →](CONFIGURATION.html)

@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Lexer"
+---
+
+[Home](../index.html) › Developer Docs › Lexer
+
 # Aether Lexer Documentation
 
 ## Overview
@@ -599,3 +606,6 @@ fn test_hex_literals() {
 
 **Last Updated**: April 17, 2026
 **Status**: 14 unit tests passing — no changes since initial implementation
+
+---
+[← Testing Guide](TESTING.html) &nbsp;&nbsp; [Parser →](PARSER.html)

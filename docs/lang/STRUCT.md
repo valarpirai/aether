@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Structs"
+---
+
+[Home](../index.html) › Language Reference › Structs
+
 # Structs
 
 A struct is a user-defined type that groups related fields and methods together.
@@ -156,3 +163,6 @@ fn new_point(x, y) {
     return Point { x: x, y: y }
 }
 ```
+
+---
+[← Error Handling](ERROR_HANDLING.html) &nbsp;&nbsp; [Destructuring →](DESTRUCTURING.html)

@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — JSON"
+---
+
+[Home](../index.html) › Language Reference › JSON
+
 # JSON
 
 Aether has two built-in functions for working with JSON: `json_parse()` converts a JSON string into Aether values, and `json_stringify()` converts Aether values back into a JSON string.
@@ -80,4 +87,7 @@ fn safe_parse(text) {
 
 ## Related
 
-- [HTTP](HTTP.md) — fetch JSON over the network with `http_get` / `http_post`
+- [HTTP](HTTP.html) — fetch JSON over the network with `http_get` / `http_post`
+
+---
+[← Iterators](ITERATORS.html) &nbsp;&nbsp; [HTTP →](HTTP.html)

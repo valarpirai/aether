@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Time"
+---
+
+[Home](../index.html) › Language Reference › Time
+
 # Time
 
 Aether provides two built-in time functions: `clock()` for measuring elapsed time, and `sleep()` for pausing execution.
@@ -88,4 +95,7 @@ fn retry(func, max_attempts) {
 
 ## Related
 
-- [Async/Await](ASYNC.md) — `await sleep(n)` when workers are active; `.then()` for non-blocking callbacks
+- [Async/Await](ASYNC.html) — `await sleep(n)` when workers are active; `.then()` for non-blocking callbacks
+
+---
+[← HTTP](HTTP.html) &nbsp;&nbsp; [Async →](ASYNC.html)

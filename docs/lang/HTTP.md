@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — HTTP"
+---
+
+[Home](../index.html) › Language Reference › HTTP
+
 # HTTP
 
 Aether provides two built-in functions for making HTTP requests: `http_get()` and `http_post()`. Both return the response body as a string, or throw an error on failure.
@@ -126,6 +133,9 @@ try {
 
 ## Related
 
-- [Async/Await](ASYNC.md) — `await`, `Promise.all`, `.then()` for concurrent requests
-- [JSON](JSON.md) — parse response bodies as structured data
-- [Configuration](CONFIGURATION.md) — `set_workers`, `AETHER_HTTP_TIMEOUT`, `AETHER_HTTP_USER_AGENT`
+- [Async/Await](ASYNC.html) — `await`, `Promise.all`, `.then()` for concurrent requests
+- [JSON](JSON.html) — parse response bodies as structured data
+- [Configuration](CONFIGURATION.html) — `set_workers`, `AETHER_HTTP_TIMEOUT`, `AETHER_HTTP_USER_AGENT`
+
+---
+[← JSON](JSON.html) &nbsp;&nbsp; [Time →](TIME.html)

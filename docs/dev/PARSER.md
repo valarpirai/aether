@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Parser"
+---
+
+[Home](../index.html) › Developer Docs › Parser
+
 # Aether Parser Documentation
 
 ## Overview
@@ -334,3 +341,6 @@ let program = parser.parse()?;
 
 **Last Updated**: April 29, 2026
 **Status**: 53 unit tests passing
+
+---
+[← Lexer](LEXER.html) &nbsp;&nbsp; [Interpreter →](INTERPRETER.html)

@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Garbage Collection"
+---
+
+[Home](../index.html) › Developer Docs › Garbage Collection
+
 # Garbage Collection Design
 
 **Status**: ✅ Complete
@@ -243,3 +250,6 @@ use std::sync::Arc;  // Thread-safe RC
 **Last Updated**: April 17, 2026
 **Phase**: 5 Complete (base)
 **Status**: Rc-based GC implemented and working, 99%+ memory reduction achieved
+
+---
+[← Interpreter](INTERPRETER.html) &nbsp;&nbsp; [Backlog →](BACKLOG.html)

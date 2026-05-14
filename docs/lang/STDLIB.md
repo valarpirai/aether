@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Standard Library"
+---
+
+[Home](../index.html) › Language Reference › Standard Library
+
 # Standard Library
 
 Most standard library functions are available automatically — no import needed. The `testing` module must be imported explicitly.
@@ -417,3 +424,6 @@ let result = reduce(
 )
 println(result)  // 60
 ```
+
+---
+[← Modules](MODULE_SYSTEM.html) &nbsp;&nbsp; [Iterators →](ITERATORS.html)

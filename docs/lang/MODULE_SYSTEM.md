@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Modules"
+---
+
+[Home](../index.html) › Language Reference › Modules
+
 # Modules
 
 Modules let you split code across files and reuse it across programs. Aether also ships a standard library of built-in modules.
@@ -83,3 +90,6 @@ from math import no_such_fn  // Error: Cannot import 'no_such_fn' from module 'm
 - No relative imports (`.` or `..`)
 - No export control — all top-level definitions are visible to importers
 - No dynamic imports (module name must be a literal string)
+
+---
+[← Destructuring](DESTRUCTURING.html) &nbsp;&nbsp; [Standard Library →](STDLIB.html)

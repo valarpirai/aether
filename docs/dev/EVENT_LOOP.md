@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Event Loop Internals"
+---
+
+[Home](../index.html) › Developer Docs › Event Loop Internals
+
 # Event Loop
 
 The event loop drives async callbacks to completion. In most programs, it runs automatically — you rarely need to call it directly.
@@ -114,3 +121,6 @@ These are operational knobs, not part of normal programs. See [Configuration](CO
 
 - `set_queue_limit(n)` — cap the number of pending callbacks (backpressure)
 - `set_task_timeout(secs)` / `set_task_timeout(null)` — per-callback deadline
+
+---
+[← Home](../index.html)

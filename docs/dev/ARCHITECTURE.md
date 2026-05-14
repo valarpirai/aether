@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Architecture"
+---
+
+[Home](../index.html) › Developer Docs › Architecture
+
 # Aether Architecture & Roadmap
 
 This document provides a high-level overview of Aether's architecture, current status, and future roadmap.
@@ -14,8 +21,8 @@ This document provides a high-level overview of Aether's architecture, current s
 > **📖 For Practical Development**: This document focuses on high-level architecture and long-term roadmap.
 >
 > For day-to-day development guidance, see:
-> - **[CLAUDE.md](../CLAUDE.md)** - Quick reference, project status, where to add features
-> - **[DEVELOPMENT.md](DEVELOPMENT.md)** - TDD workflow, testing strategy, code style, common pitfalls
+> - **[CLAUDE.md](../CLAUDE.html)** - Quick reference, project status, where to add features
+> - **[DEVELOPMENT.md](DEVELOPMENT.html)** - TDD workflow, testing strategy, code style, common pitfalls
 
 ---
 
@@ -39,14 +46,14 @@ Source Code (.ae)
 
 | Component | Status | Purpose | Details |
 |-----------|--------|---------|---------|
-| **Lexer** | ✅ Complete | Tokenization | See [LEXER.md](LEXER.md) |
-| **Parser** | ✅ Complete | Syntax analysis | See [PARSER.md](PARSER.md) |
-| **Interpreter** | ✅ Complete | AST execution | See [INTERPRETER.md](INTERPRETER.md) |
-| **I/O Thread Pool** | ✅ Complete | Concurrent I/O | See [ASYNC.md](ASYNC.md) |
-| **Event Loop** | ✅ Complete | Callback-based async | See [EVENT_LOOP.md](EVENT_LOOP.md) |
-| **REPL** | ✅ Complete | Interactive mode | See [REPL.md](REPL.md) |
-| **Standard Library** | ✅ Complete | Core functions | See [STDLIB.md](STDLIB.md) |
-| **Garbage Collection** | ✅ Complete | Memory management | See [GC_DESIGN.md](GC_DESIGN.md) |
+| **Lexer** | ✅ Complete | Tokenization | See [LEXER.md](LEXER.html) |
+| **Parser** | ✅ Complete | Syntax analysis | See [PARSER.md](PARSER.html) |
+| **Interpreter** | ✅ Complete | AST execution | See [INTERPRETER.md](INTERPRETER.html) |
+| **I/O Thread Pool** | ✅ Complete | Concurrent I/O | See [ASYNC.md](ASYNC.html) |
+| **Event Loop** | ✅ Complete | Callback-based async | See [EVENT_LOOP.md](EVENT_LOOP.html) |
+| **REPL** | ✅ Complete | Interactive mode | See [REPL.md](REPL.html) |
+| **Standard Library** | ✅ Complete | Core functions | See [STDLIB.md](STDLIB.html) |
+| **Garbage Collection** | ✅ Complete | Memory management | See [GC_DESIGN.md](GC_DESIGN.html) |
 
 ### Project Structure
 
@@ -215,7 +222,7 @@ Integration Tests (~559):
 
 ### Near-Term Backlog (Tier 1)
 
-See **[BACKLOG.md](BACKLOG.md)** for the full prioritised list. Top items:
+See **[BACKLOG.md](BACKLOG.html)** for the full prioritised list. Top items:
 
 - `match` statement — pattern matching, replaces chained if/else
 - Destructuring — `let [a, b] = arr`, `let {x, y} = dict`
@@ -288,27 +295,27 @@ See **[BACKLOG.md](BACKLOG.md)** for the full prioritised list. Top items:
 ### Documentation
 
 **Core Implementation:**
-- **[DESIGN.md](DESIGN.md)** — Complete language specification
-- **[DEVELOPMENT.md](DEVELOPMENT.md)** — Development guidelines and best practices
-- **[LEXER.md](LEXER.md)** — Tokenization implementation
-- **[PARSER.md](PARSER.md)** — Syntax analysis implementation
-- **[INTERPRETER.md](INTERPRETER.md)** — Execution engine implementation
-- **[REPL.md](REPL.md)** — Interactive mode implementation
-- **[STDLIB.md](STDLIB.md)** — Standard library design
-- **[GC_DESIGN.md](GC_DESIGN.md)** — Garbage collection architecture
+- **[DESIGN.md](DESIGN.html)** — Complete language specification
+- **[DEVELOPMENT.md](DEVELOPMENT.html)** — Development guidelines and best practices
+- **[LEXER.md](LEXER.html)** — Tokenization implementation
+- **[PARSER.md](PARSER.html)** — Syntax analysis implementation
+- **[INTERPRETER.md](INTERPRETER.html)** — Execution engine implementation
+- **[REPL.md](REPL.html)** — Interactive mode implementation
+- **[STDLIB.md](STDLIB.html)** — Standard library design
+- **[GC_DESIGN.md](GC_DESIGN.html)** — Garbage collection architecture
 
 **Language Features:**
-- **[STRUCT.md](STRUCT.md)** — User-defined types with fields and methods
-- **[ERROR_HANDLING.md](ERROR_HANDLING.md)** — try/catch/finally/throw
-- **[STRING_FEATURES.md](STRING_FEATURES.md)** — String indexing, interpolation, slicing
-- **[ASYNC.md](ASYNC.md)** — Async/await and I/O thread pool
-- **[EVENT_LOOP.md](EVENT_LOOP.md)** — Callback-based async
-- **[JSON.md](JSON.md)** — JSON parsing and serialization
-- **[TIME.md](TIME.md)** — Time functions (clock, sleep)
-- **[HTTP.md](HTTP.md)** — HTTP client functions
-- **[MODULE_SYSTEM.md](MODULE_SYSTEM.md)** — Import and module loading
-- **[ITERATOR_PROTOCOL.md](ITERATOR_PROTOCOL.md)** — Iterator protocol
-- **[BACKLOG.md](BACKLOG.md)** — Feature backlog (~30 items, 7 tiers)
+- **[STRUCT.md](STRUCT.html)** — User-defined types with fields and methods
+- **[ERROR_HANDLING.md](ERROR_HANDLING.html)** — try/catch/finally/throw
+- **[STRING_FEATURES.md](STRING_FEATURES.html)** — String indexing, interpolation, slicing
+- **[ASYNC.md](ASYNC.html)** — Async/await and I/O thread pool
+- **[EVENT_LOOP.md](EVENT_LOOP.html)** — Callback-based async
+- **[JSON.md](JSON.html)** — JSON parsing and serialization
+- **[TIME.md](TIME.html)** — Time functions (clock, sleep)
+- **[HTTP.md](HTTP.html)** — HTTP client functions
+- **[MODULE_SYSTEM.md](MODULE_SYSTEM.html)** — Import and module loading
+- **[ITERATOR_PROTOCOL.md](ITERATOR_PROTOCOL.html)** — Iterator protocol
+- **[BACKLOG.md](BACKLOG.html)** — Feature backlog (~30 items, 7 tiers)
 
 ### External Resources
 - [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom
@@ -316,8 +323,8 @@ See **[BACKLOG.md](BACKLOG.md)** for the full prioritised list. Top items:
 - [Rust Programming Language Book](https://doc.rust-lang.org/book/)
 
 ### Quick Links
-- **Main README**: [../README.md](../README.md)
-- **Project Guide**: [../CLAUDE.md](../CLAUDE.md)
+- **Main README**: [../README.md](../README.html)
+- **Project Guide**: [../CLAUDE.md](../CLAUDE.html)
 - **Examples**: [../examples/](../examples/)
 - **Standard Library**: [../stdlib/](../stdlib/)
 
@@ -326,3 +333,6 @@ See **[BACKLOG.md](BACKLOG.md)** for the full prioritised list. Top items:
 **Last Updated**: April 29, 2026
 **Current Phase**: Phase 5 Complete ✅
 **Test Count**: ~693 passing
+
+---
+[← Language Design](DESIGN.html) &nbsp;&nbsp; [Development Guide →](DEVELOPMENT.html)

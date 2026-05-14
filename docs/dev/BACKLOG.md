@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Backlog"
+---
+
+[Home](../index.html) › Developer Docs › Backlog
+
 # Aether Language Backlog
 
 Features planned for future development, ordered by priority within each tier.
@@ -367,3 +374,6 @@ struct Dog extends Animal implements Printable {
 - Concurrency primitives (channels, mutex) — async I/O pool covers most use cases
 - Macros / metaprogramming — adds significant parser/evaluator complexity
 - JIT compilation — follow bytecode compiler first
+
+---
+[← Garbage Collection](GC_DESIGN.html) &nbsp;&nbsp; [Home →](../index.html)

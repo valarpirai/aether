@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — Development Guide"
+---
+
+[Home](../index.html) › Developer Docs › Development Guide
+
 # Aether Development Guidelines
 
 This document provides comprehensive development guidelines for contributing to the Aether programming language interpreter.
@@ -463,7 +470,7 @@ See the [Post-Feature Checklist](#post-feature-checklist) for the full per-featu
 - [ ] All tests pass (`--test-threads=1`)
 - [ ] New code has tests AND an example program
 - [ ] GC / memory leak check done (see [Memory Leak Detection](#memory-leak-detection))
-- [ ] Relevant docs updated (CLAUDE.md, component doc, BACKLOG.md)
+- [ ] Relevant docs updated (CLAUDE.md, component doc, BACKLOG.html)
 - [ ] Error handling is robust
 - [ ] No clippy warnings
 - [ ] Code follows Rust idioms
@@ -749,3 +756,6 @@ if let Value::Array(arr) = &value {
 **Last Updated**: April 17, 2026
 **Phase**: 5 Complete (base)
 **Status**: Comprehensive development guidelines with TDD workflow and common pitfalls
+
+---
+[← Architecture](ARCHITECTURE.html) &nbsp;&nbsp; [Testing Guide →](TESTING.html)

@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Aether — REPL"
+---
+
+[Home](../index.html) › Language Reference › REPL
+
 # REPL
 
 The Aether REPL lets you run Aether code interactively, one expression or statement at a time.
@@ -50,3 +57,6 @@ Goodbye!
 ## History
 
 Command history is saved to `~/.aether_history` between sessions. If `HOME` is unset, history is not persisted.
+
+---
+[← Home](../index.html) &nbsp;&nbsp; [Strings →](STRINGS.html)
