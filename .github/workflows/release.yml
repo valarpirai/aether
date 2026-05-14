@@ -16,10 +16,6 @@ jobs:
             os: macos-latest
             asset_name: aether-macos-arm64
 
-          - target: x86_64-apple-darwin
-            os: macos-13
-            asset_name: aether-macos-x86
-
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
             asset_name: aether-linux-x86
