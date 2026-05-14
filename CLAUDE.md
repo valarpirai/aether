@@ -180,10 +180,10 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | **Destructuring** | `let [a, b, ...rest] = arr`, `let {host, port: p = 5432} = dict` — array/dict, rest, rename, defaults |
 | **Functions** | declarations, expressions, closures, optional params, recursion (depth limit 100) |
 | **Strings** | indexing, interpolation `${expr}`, slicing `str[1:3]`, spread `[...arr]`, upper/lower/trim/split |
-| **Collections** | array (push/pop/sort/concat/slice/spread), dict (keys/values/contains), set (union/intersection/difference/subset); reference semantics for array/dict; `copy()` for deep clone; `id()` for object identity; deep `==` equality |
+| **Collections** | array (push/pop/sort/concat/slice/spread), dict (keys/values/contains), set (union/intersection/difference/subset); reference semantics for array/dict/struct; `==` is identity; `.equals()` depth-1 structural; `copy()` depth-1 shallow clone; `id()` for object identity |
 | **Error handling** | try/catch/throw; `e.message`, `e.stack_trace`; stack frames include filename and line number |
 | **Modules** | `import mod`, `from mod import fn`, `import mod as alias`; filesystem + embedded stdlib |
-| **Structs** | fields, methods, `self` binding, mutable fields via RefCell |
+| **Structs** | fields, methods, `self` binding, mutable fields via RefCell; `.equals()` for depth-1 structural comparison |
 | **Iterators** | `has_next()`, `next()`, for-in over array/dict/set/string/iterator |
 | **Async/await** | `async fn`, `await expr`, Promise caching; `Promise.all`, `Promise.race`, `Promise.allSettled` |
 | **I/O thread pool** | `set_workers(n)`, `AETHER_IO_WORKERS` env var; async `http_get`, `sleep`, `read_file`, `write_file`, `http_post` |
@@ -192,7 +192,8 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | **JSON** | `json_parse()`, `json_stringify()` via serde_json |
 | **HTTP** | `http_get(url)`, `http_post(url, body)` via reqwest (blocking or async) |
 | **Time** | `clock()` (Unix epoch float), `sleep(secs)` |
-| **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, sign, join, repeat, reverse, starts_with, ends_with; **new:** first, last, chunk, partition, zip_longest, uniq_by, contains, index_of, replace, count, pad_left, pad_right, strip_prefix, strip_suffix, is_alpha, is_digit, is_space, pi, e, tau, factorial, trunc, degrees, radians, hypot, exp, sin, cos, tan |
+| **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, sign, join, repeat, reverse, starts_with, ends_with, first, last, chunk, partition, zip_longest, uniq_by, contains, index_of, replace, count, pad_left, pad_right, strip_prefix, strip_suffix, is_alpha, is_digit, is_space, pi, e, tau, factorial, trunc, degrees, radians, hypot, exp, sin, cos, tan |
+| **Number/string conversions** | `hex(n)`, `oct(n)`, `bin(n)`, `int(s, base)`, `base64_encode(s)`, `base64_decode(s)` |
 | **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
 | **REPL** | rustyline with history (`~/.aether_history`), tab-completion, `_help`/`_env`/`_exit` |
 | **Configuration** | `AETHER_IO_WORKERS`, `AETHER_CALL_DEPTH`, `HOME` (see [CONFIGURATION.md](docs/lang/CONFIGURATION.md)) |

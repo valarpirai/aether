@@ -556,7 +556,13 @@ fn main() {
 | `bool(v)` | Convert to bool |
 | `set(arr)` | Create a set from array |
 | `id(v)` | Object identity — unique int per heap-allocated object (like Python `id()`) |
-| `copy(v)` | Deep clone — arrays and dicts are recursively copied into independent objects |
+| `copy(v)` | Depth-1 shallow clone — new outer container, inner ref-type elements share references |
+| `hex(n)` | Integer → hex string with `0x` prefix, e.g. `hex(255)` → `"0xff"` |
+| `oct(n)` | Integer → octal string with `0o` prefix, e.g. `oct(8)` → `"0o10"` |
+| `bin(n)` | Integer → binary string with `0b` prefix, e.g. `bin(5)` → `"0b101"` |
+| `int(s, base)` | Parse string in given base (2–36), strips `0x`/`0b`/`0o` prefixes automatically |
+| `base64_encode(s)` | Encode string to standard base64 |
+| `base64_decode(s)` | Decode base64 string; throws on invalid input |
 
 #### Async / Event Loop
 
@@ -605,28 +611,65 @@ fn main() {
 
 #### Reference semantics
 
-Arrays and dicts have **reference semantics** — assignment copies the reference, not the value. All aliases point to the same object and see each other's mutations.
+Arrays, dicts, and struct instances have **reference semantics** — assignment copies the reference, not the value. All aliases point to the same object and see each other's mutations.
 
 ```aether
 let a = [1, 2, 3]
 let b = a          // b and a are the same object
 b.push(4)
 println(a)         // [1, 2, 3, 4]
-
-id(a) == id(b)     // true — same identity
-a == b             // true — deep equality (same contents)
 ```
 
-Use `copy(v)` to get an independent deep clone:
+#### Equality
+
+| Operation | Behaviour |
+|-----------|-----------|
+| `==` | **Identity** — true only if both sides are the same object (`Rc::ptr_eq`) |
+| `.equals(other)` | **Depth-1 structural** — compares fields/elements using `==` (value equality for primitives, identity for ref types) |
 
 ```aether
-let c = copy(a)    // independent copy
-c.push(99)
-println(a)         // [1, 2, 3, 4] — unchanged
-id(a) == id(c)     // false — different objects
+let a = [1, 2, 3]
+let b = [1, 2, 3]
+a == b             // false — different objects
+a.equals(b)        // true  — same element values
+
+let c = a
+a == c             // true  — same object
 ```
 
-`==` on arrays and dicts always performs **deep value comparison** regardless of identity.
+For ref-type fields inside a struct, chain `.equals()` explicitly:
+
+```aether
+// a.items and b.items are different arrays — compare them explicitly
+a.items.equals(b.items) and a.location.equals(b.location)
+```
+
+#### copy()
+
+`copy(v)` produces a **depth-1 shallow clone**: a new outer container whose elements share references with the original. This prevents infinite loops on circular structures.
+
+```aether
+let a = [[1, 2], [3, 4]]
+let b = copy(a)
+b[0].push(99)      // mutates a[0] too — inner arrays are shared
+println(a)         // [[1, 2, 99], [3, 4]]
+```
+
+A fresh copy always `.equals()` its original (shared refs pass identity check). Equality breaks only when a ref-type field is **replaced** (not mutated):
+
+```aether
+let b = copy(a)
+a.equals(b)        // true — shared refs pass identity
+b.items = [1, 2]   // replace field with new object
+a.equals(b)        // false — b.items is now a different object
+```
+
+Use `id(v)` to check object identity:
+
+```aether
+id(a) == id(b)     // false — different outer objects
+id(a[0]) == id(b[0])  // true — inner arrays still shared
+```
 
 #### Array
 
@@ -641,6 +684,7 @@ id(a) == id(c)     // false — different objects
 | `arr.contains(item)` | True if item is present |
 | `arr.index_of(item)` | First index (-1 if absent) |
 | `arr.join(sep)` | Join elements to string |
+| `arr.equals(other)` | Depth-1 structural equality |
 | `arr.length` | Element count |
 
 #### Dict
@@ -650,6 +694,7 @@ id(a) == id(c)     // false — different objects
 | `d.keys()` | Array of keys |
 | `d.values()` | Array of values |
 | `d.contains(key)` | True if key exists |
+| `d.equals(other)` | Depth-1 structural equality |
 
 #### Set
 
@@ -683,6 +728,6 @@ id(a) == id(c)     // false — different objects
 
 ---
 
-**Last Updated**: April 29, 2026
+**Last Updated**: May 14, 2026
 **Phase**: 5 Complete
 **Status**: Language stable; backlog items in progress
