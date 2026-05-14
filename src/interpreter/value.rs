@@ -27,8 +27,8 @@ pub enum Value {
     Bool(bool),
     /// Null value
     Null,
-    /// Array of values (reference counted for GC)
-    Array(Rc<Vec<Value>>),
+    /// Array of values (reference counted with interior mutability for shared reference semantics)
+    Array(Rc<RefCell<Vec<Value>>>),
     /// Function with closure (body is Rc to avoid deep-cloning AST on env clone)
     Function {
         params: Vec<String>,
@@ -47,7 +47,7 @@ pub enum Value {
         members: Rc<HashMap<String, Value>>,
     },
     /// Dictionary (ordered by insertion, key must be string/int/bool)
-    Dict(Rc<Vec<(Value, Value)>>),
+    Dict(Rc<RefCell<Vec<(Value, Value)>>>),
     /// Set (unique, unordered collection - only hashable types allowed)
     Set(Rc<HashSet<Value>>),
     /// Struct type definition (blueprint)
@@ -112,8 +112,8 @@ pub enum WeakTarget {
         fields: Weak<RefCell<HashMap<String, Value>>>,
         methods: MethodMap,
     },
-    Array(Weak<Vec<Value>>),
-    Dict(Weak<Vec<(Value, Value)>>),
+    Array(Weak<RefCell<Vec<Value>>>),
+    Dict(Weak<RefCell<Vec<(Value, Value)>>>),
 }
 
 /// State of a Promise value
@@ -140,9 +140,9 @@ pub struct IteratorState {
 #[derive(Debug, Clone)]
 pub enum IteratorSource {
     /// Array iterator
-    Array(Rc<Vec<Value>>),
+    Array(Rc<RefCell<Vec<Value>>>),
     /// Dict iterator (over keys)
-    DictKeys(Rc<Vec<(Value, Value)>>),
+    DictKeys(Rc<RefCell<Vec<(Value, Value)>>>),
     /// Set iterator
     Set(Vec<Value>), // Convert HashSet to Vec for iteration
 }
@@ -212,7 +212,12 @@ impl Value {
 
     /// Helper: Create an array value (for convenience)
     pub fn array(vec: Vec<Value>) -> Self {
-        Value::Array(Rc::new(vec))
+        Value::Array(Rc::new(RefCell::new(vec)))
+    }
+
+    /// Helper: Create a dict value (for convenience)
+    pub fn dict(pairs: Vec<(Value, Value)>) -> Self {
+        Value::Dict(Rc::new(RefCell::new(pairs)))
     }
 
     /// Helper: Create a set value (for convenience)
@@ -275,7 +280,7 @@ impl Value {
             Value::Int(0) => false,
             Value::Float(f) if *f == 0.0 => false,
             Value::String(s) if s.is_empty() => false,
-            Value::Array(a) if a.is_empty() => false,
+            Value::Array(a) if a.borrow().is_empty() => false,
             Value::Set(s) if s.is_empty() => false,
             _ => true,
         }
@@ -419,7 +424,7 @@ impl fmt::Display for Value {
             Value::Null => write!(f, "null"),
             Value::Array(elements) => {
                 write!(f, "[")?;
-                for (i, elem) in elements.iter().enumerate() {
+                for (i, elem) in elements.borrow().iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
@@ -438,7 +443,7 @@ impl fmt::Display for Value {
             }
             Value::Dict(pairs) => {
                 write!(f, "{{")?;
-                for (i, (k, v)) in pairs.iter().enumerate() {
+                for (i, (k, v)) in pairs.borrow().iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
                     }

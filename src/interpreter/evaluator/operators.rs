@@ -245,6 +245,22 @@ impl Evaluator {
             (Value::String(a), Value::String(b)) => a == b,
             (Value::Bool(a), Value::Bool(b)) => a == b,
             (Value::Null, Value::Null) => true,
+            (Value::Array(a), Value::Array(b)) => {
+                let a = a.borrow();
+                let b = b.borrow();
+                a.len() == b.len()
+                    && a.iter()
+                        .zip(b.iter())
+                        .all(|(x, y)| Self::values_equal(x, y))
+            }
+            (Value::Dict(a), Value::Dict(b)) => {
+                let a = a.borrow();
+                let b = b.borrow();
+                a.len() == b.len()
+                    && a.iter().zip(b.iter()).all(|((k1, v1), (k2, v2))| {
+                        Self::values_equal(k1, k2) && Self::values_equal(v1, v2)
+                    })
+            }
             (
                 Value::EnumVariant {
                     type_name: ta,

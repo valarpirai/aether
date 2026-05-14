@@ -1,0 +1,48 @@
+fn main() {
+    // --- Reference semantics ---
+    println("=== Reference semantics ===")
+    let a = [1, 2, 3]
+    let b = a
+    println("id(a) == id(b):", id(a) == id(b))
+    b.push(4)
+    println("a after b.push(4):", a)
+    println("b:", b)
+
+    // dict reference
+    let cfg = {"host": "localhost", "port": 5432}
+    let conn = cfg
+    conn["timeout"] = 30
+    println("cfg after conn mutation:", cfg)
+
+    // --- id() ---
+    println("")
+    println("=== id() ===")
+    let x = [1, 2, 3]
+    let y = [1, 2, 3]
+    println("id(x):", id(x))
+    println("id(y):", id(y))
+    println("same object:", id(x) == id(y))
+
+    let z = x
+    println("id(z) == id(x):", id(z) == id(x))
+
+    // --- Deep equality ---
+    println("")
+    println("=== Deep equality ===")
+    let p = [1, 2, [3, 4]]
+    let q = [1, 2, [3, 4]]
+    println("p == q (nested):", p == q)
+    println("p is q (same ref):", id(p) == id(q))
+
+    // --- copy() ---
+    println("")
+    println("=== copy() ===")
+    let orig = [[1, 2], [3, 4]]
+    let dup = copy(orig)
+    println("orig == dup before mutation:", orig == dup)
+    println("id(orig) == id(dup):", id(orig) == id(dup))
+    dup[0].push(99)
+    println("orig after dup mutation:", orig)
+    println("dup:", dup)
+    println("orig == dup after mutation:", orig == dup)
+}

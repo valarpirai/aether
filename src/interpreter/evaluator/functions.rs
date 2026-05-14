@@ -484,25 +484,19 @@ impl Evaluator {
 
                 match (array_val, index_val) {
                     (Value::Array(elements), Value::Int(idx)) => {
-                        if idx < 0 || idx as usize >= elements.len() {
+                        let len = elements.borrow().len();
+                        if idx < 0 || idx as usize >= len {
                             return Err(RuntimeError::IndexOutOfBounds {
                                 index: idx,
-                                length: elements.len(),
+                                length: len,
                             });
                         }
-                        let mut new_elements = (**elements).to_vec();
-                        new_elements[idx as usize] = value;
-
-                        if let Expr::Identifier(name) = &**array {
-                            self.environment
-                                .set(name, Value::Array(Rc::new(new_elements)))?;
-                        }
+                        elements.borrow_mut()[idx as usize] = value;
                         Ok(())
                     }
                     (Value::Dict(pairs), key) => {
-                        let mut new_pairs = (*pairs).to_vec();
                         let mut found = false;
-                        for (k, v) in new_pairs.iter_mut() {
+                        for (k, v) in pairs.borrow_mut().iter_mut() {
                             if k == &key {
                                 *v = value.clone();
                                 found = true;
@@ -510,11 +504,7 @@ impl Evaluator {
                             }
                         }
                         if !found {
-                            new_pairs.push((key, value));
-                        }
-                        if let Expr::Identifier(name) = &**array {
-                            self.environment
-                                .set(name, Value::Dict(Rc::new(new_pairs)))?;
+                            pairs.borrow_mut().push((key, value));
                         }
                         Ok(())
                     }

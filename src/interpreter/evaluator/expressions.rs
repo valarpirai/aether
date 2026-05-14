@@ -23,7 +23,7 @@ impl Evaluator {
                     if let Expr::Spread(inner) = elem {
                         match self.eval_expr(inner)? {
                             Value::Array(arr) => {
-                                for item in arr.iter() {
+                                for item in arr.borrow().iter() {
                                     values.push(item.clone());
                                 }
                             }
@@ -37,7 +37,7 @@ impl Evaluator {
                         values.push(self.eval_expr(elem)?);
                     }
                 }
-                Ok(Value::Array(Rc::new(values)))
+                Ok(Value::array(values))
             }
             Expr::FunctionExpr(params, body) => Ok(Value::Function {
                 params: params.clone(),
@@ -74,7 +74,7 @@ impl Evaluator {
                 for (k, v) in pairs {
                     evaluated.push((self.eval_expr(k)?, self.eval_expr(v)?));
                 }
-                Ok(Value::Dict(Rc::new(evaluated)))
+                Ok(Value::dict(evaluated))
             }
             Expr::OptionalMember(obj, member) => {
                 let val = self.eval_expr(obj)?;
@@ -140,13 +140,14 @@ impl Evaluator {
 
         match (array_val, index_val) {
             (Value::Array(elements), Value::Int(idx)) => {
-                if idx < 0 || idx as usize >= elements.len() {
+                let elems = elements.borrow();
+                if idx < 0 || idx as usize >= elems.len() {
                     Err(RuntimeError::IndexOutOfBounds {
                         index: idx,
-                        length: elements.len(),
+                        length: elems.len(),
                     })
                 } else {
-                    Ok(elements[idx as usize].clone())
+                    Ok(elems[idx as usize].clone())
                 }
             }
             (Value::String(s), Value::Int(idx)) => {
@@ -161,7 +162,7 @@ impl Evaluator {
                 }
             }
             (Value::Dict(pairs), key) => {
-                for (k, v) in pairs.iter() {
+                for (k, v) in pairs.borrow().iter() {
                     if k == &key {
                         return Ok(v.clone());
                     }
@@ -215,7 +216,8 @@ impl Evaluator {
 
         match obj_val {
             Value::Array(elements) => {
-                let len = elements.len() as i64;
+                let elems = elements.borrow();
+                let len = elems.len() as i64;
                 let s = match start_val {
                     Some(v) => resolve_index(to_int(v)?, len),
                     None => 0,
@@ -224,11 +226,7 @@ impl Evaluator {
                     Some(v) => resolve_index(to_int(v)?, len),
                     None => len as usize,
                 };
-                let result = if s >= e {
-                    vec![]
-                } else {
-                    elements[s..e].to_vec()
-                };
+                let result = if s >= e { vec![] } else { elems[s..e].to_vec() };
                 Ok(Value::array(result))
             }
             Value::String(s) => {

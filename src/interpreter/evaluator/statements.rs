@@ -319,8 +319,8 @@ impl Evaluator {
         }
 
         let items: Vec<Value> = match iter_val {
-            Value::Array(ref elements) => elements.iter().cloned().collect(),
-            Value::Dict(ref pairs) => pairs.iter().map(|(k, _)| k.clone()).collect(),
+            Value::Array(ref elements) => elements.borrow().iter().cloned().collect(),
+            Value::Dict(ref pairs) => pairs.borrow().iter().map(|(k, _)| k.clone()).collect(),
             Value::Set(ref elements) => elements.iter().cloned().collect(),
             Value::String(ref s) => s.chars().map(|c| Value::string(c.to_string())).collect(),
             Value::Iterator(ref state) => {
@@ -329,22 +329,34 @@ impl Evaluator {
                     let mut st = state.borrow_mut();
                     let val = match &st.source {
                         IteratorSource::Array(arr) => {
-                            if st.index < arr.len() {
-                                let v = arr[st.index].clone();
+                            let idx = st.index;
+                            let v = {
+                                let arr = arr.borrow();
+                                if idx < arr.len() {
+                                    Some(arr[idx].clone())
+                                } else {
+                                    None
+                                }
+                            };
+                            if v.is_some() {
                                 st.index += 1;
-                                Some(v)
-                            } else {
-                                None
                             }
+                            v
                         }
                         IteratorSource::DictKeys(pairs) => {
-                            if st.index < pairs.len() {
-                                let v = pairs[st.index].0.clone();
+                            let idx = st.index;
+                            let v = {
+                                let pairs = pairs.borrow();
+                                if idx < pairs.len() {
+                                    Some(pairs[idx].0.clone())
+                                } else {
+                                    None
+                                }
+                            };
+                            if v.is_some() {
                                 st.index += 1;
-                                Some(v)
-                            } else {
-                                None
                             }
+                            v
                         }
                         IteratorSource::Set(items) => {
                             if st.index < items.len() {
@@ -396,7 +408,7 @@ impl Evaluator {
         match pattern {
             DestructurePattern::Array(elems) => {
                 let arr = match &val {
-                    Value::Array(rc) => rc.as_ref().clone(),
+                    Value::Array(rc) => rc.borrow().clone(),
                     _ => {
                         return Err(RuntimeError::TypeError {
                             expected: "array".to_string(),
@@ -434,7 +446,7 @@ impl Evaluator {
             }
             DestructurePattern::Dict(entries) => {
                 let pairs = match &val {
-                    Value::Dict(rc) => rc.as_ref().clone(),
+                    Value::Dict(rc) => rc.borrow().clone(),
                     _ => {
                         return Err(RuntimeError::TypeError {
                             expected: "dict".to_string(),

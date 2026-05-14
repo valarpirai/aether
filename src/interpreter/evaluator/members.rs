@@ -10,17 +10,17 @@ use std::time::Duration;
 use super::{ControlFlow, Evaluator};
 
 fn fulfilled(v: Value) -> Value {
-    Value::Dict(Rc::new(vec![
+    Value::dict(vec![
         (Value::string("status"), Value::string("fulfilled")),
         (Value::string("value"), v),
-    ]))
+    ])
 }
 
 fn rejected(reason: String) -> Value {
-    Value::Dict(Rc::new(vec![
+    Value::dict(vec![
         (Value::string("status"), Value::string("rejected")),
         (Value::string("reason"), Value::string(reason)),
-    ]))
+    ])
 }
 
 fn settle(outcome: Result<Value, crate::interpreter::environment::RuntimeError>) -> Value {
@@ -47,16 +47,16 @@ impl Evaluator {
         member: &str,
     ) -> Result<Value, RuntimeError> {
         match (&obj_val, member) {
-            (Value::Array(elements), "length") => Ok(Value::Int(elements.len() as i64)),
+            (Value::Array(elements), "length") => Ok(Value::Int(elements.borrow().len() as i64)),
             (Value::String(s), "length") => Ok(Value::Int(s.len() as i64)),
             (Value::Set(elements), "size") => Ok(Value::Int(elements.len() as i64)),
 
             (Value::Dict(pairs), key) => {
                 if key == "length" || key == "size" {
-                    return Ok(Value::Int(pairs.len() as i64));
+                    return Ok(Value::Int(pairs.borrow().len() as i64));
                 }
                 let key_val = Value::string(key.to_string());
-                for (k, v) in pairs.iter() {
+                for (k, v) in pairs.borrow().iter() {
                     if k == &key_val {
                         return Ok(v.clone());
                     }
@@ -220,10 +220,7 @@ impl Evaluator {
                     });
                 }
                 let item = self.eval_expr(&args[0])?;
-
-                let mut new_elements = Rc::clone(elements);
-                Rc::make_mut(&mut new_elements).push(item);
-                self.write_back(object, Value::Array(new_elements))?;
+                elements.borrow_mut().push(item);
                 Ok(Value::Null)
             }
             (Value::Array(elements), "pop") => {
@@ -233,10 +230,7 @@ impl Evaluator {
                         got: args.len(),
                     });
                 }
-
-                let mut new_elements = Rc::clone(elements);
-                let popped = Rc::make_mut(&mut new_elements).pop();
-                self.write_back(object, Value::Array(new_elements))?;
+                let popped = elements.borrow_mut().pop();
                 Ok(popped.unwrap_or(Value::Null))
             }
             (Value::Array(elements), "contains") => {
@@ -248,6 +242,7 @@ impl Evaluator {
                 }
                 let needle = self.eval_expr(&args[0])?;
                 let found = elements
+                    .borrow()
                     .iter()
                     .any(|elem| Evaluator::values_equal(elem, &needle));
                 Ok(Value::Bool(found))
@@ -259,7 +254,7 @@ impl Evaluator {
                         got: args.len(),
                     });
                 }
-                let mut new_elements = (**elements).to_vec();
+                let mut new_elements = elements.borrow().to_vec();
                 if args.is_empty() {
                     let sort_err: Option<RuntimeError> = None;
                     new_elements.sort_by(|a, b| {
@@ -318,7 +313,7 @@ impl Evaluator {
                         return Err(e);
                     }
                 }
-                self.write_back(object, Value::Array(Rc::new(new_elements)))?;
+                *elements.borrow_mut() = new_elements;
                 Ok(Value::Null)
             }
             (Value::Array(elements), "concat") => {
@@ -331,9 +326,9 @@ impl Evaluator {
                 let other_val = self.eval_expr(&args[0])?;
                 match other_val {
                     Value::Array(other_elements) => {
-                        let mut result = (**elements).to_vec();
-                        result.extend_from_slice(&other_elements);
-                        Ok(Value::Array(Rc::new(result)))
+                        let mut result = elements.borrow().to_vec();
+                        result.extend_from_slice(&other_elements.borrow());
+                        Ok(Value::array(result))
                     }
                     other => Err(RuntimeError::TypeError {
                         expected: "array".to_string(),
@@ -386,7 +381,7 @@ impl Evaluator {
                             .map(|part| Value::String(Rc::new(part.to_string())))
                             .collect()
                     };
-                    Ok(Value::Array(Rc::new(parts)))
+                    Ok(Value::array(parts))
                 } else {
                     Err(RuntimeError::TypeError {
                         expected: "string".to_string(),
@@ -604,7 +599,7 @@ impl Evaluator {
                         got: args.len(),
                     });
                 }
-                let keys: Vec<Value> = pairs.iter().map(|(k, _)| k.clone()).collect();
+                let keys: Vec<Value> = pairs.borrow().iter().map(|(k, _)| k.clone()).collect();
                 Ok(Value::array(keys))
             }
             (Value::Dict(pairs), "values") => {
@@ -614,7 +609,7 @@ impl Evaluator {
                         got: args.len(),
                     });
                 }
-                let values: Vec<Value> = pairs.iter().map(|(_, v)| v.clone()).collect();
+                let values: Vec<Value> = pairs.borrow().iter().map(|(_, v)| v.clone()).collect();
                 Ok(Value::array(values))
             }
             (Value::Dict(pairs), "contains") => {
@@ -625,7 +620,7 @@ impl Evaluator {
                     });
                 }
                 let key = self.eval_expr(&args[0])?;
-                let found = pairs.iter().any(|(k, _)| k == &key);
+                let found = pairs.borrow().iter().any(|(k, _)| k == &key);
                 Ok(Value::Bool(found))
             }
 
@@ -642,7 +637,7 @@ impl Evaluator {
                 let array_val = self.eval_expr(&args[0])?;
                 match array_val {
                     Value::Array(promises) => {
-                        let promises_vec: Vec<Value> = promises.iter().cloned().collect();
+                        let promises_vec: Vec<Value> = promises.borrow().iter().cloned().collect();
                         let len = promises_vec.len();
                         let mut results: Vec<Option<Value>> = vec![None; len];
 
@@ -749,7 +744,7 @@ impl Evaluator {
                 let array_val = self.eval_expr(&args[0])?;
                 match array_val {
                     Value::Array(promises) => {
-                        let promises_vec: Vec<Value> = promises.iter().cloned().collect();
+                        let promises_vec: Vec<Value> = promises.borrow().iter().cloned().collect();
                         if promises_vec.is_empty() {
                             return Err(RuntimeError::InvalidOperation(
                                 "Promise.race requires at least one promise".to_string(),
@@ -842,7 +837,7 @@ impl Evaluator {
                 let array_val = self.eval_expr(&args[0])?;
                 match array_val {
                     Value::Array(promises) => {
-                        let promises_vec: Vec<Value> = promises.iter().cloned().collect();
+                        let promises_vec: Vec<Value> = promises.borrow().iter().cloned().collect();
                         let len = promises_vec.len();
                         let mut results: Vec<Option<Value>> = vec![None; len];
 
@@ -1020,22 +1015,34 @@ impl Evaluator {
                 let mut st = state.borrow_mut();
                 let result = match &st.source {
                     IteratorSource::Array(arr) => {
-                        if st.index < arr.len() {
-                            let val = arr[st.index].clone();
+                        let idx = st.index;
+                        let val = {
+                            let arr = arr.borrow();
+                            if idx < arr.len() {
+                                Some(arr[idx].clone())
+                            } else {
+                                None
+                            }
+                        };
+                        if val.is_some() {
                             st.index += 1;
-                            val
-                        } else {
-                            Value::Null
                         }
+                        val.unwrap_or(Value::Null)
                     }
                     IteratorSource::DictKeys(pairs) => {
-                        if st.index < pairs.len() {
-                            let key = pairs[st.index].0.clone();
+                        let idx = st.index;
+                        let key = {
+                            let pairs = pairs.borrow();
+                            if idx < pairs.len() {
+                                Some(pairs[idx].0.clone())
+                            } else {
+                                None
+                            }
+                        };
+                        if key.is_some() {
                             st.index += 1;
-                            key
-                        } else {
-                            Value::Null
                         }
+                        key.unwrap_or(Value::Null)
                     }
                     IteratorSource::Set(items) => {
                         if st.index < items.len() {
@@ -1058,8 +1065,8 @@ impl Evaluator {
                 }
                 let st = state.borrow();
                 let has = match &st.source {
-                    IteratorSource::Array(arr) => st.index < arr.len(),
-                    IteratorSource::DictKeys(pairs) => st.index < pairs.len(),
+                    IteratorSource::Array(arr) => st.index < arr.borrow().len(),
+                    IteratorSource::DictKeys(pairs) => st.index < pairs.borrow().len(),
                     IteratorSource::Set(items) => st.index < items.len(),
                 };
                 Ok(Value::Bool(has))

@@ -47,7 +47,7 @@ pub fn builtin_len(args: &[Value]) -> Result<Value, RuntimeError> {
 
     match &args[0] {
         Value::String(s) => Ok(Value::Int(s.len() as i64)),
-        Value::Array(arr) => Ok(Value::Int(arr.len() as i64)),
+        Value::Array(arr) => Ok(Value::Int(arr.borrow().len() as i64)),
         other => Err(RuntimeError::TypeError {
             expected: "string or array".to_string(),
             got: other.type_name().to_string(),
@@ -451,8 +451,9 @@ pub fn builtin_write_bytes(args: &[Value]) -> Result<Value, RuntimeError> {
             })
         }
     };
-    let mut bytes = Vec::with_capacity(elements.len());
-    for (i, v) in elements.iter().enumerate() {
+    let elements_ref = elements.borrow();
+    let mut bytes = Vec::with_capacity(elements_ref.len());
+    for (i, v) in elements_ref.iter().enumerate() {
         match v {
             Value::Int(n) if *n >= 0 && *n <= 255 => bytes.push(*n as u8),
             Value::Int(n) => {
@@ -667,7 +668,7 @@ fn json_to_value(json: JsonValue) -> Result<Value, RuntimeError> {
                 .into_iter()
                 .map(|(k, v)| Ok((Value::string(k), json_to_value(v)?)))
                 .collect();
-            Ok(Value::Dict(Rc::new(pairs?)))
+            Ok(Value::dict(pairs?))
         }
     }
 }
@@ -698,12 +699,12 @@ fn value_to_json(value: &Value) -> Result<JsonValue, RuntimeError> {
         Value::String(s) => Ok(JsonValue::String(s.as_ref().clone())),
         Value::Array(arr) => {
             let values: Result<Vec<JsonValue>, RuntimeError> =
-                arr.iter().map(value_to_json).collect();
+                arr.borrow().iter().map(value_to_json).collect();
             Ok(JsonValue::Array(values?))
         }
         Value::Dict(pairs) => {
             let mut map = serde_json::Map::new();
-            for (k, v) in pairs.iter() {
+            for (k, v) in pairs.borrow().iter() {
                 let key = match k {
                     Value::String(s) => s.as_ref().clone(),
                     other => {
@@ -744,7 +745,7 @@ pub fn builtin_clock(args: &[Value]) -> Result<Value, RuntimeError> {
 /// Accepted keys: `timeout` (int seconds), `user_agent` (string).
 pub fn parse_http_opts(val: &Value) -> Result<HttpOptions, RuntimeError> {
     let pairs = match val {
-        Value::Dict(p) => p.as_ref().clone(),
+        Value::Dict(p) => p.borrow().clone(),
         other => {
             return Err(RuntimeError::TypeError {
                 expected: "dict".to_string(),
@@ -903,7 +904,7 @@ pub fn builtin_set(args: &[Value]) -> Result<Value, RuntimeError> {
             // False positive: our Hash impl only hashes immutable data
             #[allow(clippy::mutable_key_type)]
             let mut set = HashSet::new();
-            for value in arr.iter() {
+            for value in arr.borrow().iter() {
                 if !value.is_hashable() {
                     return Err(RuntimeError::TypeError {
                         expected: "hashable type (int, float, string, bool, null)".to_string(),
@@ -1002,4 +1003,61 @@ pub fn builtin_is_weak(args: &[Value]) -> Result<Value, RuntimeError> {
         });
     }
     Ok(Value::Bool(matches!(args[0], Value::Weak(_))))
+}
+
+/// Built-in function: id(val) -> int
+/// Returns the Rc pointer address of a heap-allocated value as an integer.
+/// Useful for distinguishing identity (same object) from equality (same contents).
+pub fn builtin_id(args: &[Value]) -> Result<Value, RuntimeError> {
+    use std::rc::Rc;
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    let addr: usize = match &args[0] {
+        Value::Array(rc) => Rc::as_ptr(rc) as usize,
+        Value::Dict(rc) => Rc::as_ptr(rc) as usize,
+        Value::String(rc) => Rc::as_ptr(rc) as usize,
+        Value::Instance { fields, .. } => Rc::as_ptr(fields) as usize,
+        Value::Promise(rc) => Rc::as_ptr(rc) as usize,
+        Value::Int(n) => *n as usize,
+        Value::Float(f) => f.to_bits() as usize,
+        Value::Bool(b) => *b as usize,
+        Value::Null => 0,
+        _ => 0,
+    };
+    Ok(Value::Int(addr as i64))
+}
+
+fn deep_copy(v: &Value) -> Value {
+    match v {
+        Value::Array(rc) => {
+            let new_vec = rc.borrow().iter().map(deep_copy).collect();
+            Value::array(new_vec)
+        }
+        Value::Dict(rc) => {
+            let new_pairs = rc
+                .borrow()
+                .iter()
+                .map(|(k, v)| (deep_copy(k), deep_copy(v)))
+                .collect();
+            Value::dict(new_pairs)
+        }
+        other => other.clone(),
+    }
+}
+
+/// Built-in function: copy(val) -> val
+/// Deep-clones a value: arrays and dicts are recursively copied into new allocations.
+/// Other values are returned as-is (they are already value types or share immutable data).
+pub fn builtin_copy(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    Ok(deep_copy(&args[0]))
 }

@@ -648,6 +648,22 @@ impl Evaluator {
                 func: builtins::builtin_is_weak,
             },
         );
+        self.environment.define(
+            "id".to_string(),
+            Value::BuiltinFn {
+                name: "id".to_string(),
+                arity: 1,
+                func: builtins::builtin_id,
+            },
+        );
+        self.environment.define(
+            "copy".to_string(),
+            Value::BuiltinFn {
+                name: "copy".to_string(),
+                arity: 1,
+                func: builtins::builtin_copy,
+            },
+        );
 
         // JSON functions
         self.environment.define(

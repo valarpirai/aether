@@ -283,7 +283,7 @@ Promise.all([p1, p2])
     };
     match result {
         aether_lang::interpreter::value::Value::Array(arr) => {
-            assert_eq!(arr.len(), 2, "Promise.all should return 2 results");
+            assert_eq!(arr.borrow().len(), 2, "Promise.all should return 2 results");
         }
         other => panic!("Expected array, got {:?}", other),
     }
@@ -398,7 +398,7 @@ fn test_promise_race_empty_array_errors() {
 fn get_status(val: &Value, key: &str) -> String {
     if let Value::Dict(pairs) = val {
         let k = Value::string(key);
-        for (pk, pv) in pairs.iter() {
+        for (pk, pv) in pairs.borrow().iter() {
             if pk == &k {
                 return format!("{}", pv);
             }
@@ -418,8 +418,8 @@ Promise.allSettled([p1, p2])
 "#;
     let result = run_with_pool(src, 2).unwrap();
     if let Value::Array(items) = result {
-        assert_eq!(items.len(), 2);
-        for item in items.iter() {
+        assert_eq!(items.borrow().len(), 2);
+        for item in items.borrow().iter() {
             assert_eq!(get_status(item, "status"), "fulfilled");
         }
     } else {
@@ -437,6 +437,7 @@ Promise.allSettled([p1])
 "#;
     let result = run_with_pool(src, 1).unwrap();
     if let Value::Array(items) = result {
+        let items = items.borrow();
         assert_eq!(items.len(), 1);
         assert_eq!(get_status(&items[0], "status"), "fulfilled");
         assert_eq!(get_status(&items[0], "value"), "42");
@@ -457,6 +458,7 @@ Promise.allSettled([p1, p2])
 "#;
     let result = run_with_pool(src, 2).unwrap();
     if let Value::Array(items) = result {
+        let items = items.borrow();
         assert_eq!(items.len(), 2);
         assert_eq!(get_status(&items[0], "value"), "1");
         assert_eq!(get_status(&items[1], "value"), "2");

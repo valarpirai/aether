@@ -145,6 +145,7 @@ results
 "#;
     let results = run_with_pool(src, 2).unwrap();
     if let Value::Array(arr) = results {
+        let arr = arr.borrow();
         assert_eq!(arr.len(), 2);
         assert_eq!(arr[0], Value::Null);
         assert_eq!(arr[1], Value::Null);
@@ -158,7 +159,7 @@ fn test_promise_all_empty_array() {
     let src = r#"await Promise.all([])"#;
     let results = run_with_pool(src, 2).unwrap();
     if let Value::Array(arr) = results {
-        assert_eq!(arr.len(), 0);
+        assert_eq!(arr.borrow().len(), 0);
     } else {
         panic!("Expected empty array");
     }
@@ -176,6 +177,7 @@ results
 "#;
     let results = run_with_pool(src, 2).unwrap();
     if let Value::Array(arr) = results {
+        let arr = arr.borrow();
         assert_eq!(arr.len(), 2);
         assert_eq!(arr[0], Value::Int(10));
         assert_eq!(arr[1], Value::Int(20));
