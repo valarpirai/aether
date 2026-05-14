@@ -9,6 +9,7 @@ use super::{
     io_pool::{build_http_client_with_opts, HttpOptions},
     RuntimeError, Value,
 };
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use serde_json::Value as JsonValue;
 
 /// Built-in function: print(...values)
@@ -72,11 +73,61 @@ pub fn builtin_type(args: &[Value]) -> Result<Value, RuntimeError> {
 /// Built-in function: int(value)
 /// Converts a value to an integer
 pub fn builtin_int(args: &[Value]) -> Result<Value, RuntimeError> {
-    if args.len() != 1 {
+    if args.is_empty() || args.len() > 2 {
         return Err(RuntimeError::ArityMismatch {
             expected: 1,
             got: args.len(),
         });
+    }
+
+    // int(s, base) — parse string in given base
+    if args.len() == 2 {
+        let base = match &args[1] {
+            Value::Int(b) if (2..=36).contains(b) => *b as u32,
+            Value::Int(b) => {
+                return Err(RuntimeError::InvalidOperation(format!(
+                    "int() base must be between 2 and 36, got {}",
+                    b
+                )))
+            }
+            other => {
+                return Err(RuntimeError::TypeError {
+                    expected: "int".to_string(),
+                    got: other.type_name().to_string(),
+                })
+            }
+        };
+        let s = match &args[0] {
+            Value::String(s) => s.as_str(),
+            other => {
+                return Err(RuntimeError::TypeError {
+                    expected: "string".to_string(),
+                    got: other.type_name().to_string(),
+                })
+            }
+        };
+        let stripped = match base {
+            16 => s
+                .strip_prefix("0x")
+                .or_else(|| s.strip_prefix("0X"))
+                .unwrap_or(s),
+            2 => s
+                .strip_prefix("0b")
+                .or_else(|| s.strip_prefix("0B"))
+                .unwrap_or(s),
+            8 => s
+                .strip_prefix("0o")
+                .or_else(|| s.strip_prefix("0O"))
+                .unwrap_or(s),
+            _ => s,
+        };
+        return i64::from_str_radix(stripped, base)
+            .map(Value::Int)
+            .map_err(|_| RuntimeError::ConversionError {
+                from_type: "string".to_string(),
+                to_type: "int".to_string(),
+                value: s.to_string(),
+            });
     }
 
     match &args[0] {
@@ -94,6 +145,96 @@ pub fn builtin_int(args: &[Value]) -> Result<Value, RuntimeError> {
         Value::Bool(b) => Ok(Value::Int(if *b { 1 } else { 0 })),
         other => Err(RuntimeError::TypeError {
             expected: "number, string, or bool".to_string(),
+            got: other.type_name().to_string(),
+        }),
+    }
+}
+
+pub fn builtin_hex(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    match &args[0] {
+        Value::Int(n) if *n < 0 => Ok(Value::string(format!("-0x{:x}", n.unsigned_abs()))),
+        Value::Int(n) => Ok(Value::string(format!("0x{:x}", n))),
+        other => Err(RuntimeError::TypeError {
+            expected: "int".to_string(),
+            got: other.type_name().to_string(),
+        }),
+    }
+}
+
+pub fn builtin_oct(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    match &args[0] {
+        Value::Int(n) if *n < 0 => Ok(Value::string(format!("-0o{:o}", n.unsigned_abs()))),
+        Value::Int(n) => Ok(Value::string(format!("0o{:o}", n))),
+        other => Err(RuntimeError::TypeError {
+            expected: "int".to_string(),
+            got: other.type_name().to_string(),
+        }),
+    }
+}
+
+pub fn builtin_bin(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    match &args[0] {
+        Value::Int(n) if *n < 0 => Ok(Value::string(format!("-0b{:b}", n.unsigned_abs()))),
+        Value::Int(n) => Ok(Value::string(format!("0b{:b}", n))),
+        other => Err(RuntimeError::TypeError {
+            expected: "int".to_string(),
+            got: other.type_name().to_string(),
+        }),
+    }
+}
+
+pub fn builtin_base64_encode(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    match &args[0] {
+        Value::String(s) => Ok(Value::string(BASE64.encode(s.as_bytes()))),
+        other => Err(RuntimeError::TypeError {
+            expected: "string".to_string(),
+            got: other.type_name().to_string(),
+        }),
+    }
+}
+
+pub fn builtin_base64_decode(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    match &args[0] {
+        Value::String(s) => {
+            let bytes = BASE64
+                .decode(s.as_bytes())
+                .map_err(|e| RuntimeError::InvalidOperation(format!("base64_decode: {}", e)))?;
+            let decoded = String::from_utf8(bytes)
+                .map_err(|e| RuntimeError::InvalidOperation(format!("base64_decode: {}", e)))?;
+            Ok(Value::string(decoded))
+        }
+        other => Err(RuntimeError::TypeError {
+            expected: "string".to_string(),
             got: other.type_name().to_string(),
         }),
     }

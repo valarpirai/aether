@@ -421,8 +421,48 @@ impl Evaluator {
             "int".to_string(),
             Value::BuiltinFn {
                 name: "int".to_string(),
-                arity: 1,
+                arity: usize::MAX, // 1 or 2 args
                 func: builtins::builtin_int,
+            },
+        );
+        self.environment.define(
+            "hex".to_string(),
+            Value::BuiltinFn {
+                name: "hex".to_string(),
+                arity: 1,
+                func: builtins::builtin_hex,
+            },
+        );
+        self.environment.define(
+            "oct".to_string(),
+            Value::BuiltinFn {
+                name: "oct".to_string(),
+                arity: 1,
+                func: builtins::builtin_oct,
+            },
+        );
+        self.environment.define(
+            "bin".to_string(),
+            Value::BuiltinFn {
+                name: "bin".to_string(),
+                arity: 1,
+                func: builtins::builtin_bin,
+            },
+        );
+        self.environment.define(
+            "base64_encode".to_string(),
+            Value::BuiltinFn {
+                name: "base64_encode".to_string(),
+                arity: 1,
+                func: builtins::builtin_base64_encode,
+            },
+        );
+        self.environment.define(
+            "base64_decode".to_string(),
+            Value::BuiltinFn {
+                name: "base64_decode".to_string(),
+                arity: 1,
+                func: builtins::builtin_base64_decode,
             },
         );
 

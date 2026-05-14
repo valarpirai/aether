@@ -1,0 +1,40 @@
+fn main() {
+    // --- hex(), oct(), bin() ---
+    println("=== Number base conversion ===")
+    println("hex(255):", hex(255))        // 0xff
+    println("hex(0):", hex(0))            // 0x0
+    println("hex(-1):", hex(-1))          // -0x1
+    println("oct(8):", oct(8))            // 0o10
+    println("oct(64):", oct(64))          // 0o100
+    println("bin(5):", bin(5))            // 0b101
+    println("bin(42):", bin(42))          // 0b101010
+
+    // --- int(s, base) ---
+    println("")
+    println("=== int(s, base) ===")
+    println("int(\"ff\", 16):", int("ff", 16))        // 255
+    println("int(\"0xff\", 16):", int("0xff", 16))    // 255
+    println("int(\"101\", 2):", int("101", 2))        // 5
+    println("int(\"0b101\", 2):", int("0b101", 2))    // 5
+    println("int(\"10\", 8):", int("10", 8))          // 8
+    println("int(\"0o10\", 8):", int("0o10", 8))      // 8
+
+    // --- roundtrip ---
+    println("")
+    println("=== roundtrips ===")
+    let n = 255
+    println("hex roundtrip:", int(hex(n), 16) == n)   // true
+    println("oct roundtrip:", int(oct(n), 8) == n)    // true
+    println("bin roundtrip:", int(bin(n), 2) == n)    // true
+
+    // --- base64 ---
+    println("")
+    println("=== base64 ===")
+    let msg = "Hello, Aether!"
+    let encoded = base64_encode(msg)
+    let decoded = base64_decode(encoded)
+    println("original:", msg)
+    println("encoded:", encoded)
+    println("decoded:", decoded)
+    println("roundtrip:", decoded == msg)
+}
