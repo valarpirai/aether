@@ -208,3 +208,98 @@ fn lcm(a, b) {
     }
     return abs(a * b) / gcd(a, b)
 }
+
+// Math constants
+let pi  = 3.141592653589793
+let e   = 2.718281828459045
+let tau = 6.283185307179586
+
+// factorial(n) - n! for non-negative integer n
+fn factorial(n) {
+    if (n <= 1) {
+        return 1
+    }
+    let result = 1
+    let i = 2
+    while (i <= n) {
+        result = result * i
+        i = i + 1
+    }
+    return result
+}
+
+// trunc(n) - Truncate toward zero (remove fractional part)
+fn trunc(n) {
+    return int(n)
+}
+
+// degrees(r) - Convert radians to degrees
+fn degrees(r) {
+    return float(r) * 180.0 / pi
+}
+
+// radians(d) - Convert degrees to radians
+fn radians(d) {
+    return float(d) * pi / 180.0
+}
+
+// hypot(x, y) - Euclidean distance sqrt(x² + y²)
+fn hypot(x, y) {
+    return sqrt(float(x) * float(x) + float(y) * float(y))
+}
+
+// exp(x) - e raised to the power x (Taylor series, 25 terms)
+fn exp(x) {
+    let result = 0.0
+    let term = 1.0
+    let i = 1
+    while (i <= 25) {
+        result = result + term
+        term = term * float(x) / float(i)
+        i = i + 1
+    }
+    return result + term
+}
+
+// sin(x) - Sine of x (radians), Taylor series with angle reduction
+fn sin(x) {
+    let two_pi = 6.283185307179586
+    let xf = float(x)
+    while (xf > two_pi) { xf = xf - two_pi }
+    while (xf < -two_pi) { xf = xf + two_pi }
+    let result = 0.0
+    let term = xf
+    let x2 = xf * xf
+    let i = 1
+    while (i <= 12) {
+        result = result + term
+        let denom = float(2 * i) * float(2 * i + 1)
+        term = -term * x2 / denom
+        i = i + 1
+    }
+    return result
+}
+
+// cos(x) - Cosine of x (radians), Taylor series with angle reduction
+fn cos(x) {
+    let two_pi = 6.283185307179586
+    let xf = float(x)
+    while (xf > two_pi) { xf = xf - two_pi }
+    while (xf < -two_pi) { xf = xf + two_pi }
+    let result = 0.0
+    let term = 1.0
+    let x2 = xf * xf
+    let i = 1
+    while (i <= 12) {
+        result = result + term
+        let denom = float(2 * i - 1) * float(2 * i)
+        term = -term * x2 / denom
+        i = i + 1
+    }
+    return result
+}
+
+// tan(x) - Tangent of x (radians)
+fn tan(x) {
+    return sin(x) / cos(x)
+}
