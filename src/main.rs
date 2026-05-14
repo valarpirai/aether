@@ -19,6 +19,22 @@ fn main() {
         return;
     }
 
+    let first = &args[1];
+    if first == "--version" || first == "-V" {
+        println!("aether {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
+    if first == "--help" || first == "-h" {
+        println!("Usage: aether [OPTIONS] [script] [args...]");
+        println!();
+        println!("Options:");
+        println!("  -V, --version   Print version and exit");
+        println!("  -h, --help      Print this help and exit");
+        println!();
+        println!("If no script is given, starts the interactive REPL.");
+        return;
+    }
+
     // First argument is the script; everything after it are script arguments
     let filename = &args[1];
     let script_args = &args[2..];
