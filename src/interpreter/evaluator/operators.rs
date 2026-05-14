@@ -245,21 +245,10 @@ impl Evaluator {
             (Value::String(a), Value::String(b)) => a == b,
             (Value::Bool(a), Value::Bool(b)) => a == b,
             (Value::Null, Value::Null) => true,
-            (Value::Array(a), Value::Array(b)) => {
-                let a = a.borrow();
-                let b = b.borrow();
-                a.len() == b.len()
-                    && a.iter()
-                        .zip(b.iter())
-                        .all(|(x, y)| Self::values_equal(x, y))
-            }
-            (Value::Dict(a), Value::Dict(b)) => {
-                let a = a.borrow();
-                let b = b.borrow();
-                a.len() == b.len()
-                    && a.iter().zip(b.iter()).all(|((k1, v1), (k2, v2))| {
-                        Self::values_equal(k1, k2) && Self::values_equal(v1, v2)
-                    })
+            (Value::Array(a), Value::Array(b)) => Rc::ptr_eq(a, b),
+            (Value::Dict(a), Value::Dict(b)) => Rc::ptr_eq(a, b),
+            (Value::Instance { fields: fa, .. }, Value::Instance { fields: fb, .. }) => {
+                Rc::ptr_eq(fa, fb)
             }
             (
                 Value::EnumVariant {
@@ -279,6 +268,70 @@ impl Evaluator {
                         .iter()
                         .zip(fb.iter())
                         .all(|((_, va), (_, vb))| Self::values_equal(va, vb))
+            }
+            _ => false,
+        }
+    }
+
+    /// Structural deep equality used by `.equals()`.
+    /// Arrays and dicts recurse; nested structs stop at == (identity).
+    pub(super) fn deep_equal(left: &Value, right: &Value) -> bool {
+        match (left, right) {
+            (Value::Array(a), Value::Array(b)) => {
+                if Rc::ptr_eq(a, b) {
+                    return true;
+                }
+                let a = a.borrow();
+                let b = b.borrow();
+                a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| Self::deep_equal(x, y))
+            }
+            (Value::Dict(a), Value::Dict(b)) => {
+                if Rc::ptr_eq(a, b) {
+                    return true;
+                }
+                let a = a.borrow();
+                let b = b.borrow();
+                a.len() == b.len()
+                    && a.iter().zip(b.iter()).all(|((k1, v1), (k2, v2))| {
+                        Self::deep_equal(k1, k2) && Self::deep_equal(v1, v2)
+                    })
+            }
+            // Nested structs use identity (== semantics, depth-1 stop)
+            (Value::Instance { fields: fa, .. }, Value::Instance { fields: fb, .. }) => {
+                Rc::ptr_eq(fa, fb)
+            }
+            _ => Self::values_equal(left, right),
+        }
+    }
+
+    /// Structural equality for structs: same type + fields compared with deep_equal.
+    pub(super) fn struct_equals(left: &Value, right: &Value) -> bool {
+        match (left, right) {
+            (
+                Value::Instance {
+                    type_name: ta,
+                    fields: fa,
+                    ..
+                },
+                Value::Instance {
+                    type_name: tb,
+                    fields: fb,
+                    ..
+                },
+            ) => {
+                if ta != tb {
+                    return false;
+                }
+                if Rc::ptr_eq(fa, fb) {
+                    return true;
+                }
+                let fa = fa.borrow();
+                let fb = fb.borrow();
+                if fa.len() != fb.len() {
+                    return false;
+                }
+                fa.iter()
+                    .all(|(k, v)| fb.get(k).is_some_and(|ov| Self::deep_equal(v, ov)))
             }
             _ => false,
         }

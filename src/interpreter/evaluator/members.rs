@@ -247,6 +247,27 @@ impl Evaluator {
                     .any(|elem| Evaluator::values_equal(elem, &needle));
                 Ok(Value::Bool(found))
             }
+            (Value::Array(elements), "equals") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let other = self.eval_expr(&args[0])?;
+                match &other {
+                    Value::Array(other_elems) => {
+                        let a = elements.borrow();
+                        let b = other_elems.borrow();
+                        let eq = a.len() == b.len()
+                            && a.iter()
+                                .zip(b.iter())
+                                .all(|(x, y)| Evaluator::deep_equal(x, y));
+                        Ok(Value::Bool(eq))
+                    }
+                    _ => Ok(Value::Bool(false)),
+                }
+            }
             (Value::Array(elements), "sort") => {
                 if args.len() > 1 {
                     return Err(RuntimeError::ArityMismatch {
@@ -623,6 +644,27 @@ impl Evaluator {
                 let found = pairs.borrow().iter().any(|(k, _)| k == &key);
                 Ok(Value::Bool(found))
             }
+            (Value::Dict(pairs), "equals") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let other = self.eval_expr(&args[0])?;
+                match &other {
+                    Value::Dict(other_pairs) => {
+                        let a = pairs.borrow();
+                        let b = other_pairs.borrow();
+                        let eq = a.len() == b.len()
+                            && a.iter().zip(b.iter()).all(|((k1, v1), (k2, v2))| {
+                                Evaluator::deep_equal(k1, k2) && Evaluator::deep_equal(v1, v2)
+                            });
+                        Ok(Value::Bool(eq))
+                    }
+                    _ => Ok(Value::Bool(false)),
+                }
+            }
 
             // Promise.all([p1, p2, ...]) — await all promises and return array of results.
             // IoWaiting promises are polled concurrently so N parallel I/O tasks take
@@ -940,6 +982,18 @@ impl Evaluator {
                     arg_values.push(self.eval_expr(arg)?);
                 }
                 self.call_value(func, arg_values)
+            }
+
+            // Instance built-in: .equals() — structural depth-1 comparison
+            (Value::Instance { .. }, "equals") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let other = self.eval_expr(&args[0])?;
+                Ok(Value::Bool(Evaluator::struct_equals(&obj_val, &other)))
             }
 
             // Instance method call: instance.method(args)

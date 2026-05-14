@@ -142,63 +142,10 @@ fn test_id_same_dict_ref() {
     assert_eq!(result, "true");
 }
 
-// --- Deep equality ==  ---
+// --- == is identity for arrays and dicts ---
 
 #[test]
-fn test_array_deep_equal_same_values() {
-    assert_eq!(eval("[1, 2, 3] == [1, 2, 3]").unwrap(), "true");
-}
-
-#[test]
-fn test_array_deep_equal_different_values() {
-    assert_eq!(eval("[1, 2, 3] == [1, 2, 4]").unwrap(), "false");
-}
-
-#[test]
-fn test_array_deep_equal_different_lengths() {
-    assert_eq!(eval("[1, 2] == [1, 2, 3]").unwrap(), "false");
-}
-
-#[test]
-fn test_array_nested_deep_equal() {
-    assert_eq!(
-        eval("[[1, 2], [3, 4]] == [[1, 2], [3, 4]]").unwrap(),
-        "true"
-    );
-    assert_eq!(
-        eval("[[1, 2], [3, 4]] == [[1, 2], [3, 5]]").unwrap(),
-        "false"
-    );
-}
-
-#[test]
-fn test_dict_deep_equal() {
-    assert_eq!(
-        eval(
-            r#"
-            let a = {"a": 1, "b": 2}
-            let b = {"a": 1, "b": 2}
-            a == b
-        "#
-        )
-        .unwrap(),
-        "true"
-    );
-    assert_eq!(
-        eval(
-            r#"
-            let a = {"a": 1, "b": 2}
-            let b = {"a": 1, "b": 3}
-            a == b
-        "#
-        )
-        .unwrap(),
-        "false"
-    );
-}
-
-#[test]
-fn test_same_ref_equal() {
+fn test_array_eq_same_ref_is_true() {
     let result = eval(
         r#"
         let a = [1, 2, 3]
@@ -208,6 +155,92 @@ fn test_same_ref_equal() {
     )
     .unwrap();
     assert_eq!(result, "true");
+}
+
+#[test]
+fn test_array_eq_different_objects_is_false() {
+    assert_eq!(eval("[1, 2, 3] == [1, 2, 3]").unwrap(), "false");
+}
+
+#[test]
+fn test_dict_eq_same_ref_is_true() {
+    let result = eval(
+        r#"
+        let a = {"x": 1}
+        let b = a
+        a == b
+    "#,
+    )
+    .unwrap();
+    assert_eq!(result, "true");
+}
+
+#[test]
+fn test_dict_eq_different_objects_is_false() {
+    let result = eval(
+        r#"
+        let a = {"x": 1}
+        let b = {"x": 1}
+        a == b
+    "#,
+    )
+    .unwrap();
+    assert_eq!(result, "false");
+}
+
+// --- .equals() is deep structural ---
+
+#[test]
+fn test_array_equals_same_values() {
+    assert_eq!(eval("[1, 2, 3].equals([1, 2, 3])").unwrap(), "true");
+}
+
+#[test]
+fn test_array_equals_different_values() {
+    assert_eq!(eval("[1, 2, 3].equals([1, 2, 4])").unwrap(), "false");
+}
+
+#[test]
+fn test_array_equals_different_lengths() {
+    assert_eq!(eval("[1, 2].equals([1, 2, 3])").unwrap(), "false");
+}
+
+#[test]
+fn test_array_nested_equals() {
+    assert_eq!(
+        eval("[[1, 2], [3, 4]].equals([[1, 2], [3, 4]])").unwrap(),
+        "true"
+    );
+    assert_eq!(
+        eval("[[1, 2], [3, 4]].equals([[1, 2], [3, 5]])").unwrap(),
+        "false"
+    );
+}
+
+#[test]
+fn test_dict_equals_same_values() {
+    let result = eval(
+        r#"
+        let a = {"a": 1, "b": 2}
+        let b = {"a": 1, "b": 2}
+        a.equals(b)
+    "#,
+    )
+    .unwrap();
+    assert_eq!(result, "true");
+}
+
+#[test]
+fn test_dict_equals_different_values() {
+    let result = eval(
+        r#"
+        let a = {"a": 1, "b": 2}
+        let b = {"a": 1, "b": 3}
+        a.equals(b)
+    "#,
+    )
+    .unwrap();
+    assert_eq!(result, "false");
 }
 
 // --- copy() ---
@@ -273,7 +306,7 @@ fn test_copy_equal_values() {
         r#"
         let a = [1, 2, 3]
         let b = copy(a)
-        a == b
+        a.equals(b)
     "#,
     )
     .unwrap();

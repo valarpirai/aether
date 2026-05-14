@@ -231,3 +231,153 @@ fn test_struct_undefined_method_errors() {
     );
     assert!(result.is_err());
 }
+
+// --- struct equality: == is identity ---
+
+#[test]
+fn test_struct_eq_same_object_is_true() {
+    let result = eval(
+        r#"
+        struct Point { x, y }
+        let a = Point { x: 1, y: 2 }
+        let b = a
+        a == b
+        "#,
+    )
+    .unwrap();
+    assert_eq!(result, "true");
+}
+
+#[test]
+fn test_struct_eq_different_objects_is_false() {
+    let result = eval(
+        r#"
+        struct Point { x, y }
+        let a = Point { x: 1, y: 2 }
+        let b = Point { x: 1, y: 2 }
+        a == b
+        "#,
+    )
+    .unwrap();
+    assert_eq!(result, "false");
+}
+
+#[test]
+fn test_struct_neq_same_object_is_false() {
+    let result = eval(
+        r#"
+        struct Point { x, y }
+        let a = Point { x: 1, y: 2 }
+        let b = a
+        a != b
+        "#,
+    )
+    .unwrap();
+    assert_eq!(result, "false");
+}
+
+// --- struct.equals() is structural depth-1 ---
+
+#[test]
+fn test_struct_equals_same_values() {
+    let result = eval(
+        r#"
+        struct Point { x, y }
+        let a = Point { x: 1, y: 2 }
+        let b = Point { x: 1, y: 2 }
+        a.equals(b)
+        "#,
+    )
+    .unwrap();
+    assert_eq!(result, "true");
+}
+
+#[test]
+fn test_struct_equals_different_values() {
+    let result = eval(
+        r#"
+        struct Point { x, y }
+        let a = Point { x: 1, y: 2 }
+        let b = Point { x: 1, y: 99 }
+        a.equals(b)
+        "#,
+    )
+    .unwrap();
+    assert_eq!(result, "false");
+}
+
+#[test]
+fn test_struct_equals_different_types() {
+    let result = eval(
+        r#"
+        struct Point { x, y }
+        struct Vec2 { x, y }
+        let a = Point { x: 1, y: 2 }
+        let b = Vec2 { x: 1, y: 2 }
+        a.equals(b)
+        "#,
+    )
+    .unwrap();
+    assert_eq!(result, "false");
+}
+
+#[test]
+fn test_struct_equals_same_object() {
+    let result = eval(
+        r#"
+        struct Point { x, y }
+        let a = Point { x: 1, y: 2 }
+        a.equals(a)
+        "#,
+    )
+    .unwrap();
+    assert_eq!(result, "true");
+}
+
+#[test]
+fn test_struct_equals_nested_struct_uses_identity() {
+    // nested struct fields use == (identity), so two separate inner structs → false
+    let result = eval(
+        r#"
+        struct Inner { v }
+        struct Outer { inner }
+        let a = Outer { inner: Inner { v: 1 } }
+        let b = Outer { inner: Inner { v: 1 } }
+        a.equals(b)
+        "#,
+    )
+    .unwrap();
+    assert_eq!(result, "false");
+}
+
+#[test]
+fn test_struct_equals_nested_struct_shared_ref() {
+    // same inner object shared → equals returns true
+    let result = eval(
+        r#"
+        struct Inner { v }
+        struct Outer { inner }
+        let shared = Inner { v: 1 }
+        let a = Outer { inner: shared }
+        let b = Outer { inner: shared }
+        a.equals(b)
+        "#,
+    )
+    .unwrap();
+    assert_eq!(result, "true");
+}
+
+#[test]
+fn test_struct_equals_array_field_deep() {
+    // array fields use deep equality
+    let result = eval(
+        r#"
+        struct Container { items }
+        let a = Container { items: [1, 2, 3] }
+        let b = Container { items: [1, 2, 3] }
+        a.equals(b)
+        "#,
+    )
+    .unwrap();
+    assert_eq!(result, "true");
+}
