@@ -368,13 +368,29 @@ fn test_struct_equals_nested_struct_shared_ref() {
 }
 
 #[test]
-fn test_struct_equals_array_field_deep() {
-    // array fields use deep equality
+fn test_struct_equals_array_field_uses_identity() {
+    // array fields use == (identity) — separate arrays → false
     let result = eval(
         r#"
         struct Container { items }
         let a = Container { items: [1, 2, 3] }
         let b = Container { items: [1, 2, 3] }
+        a.equals(b)
+        "#,
+    )
+    .unwrap();
+    assert_eq!(result, "false");
+}
+
+#[test]
+fn test_struct_equals_shared_array_field() {
+    // same array reference → equals returns true
+    let result = eval(
+        r#"
+        struct Container { items }
+        let arr = [1, 2, 3]
+        let a = Container { items: arr }
+        let b = Container { items: arr }
         a.equals(b)
         "#,
     )

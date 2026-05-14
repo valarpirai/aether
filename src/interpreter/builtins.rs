@@ -1,5 +1,6 @@
 //! Built-in functions for Aether
 
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::rc::Rc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -1031,27 +1032,27 @@ pub fn builtin_id(args: &[Value]) -> Result<Value, RuntimeError> {
     Ok(Value::Int(addr as i64))
 }
 
-fn deep_copy(v: &Value) -> Value {
+/// Depth-1 shallow copy: new outer container, inner elements share references.
+/// Prevents infinite loops on circular structures.
+fn shallow_copy(v: &Value) -> Value {
     match v {
-        Value::Array(rc) => {
-            let new_vec = rc.borrow().iter().map(deep_copy).collect();
-            Value::array(new_vec)
-        }
-        Value::Dict(rc) => {
-            let new_pairs = rc
-                .borrow()
-                .iter()
-                .map(|(k, v)| (deep_copy(k), deep_copy(v)))
-                .collect();
-            Value::dict(new_pairs)
-        }
+        Value::Array(rc) => Value::array(rc.borrow().clone()),
+        Value::Dict(rc) => Value::dict(rc.borrow().clone()),
+        Value::Instance {
+            type_name,
+            fields,
+            methods,
+        } => Value::Instance {
+            type_name: type_name.clone(),
+            fields: Rc::new(RefCell::new(fields.borrow().clone())),
+            methods: Rc::clone(methods),
+        },
         other => other.clone(),
     }
 }
 
 /// Built-in function: copy(val) -> val
-/// Deep-clones a value: arrays and dicts are recursively copied into new allocations.
-/// Other values are returned as-is (they are already value types or share immutable data).
+/// Shallow (depth-1) copy: new outer container, inner elements share references.
 pub fn builtin_copy(args: &[Value]) -> Result<Value, RuntimeError> {
     if args.len() != 1 {
         return Err(RuntimeError::ArityMismatch {
@@ -1059,5 +1060,5 @@ pub fn builtin_copy(args: &[Value]) -> Result<Value, RuntimeError> {
             got: args.len(),
         });
     }
-    Ok(deep_copy(&args[0]))
+    Ok(shallow_copy(&args[0]))
 }

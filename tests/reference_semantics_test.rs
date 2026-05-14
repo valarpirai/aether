@@ -273,7 +273,8 @@ fn test_copy_different_id() {
 }
 
 #[test]
-fn test_copy_deep_clones_nested() {
+fn test_copy_is_shallow_nested_shared() {
+    // copy is depth-1: inner arrays are shared references
     let result = eval(
         r#"
         let a = [[1, 2], [3, 4]]
@@ -283,7 +284,7 @@ fn test_copy_deep_clones_nested() {
     "#,
     )
     .unwrap();
-    assert_eq!(result, "[[1, 2], [3, 4]]");
+    assert_eq!(result, "[[1, 2, 99], [3, 4]]");
 }
 
 #[test]
@@ -311,4 +312,52 @@ fn test_copy_equal_values() {
     )
     .unwrap();
     assert_eq!(result, "true");
+}
+
+// --- copy() on structs ---
+
+#[test]
+fn test_copy_struct_independent_fields() {
+    // copy gives a new instance — scalar field changes don't affect original
+    let result = eval(
+        r#"
+        struct Point { x, y }
+        let a = Point { x: 1, y: 2 }
+        let b = copy(a)
+        b.x = 99
+        a.x
+        "#,
+    )
+    .unwrap();
+    assert_eq!(result, "1");
+}
+
+#[test]
+fn test_copy_struct_different_id() {
+    let result = eval(
+        r#"
+        struct Point { x, y }
+        let a = Point { x: 1, y: 2 }
+        let b = copy(a)
+        a == b
+        "#,
+    )
+    .unwrap();
+    assert_eq!(result, "false");
+}
+
+#[test]
+fn test_copy_struct_nested_array_shared() {
+    // inner array is shared (depth-1), so mutation is visible through original
+    let result = eval(
+        r#"
+        struct Bag { items }
+        let a = Bag { items: [1, 2, 3] }
+        let b = copy(a)
+        b.items.push(99)
+        a.items
+        "#,
+    )
+    .unwrap();
+    assert_eq!(result, "[1, 2, 3, 99]");
 }

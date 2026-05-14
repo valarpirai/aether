@@ -331,7 +331,7 @@ impl Evaluator {
                     return false;
                 }
                 fa.iter()
-                    .all(|(k, v)| fb.get(k).is_some_and(|ov| Self::deep_equal(v, ov)))
+                    .all(|(k, v)| fb.get(k).is_some_and(|ov| Self::values_equal(v, ov)))
             }
             _ => false,
         }
