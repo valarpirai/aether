@@ -84,3 +84,113 @@ fn ends_with(string, suffix) {
 
     return true
 }
+
+// contains(string, substring) - Check if substring appears anywhere in string
+fn contains(string, substring) {
+    return string.contains(substring)
+}
+
+// index_of(string, substring) - First index of substring, or -1
+fn index_of(string, substring) {
+    return string.index_of(substring)
+}
+
+// replace(string, old, new_val) - Replace all occurrences of old with new_val
+fn replace(string, old, new_val) {
+    return string.replace(old, new_val)
+}
+
+// count(string, substring) - Count non-overlapping occurrences of substring
+fn count(string, substring) {
+    if (len(substring) == 0) {
+        return 0
+    }
+    let n = 0
+    let i = 0
+    let sub_len = len(substring)
+    let str_len = len(string)
+    while (i <= str_len - sub_len) {
+        if (string[i:i + sub_len] == substring) {
+            n = n + 1
+            i = i + sub_len
+        } else {
+            i = i + 1
+        }
+    }
+    return n
+}
+
+// pad_left(string, width, char) - Left-pad string to width with char
+fn pad_left(string, width, char) {
+    let result = string
+    while (len(result) < width) {
+        result = char + result
+    }
+    return result
+}
+
+// pad_right(string, width, char) - Right-pad string to width with char
+fn pad_right(string, width, char) {
+    let result = string
+    while (len(result) < width) {
+        result = result + char
+    }
+    return result
+}
+
+// strip_prefix(string, prefix) - Remove prefix if present
+fn strip_prefix(string, prefix) {
+    if (starts_with(string, prefix)) {
+        return string[len(prefix):len(string)]
+    }
+    return string
+}
+
+// strip_suffix(string, suffix) - Remove suffix if present
+fn strip_suffix(string, suffix) {
+    if (ends_with(string, suffix)) {
+        return string[0:len(string) - len(suffix)]
+    }
+    return string
+}
+
+// is_alpha(string) - True if all characters are alphabetic (a-z, A-Z) and non-empty
+fn is_alpha(string) {
+    if (len(string) == 0) {
+        return false
+    }
+    let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    for ch in string {
+        if (!letters.contains(ch)) {
+            return false
+        }
+    }
+    return true
+}
+
+// is_digit(string) - True if all characters are 0-9 and non-empty
+fn is_digit(string) {
+    if (len(string) == 0) {
+        return false
+    }
+    let digits = "0123456789"
+    for ch in string {
+        if (!digits.contains(ch)) {
+            return false
+        }
+    }
+    return true
+}
+
+// is_space(string) - True if all characters are whitespace and non-empty
+fn is_space(string) {
+    if (len(string) == 0) {
+        return false
+    }
+    for ch in string {
+        if (ch != " " && ch != "\t" && ch != "\n" && ch != "\r") {
+            return false
+        }
+    }
+    return true
+}

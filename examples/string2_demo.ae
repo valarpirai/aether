@@ -1,0 +1,33 @@
+fn main() {
+    // contains / index_of / replace
+    let s = "hello world"
+    println("contains 'world':", contains(s, "world"))
+    println("contains 'xyz':", contains(s, "xyz"))
+    println("index_of 'world':", index_of(s, "world"))
+    println("replace:", replace(s, "world", "aether"))
+
+    // count
+    println("count 'l' in 'hello world':", count("hello world", "l"))
+
+    // pad_left / pad_right
+    println("pad_left:", pad_left("42", 6, "0"))
+    println("pad_right:", pad_right("hi", 8, "."))
+
+    // strip_prefix / strip_suffix
+    println("strip_prefix:", strip_prefix("https://example.com", "https://"))
+    println("strip_suffix:", strip_suffix("report.ae", ".ae"))
+
+    // is_alpha / is_digit / is_space
+    println("is_alpha 'hello':", is_alpha("hello"))
+    println("is_alpha 'hel1o':", is_alpha("hel1o"))
+    println("is_digit '12345':", is_digit("12345"))
+    println("is_digit '12.3':", is_digit("12.3"))
+    println("is_space '   ':", is_space("   "))
+    println("is_space '  x':", is_space("  x"))
+
+    // practical: format a table row
+    let name = "Alice"
+    let score = "98"
+    let row = pad_right(name, 10, " ") + pad_left(score, 5, " ")
+    println(row)
+}
