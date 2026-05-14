@@ -85,17 +85,39 @@ fn to_lower(s) { return s.lower() }
 let lowercase = map(words, to_lower)
 println("Lowercase:", lowercase)
 
-fn has_e(s) {
-    // Check if string contains 'e' (simple check)
-    let i = 0
-    while (i < len(s)) {
-        // Note: No string indexing yet, so this is simplified
-        i = i + 1
-    }
-    return true  // Simplified for demo
-}
-
 println()
+
+// first / last / chunk / partition / zip_longest / uniq_by
+println("=== Advanced Collection Helpers ===")
+let nums = [10, 20, 30, 40]
+println("first:", first(nums))
+println("last:", last(nums))
+println("first of empty:", first([]))
+println()
+
+println("chunk([1..8], 3):", chunk([1,2,3,4,5,6,7,8], 3))
+println()
+
+let parts = partition([1,2,3,4,5,6], is_even)
+println("partition evens:", parts[0])
+println("partition odds:", parts[1])
+println()
+
+let zipped = zip_longest(["a","b","c"], [1, 2], "?")
+println("zip_longest:", zipped)
+println()
+
+fn identity(x) { return x }
+println("uniq_by:", uniq_by([1,2,1,3,2,4,3], identity))
+
+fn domain(email) {
+    let parts = email.split("@")
+    return parts[1]
+}
+let emails = ["a@gmail.com", "b@yahoo.com", "c@gmail.com", "d@hotmail.com"]
+println("one per domain:", uniq_by(emails, domain))
+println()
+
 println("Done!")
 
 fn main() {}

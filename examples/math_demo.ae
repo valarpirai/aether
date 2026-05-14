@@ -68,4 +68,33 @@ println()
 
 println("Done!")
 
+// Mathematical constants
+println("=== Constants ===")
+println("pi:", pi)
+println("e:", e)
+println("tau:", tau)
+println("10!:", factorial(10))
+println()
+
+// Truncation and angle conversion
+println("=== Truncation and Angles ===")
+println("trunc(3.9):", trunc(3.9))
+println("trunc(-3.9):", trunc(-3.9))
+println("degrees(pi):", degrees(pi))
+println("radians(90.0):", radians(90.0))
+println("hypot(3, 4):", hypot(3, 4))
+println("exp(1.0):", exp(1.0))
+println()
+
+// Trigonometry
+println("=== Trigonometry ===")
+println("sin(pi/6):", sin(pi / 6.0))
+println("cos(pi/3):", cos(pi / 3.0))
+println("tan(pi/4):", tan(pi / 4.0))
+let angle = 1.2
+let identity = sin(angle) * sin(angle) + cos(angle) * cos(angle)
+println("sin²(1.2) + cos²(1.2) =", identity)
+println("circle area r=5:", pi * 5.0 * 5.0)
+println()
+
 fn main() {}

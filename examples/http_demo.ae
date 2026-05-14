@@ -29,15 +29,14 @@ fn main() {
     }
     println()
 
-    // --- 3. Per-request config dict (timeout + user-agent) ---
-    println("3. GET with custom timeout and user-agent...")
+    // --- 3. Parse nested JSON response ---
+    println("3. Fetching and parsing JSON fields...")
     try {
-        let response = http_get("https://httpbin.org/get", {
-            timeout: 10,
-            user_agent: "aether-demo/1.0"
-        })
+        let response = http_get("https://httpbin.org/json")
         let data = json_parse(response)
-        println("   User-Agent echoed:", data["headers"]["User-Agent"])
+        let slideshow = data["slideshow"]
+        println("   Title:", slideshow["title"])
+        println("   Author:", slideshow["author"])
     } catch (e) {
         println("   Error:", e)
     }
