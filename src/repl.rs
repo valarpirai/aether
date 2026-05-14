@@ -198,7 +198,7 @@ fn history_path() -> Option<std::path::PathBuf> {
 // ── Public entry point ────────────────────────────────────────────────────────
 
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Aether v0.1.0");
+    println!("Aether v{}", env!("CARGO_PKG_VERSION"));
     println!("Type '_help' for commands, Tab to autocomplete, Ctrl+D to exit\n");
 
     let helper = AetherHelper::new();
