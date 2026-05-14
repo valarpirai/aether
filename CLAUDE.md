@@ -95,8 +95,8 @@ src/interpreter/evaluator/
 
 ### Key Helper Functions
 - `Value::string(s)` — create Rc-wrapped string
-- `Value::array(vec)` — create Rc-wrapped array
-- `Value::dict(map)` — create Rc-wrapped dict
+- `Value::array(vec)` — create Rc<RefCell>-wrapped array (reference semantics)
+- `Value::dict(vec)` — create Rc<RefCell>-wrapped dict (reference semantics)
 - `Value::set(hashset)` — create Rc-wrapped set
 - `Value::promise(func, args)` — create a pending Promise
 - `Value::promise_io(rx)` — create a channel-backed I/O Promise
@@ -180,7 +180,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | **Destructuring** | `let [a, b, ...rest] = arr`, `let {host, port: p = 5432} = dict` — array/dict, rest, rename, defaults |
 | **Functions** | declarations, expressions, closures, optional params, recursion (depth limit 100) |
 | **Strings** | indexing, interpolation `${expr}`, slicing `str[1:3]`, spread `[...arr]`, upper/lower/trim/split |
-| **Collections** | array (push/pop/sort/concat/slice/spread), dict (keys/values/contains), set (union/intersection/difference/subset) |
+| **Collections** | array (push/pop/sort/concat/slice/spread), dict (keys/values/contains), set (union/intersection/difference/subset); reference semantics for array/dict; `copy()` for deep clone; `id()` for object identity; deep `==` equality |
 | **Error handling** | try/catch/throw; `e.message`, `e.stack_trace`; stack frames include filename and line number |
 | **Modules** | `import mod`, `from mod import fn`, `import mod as alias`; filesystem + embedded stdlib |
 | **Structs** | fields, methods, `self` binding, mutable fields via RefCell |
@@ -192,7 +192,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | **JSON** | `json_parse()`, `json_stringify()` via serde_json |
 | **HTTP** | `http_get(url)`, `http_post(url, body)` via reqwest (blocking or async) |
 | **Time** | `clock()` (Unix epoch float), `sleep(secs)` |
-| **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, sign, join, repeat, reverse, starts_with, ends_with |
+| **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, sign, join, repeat, reverse, starts_with, ends_with; **new:** first, last, chunk, partition, zip_longest, uniq_by, contains, index_of, replace, count, pad_left, pad_right, strip_prefix, strip_suffix, is_alpha, is_digit, is_space, pi, e, tau, factorial, trunc, degrees, radians, hypot, exp, sin, cos, tan |
 | **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
 | **REPL** | rustyline with history (`~/.aether_history`), tab-completion, `_help`/`_env`/`_exit` |
 | **Configuration** | `AETHER_IO_WORKERS`, `AETHER_CALL_DEPTH`, `HOME` (see [CONFIGURATION.md](docs/lang/CONFIGURATION.md)) |

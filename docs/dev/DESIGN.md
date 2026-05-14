@@ -555,6 +555,8 @@ fn main() {
 | `str(v)` | Convert to string |
 | `bool(v)` | Convert to bool |
 | `set(arr)` | Create a set from array |
+| `id(v)` | Object identity — unique int per heap-allocated object (like Python `id()`) |
+| `copy(v)` | Deep clone — arrays and dicts are recursively copied into independent objects |
 
 #### Async / Event Loop
 
@@ -601,12 +603,37 @@ fn main() {
 
 ### 17. Collection Methods
 
+#### Reference semantics
+
+Arrays and dicts have **reference semantics** — assignment copies the reference, not the value. All aliases point to the same object and see each other's mutations.
+
+```aether
+let a = [1, 2, 3]
+let b = a          // b and a are the same object
+b.push(4)
+println(a)         // [1, 2, 3, 4]
+
+id(a) == id(b)     // true — same identity
+a == b             // true — deep equality (same contents)
+```
+
+Use `copy(v)` to get an independent deep clone:
+
+```aether
+let c = copy(a)    // independent copy
+c.push(99)
+println(a)         // [1, 2, 3, 4] — unchanged
+id(a) == id(c)     // false — different objects
+```
+
+`==` on arrays and dicts always performs **deep value comparison** regardless of identity.
+
 #### Array
 
 | Method/Property | Description |
 |-----------------|-------------|
-| `arr.push(item)` | Append item |
-| `arr.pop()` | Remove and return last item |
+| `arr.push(item)` | Append item (mutates in place) |
+| `arr.pop()` | Remove and return last item (mutates in place) |
 | `arr.sort()` | Sort in place |
 | `arr.reverse()` | Reverse in place |
 | `arr.concat(other)` | Return new concatenated array |
