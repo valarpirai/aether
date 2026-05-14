@@ -203,20 +203,20 @@ Start here if you want to extend the language, fix a bug, or understand how the 
 
 ## Examples
 
-Browse the [examples directory](EXAMPLES.html) or jump straight to a topic:
+Browse the [examples directory](lang/EXAMPLES.html) or jump straight to a topic:
 
 | Example | What it shows |
 |---------|--------------|
-| [Hello World](EXAMPLES.html#hello) | First program, interpolation |
-| [Null Safety](EXAMPLES.html#null-safety) | `??` and `?.` operators |
-| [Multi-line Strings](EXAMPLES.html#multiline-strings) | Triple-quoted strings |
-| [Error Handling](EXAMPLES.html#error-handling) | try/catch/finally, stack traces |
-| [File Utilities](EXAMPLES.html#file-utilities) | list_dir, path_join, rename, rm |
-| [Shapes (Structs)](EXAMPLES.html#shapes) | User-defined types with methods |
-| [Async / Concurrent I/O](EXAMPLES.html#async) | Promise.all, thread pool |
-| [Event Loop](EXAMPLES.html#event-loop) | on_ready, chained callbacks |
-| [Data Processing](EXAMPLES.html#data-processing) | Functional pipeline |
-| [Collections](EXAMPLES.html#collections) | Arrays, dicts, sets |
+| [Hello World](lang/EXAMPLES.html#hello) | First program, interpolation |
+| [Null Safety](lang/EXAMPLES.html#null-safety) | `??` and `?.` operators |
+| [Multi-line Strings](lang/EXAMPLES.html#multiline-strings) | Triple-quoted strings |
+| [Error Handling](lang/EXAMPLES.html#error-handling) | try/catch/finally, stack traces |
+| [File Utilities](lang/EXAMPLES.html#file-utilities) | list_dir, path_join, rename, rm |
+| [Shapes (Structs)](lang/EXAMPLES.html#shapes) | User-defined types with methods |
+| [Async / Concurrent I/O](lang/EXAMPLES.html#async) | Promise.all, thread pool |
+| [Event Loop](lang/EXAMPLES.html#event-loop) | on_ready, chained callbacks |
+| [Data Processing](lang/EXAMPLES.html#data-processing) | Functional pipeline |
+| [Collections](lang/EXAMPLES.html#collections) | Arrays, dicts, sets |
 
 ## License
 
