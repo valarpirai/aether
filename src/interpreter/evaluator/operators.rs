@@ -64,16 +64,34 @@ impl Evaluator {
             BinaryOp::Modulo => self.eval_modulo(left_val, right_val),
             BinaryOp::Equal => Ok(Value::Bool(Self::values_equal(&left_val, &right_val))),
             BinaryOp::NotEqual => Ok(Value::Bool(!Self::values_equal(&left_val, &right_val))),
-            BinaryOp::Less => self.eval_comparison(left_val, right_val, |a, b| a < b, |a, b| a < b),
-            BinaryOp::Greater => {
-                self.eval_comparison(left_val, right_val, |a, b| a > b, |a, b| a > b)
-            }
-            BinaryOp::LessEqual => {
-                self.eval_comparison(left_val, right_val, |a, b| a <= b, |a, b| a <= b)
-            }
-            BinaryOp::GreaterEqual => {
-                self.eval_comparison(left_val, right_val, |a, b| a >= b, |a, b| a >= b)
-            }
+            BinaryOp::Less => self.eval_comparison(
+                left_val,
+                right_val,
+                |a, b| a < b,
+                |a, b| a < b,
+                |a, b| a < b,
+            ),
+            BinaryOp::Greater => self.eval_comparison(
+                left_val,
+                right_val,
+                |a, b| a > b,
+                |a, b| a > b,
+                |a, b| a > b,
+            ),
+            BinaryOp::LessEqual => self.eval_comparison(
+                left_val,
+                right_val,
+                |a, b| a <= b,
+                |a, b| a <= b,
+                |a, b| a <= b,
+            ),
+            BinaryOp::GreaterEqual => self.eval_comparison(
+                left_val,
+                right_val,
+                |a, b| a >= b,
+                |a, b| a >= b,
+                |a, b| a >= b,
+            ),
             BinaryOp::And => {
                 if !left_val.is_truthy() {
                     Ok(left_val)
@@ -192,23 +210,25 @@ impl Evaluator {
         }
     }
 
-    pub(super) fn eval_comparison<F, G>(
+    pub(super) fn eval_comparison<F, G, H>(
         &self,
         left: Value,
         right: Value,
         int_op: F,
         float_op: G,
+        str_op: H,
     ) -> Result<Value, RuntimeError>
     where
         F: FnOnce(i64, i64) -> bool,
         G: FnOnce(f64, f64) -> bool,
+        H: FnOnce(&str, &str) -> bool,
     {
         match (left, right) {
             (Value::Int(a), Value::Int(b)) => Ok(Value::Bool(int_op(a, b))),
             (Value::Float(a), Value::Float(b)) => Ok(Value::Bool(float_op(a, b))),
             (Value::Int(a), Value::Float(b)) => Ok(Value::Bool(float_op(a as f64, b))),
             (Value::Float(a), Value::Int(b)) => Ok(Value::Bool(float_op(a, b as f64))),
-            (Value::String(a), Value::String(b)) => Ok(Value::Bool(a < b)),
+            (Value::String(a), Value::String(b)) => Ok(Value::Bool(str_op(a.as_str(), b.as_str()))),
             (left, right) => Err(RuntimeError::TypeError {
                 expected: "comparable types".to_string(),
                 got: format!("{} and {}", left.type_name(), right.type_name()),

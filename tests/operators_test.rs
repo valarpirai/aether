@@ -206,3 +206,39 @@ fn test_bitwise_lower_than_comparison() {
     // bitwise AND binds tighter than ==, but looser than comparison
     assert_eq!(eval("(3 & 1) == 1").unwrap(), "true");
 }
+
+// --- String comparison (lexicographic) ---
+
+#[test]
+fn test_string_less_than() {
+    assert_eq!(eval(r#""apple" < "banana""#).unwrap(), "true");
+    assert_eq!(eval(r#""z" < "a""#).unwrap(), "false");
+}
+
+#[test]
+fn test_string_greater_than() {
+    assert_eq!(eval(r#""banana" > "apple""#).unwrap(), "true");
+    assert_eq!(eval(r#""A" > "Z""#).unwrap(), "false");
+}
+
+#[test]
+fn test_string_less_equal() {
+    assert_eq!(eval(r#""abc" <= "abc""#).unwrap(), "true");
+    assert_eq!(eval(r#""abc" <= "abd""#).unwrap(), "true");
+    assert_eq!(eval(r#""abd" <= "abc""#).unwrap(), "false");
+}
+
+#[test]
+fn test_string_greater_equal() {
+    assert_eq!(eval(r#""abc" >= "abc""#).unwrap(), "true");
+    assert_eq!(eval(r#""abd" >= "abc""#).unwrap(), "true");
+    assert_eq!(eval(r#""abc" >= "abd""#).unwrap(), "false");
+}
+
+#[test]
+fn test_string_char_order() {
+    assert_eq!(eval(r#""A" < "Z""#).unwrap(), "true");
+    assert_eq!(eval(r#""H" < "Z""#).unwrap(), "true");
+    assert_eq!(eval(r#""H" > "Z""#).unwrap(), "false");
+    assert_eq!(eval(r#""a" > "A""#).unwrap(), "true");
+}

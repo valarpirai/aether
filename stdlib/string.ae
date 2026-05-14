@@ -159,9 +159,9 @@ fn is_alpha(string) {
     if (len(string) == 0) {
         return false
     }
-    let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
     for ch in string {
-        if (!letters.contains(ch)) {
+        let u = ch.upper()
+        if (u < "A" || u > "Z") {
             return false
         }
     }
@@ -173,9 +173,8 @@ fn is_digit(string) {
     if (len(string) == 0) {
         return false
     }
-    let digits = "0123456789"
     for ch in string {
-        if (!digits.contains(ch)) {
+        if (ch < "0" || ch > "9") {
             return false
         }
     }
