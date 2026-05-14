@@ -1,48 +1,88 @@
 fn main() {
-    // --- Reference semantics ---
-    println("=== Reference semantics ===")
+    // --- Reference semantics: == is identity ---
+    println("=== == is identity ===")
     let a = [1, 2, 3]
     let b = a
-    println("id(a) == id(b):", id(a) == id(b))
-    b.push(4)
-    println("a after b.push(4):", a)
-    println("b:", b)
+    let c = [1, 2, 3]
+    println("a == b (same ref):", a == b)       // true
+    println("a == c (diff ref):", a == c)       // false
 
-    // dict reference
-    let cfg = {"host": "localhost", "port": 5432}
-    let conn = cfg
-    conn["timeout"] = 30
-    println("cfg after conn mutation:", cfg)
+    let d = {"x": 1}
+    let e = d
+    let f = {"x": 1}
+    println("d == e (same ref):", d == e)       // true
+    println("d == f (diff ref):", d == f)       // false
+
+    // --- .equals() is deep structural ---
+    println("")
+    println("=== .equals() is deep structural ===")
+    println("a.equals(c):", a.equals(c))        // true
+    println("d.equals(f):", d.equals(f))        // true
+    println("[[1,2]].equals([[1,2]]):", [[1, 2]].equals([[1, 2]]))  // true
+
+    // --- Struct == is identity ---
+    println("")
+    println("=== struct == is identity ===")
+    struct Point { x, y }
+    let p1 = Point { x: 1, y: 2 }
+    let p2 = p1
+    let p3 = Point { x: 1, y: 2 }
+    println("p1 == p2 (same ref):", p1 == p2)   // true
+    println("p1 == p3 (diff ref):", p1 == p3)   // false
+
+    // --- struct.equals() is depth-1 ---
+    println("")
+    println("=== struct.equals() depth-1 ===")
+    println("p1.equals(p3):", p1.equals(p3))    // true (int fields, value equality)
+
+    // array fields: uses == (identity) at depth 1
+    struct Bag { items }
+    let b1 = Bag { items: [1, 2, 3] }
+    let b2 = Bag { items: [1, 2, 3] }
+    let arr = [1, 2, 3]
+    let b3 = Bag { items: arr }
+    let b4 = Bag { items: arr }
+    println("b1.equals(b2) (diff arrays):", b1.equals(b2))  // false
+    println("b3.equals(b4) (same array):", b3.equals(b4))   // true
+
+    // nested structs: identity at depth 1
+    struct Outer { inner }
+    let shared_inner = Point { x: 10, y: 20 }
+    let o1 = Outer { inner: Point { x: 10, y: 20 } }
+    let o2 = Outer { inner: Point { x: 10, y: 20 } }
+    let o3 = Outer { inner: shared_inner }
+    let o4 = Outer { inner: shared_inner }
+    println("o1.equals(o2) (diff inner):", o1.equals(o2))   // false
+    println("o3.equals(o4) (same inner):", o3.equals(o4))   // true
+
+    // --- copy() is depth-1 shallow ---
+    println("")
+    println("=== copy() is depth-1 shallow ===")
+    let orig = [1, 2, 3]
+    let dup = copy(orig)
+    dup.push(99)
+    println("orig after dup.push:", orig)       // [1, 2, 3] — outer is independent
+
+    let nested = [[1, 2], [3, 4]]
+    let dup2 = copy(nested)
+    dup2[0].push(99)
+    println("nested after dup2[0].push:", nested)  // [[1, 2, 99], [3, 4]] — inner shared
+
+    // copy() on struct
+    struct Node { val, data }
+    let n = Node { val: 1, data: [10, 20] }
+    let m = copy(n)
+    m.val = 99
+    m.data.push(30)
+    println("n.val after m.val=99:", n.val)     // 1 — scalar field independent
+    println("n.data after m.data.push:", n.data) // [10, 20, 30] — array field shared
 
     // --- id() ---
     println("")
     println("=== id() ===")
     let x = [1, 2, 3]
-    let y = [1, 2, 3]
-    println("id(x):", id(x))
-    println("id(y):", id(y))
-    println("same object:", id(x) == id(y))
-
-    let z = x
-    println("id(z) == id(x):", id(z) == id(x))
-
-    // --- Deep equality ---
-    println("")
-    println("=== Deep equality ===")
-    let p = [1, 2, [3, 4]]
-    let q = [1, 2, [3, 4]]
-    println("p == q (nested):", p == q)
-    println("p is q (same ref):", id(p) == id(q))
-
-    // --- copy() ---
-    println("")
-    println("=== copy() ===")
-    let orig = [[1, 2], [3, 4]]
-    let dup = copy(orig)
-    println("orig == dup before mutation:", orig == dup)
-    println("id(orig) == id(dup):", id(orig) == id(dup))
-    dup[0].push(99)
-    println("orig after dup mutation:", orig)
-    println("dup:", dup)
-    println("orig == dup after mutation:", orig == dup)
+    let y = x
+    println("id(x) == id(y):", id(x) == id(y))  // true — same object
+    let z = copy(x)
+    println("id(x) == id(z):", id(x) == id(z))  // false — different object
 }
