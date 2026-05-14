@@ -724,6 +724,24 @@ impl Evaluator {
             },
         );
 
+        // CSV functions
+        self.environment.define(
+            "csv_parse".to_string(),
+            Value::BuiltinFn {
+                name: "csv_parse".to_string(),
+                arity: usize::MAX, // 1 or 2 args
+                func: builtins::builtin_csv_parse,
+            },
+        );
+        self.environment.define(
+            "csv_stringify".to_string(),
+            Value::BuiltinFn {
+                name: "csv_stringify".to_string(),
+                arity: usize::MAX, // 1 or 2 args
+                func: builtins::builtin_csv_stringify,
+            },
+        );
+
         // HTTP functions
         self.environment.define(
             "http_get".to_string(),

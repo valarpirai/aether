@@ -930,6 +930,167 @@ pub fn parse_http_opts(val: &Value) -> Result<HttpOptions, RuntimeError> {
     })
 }
 
+fn parse_csv_inner(input: &str, delimiter: char) -> Vec<Vec<String>> {
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    let mut row: Vec<String> = Vec::new();
+    let mut field = String::new();
+    let mut in_quotes = false;
+    let mut chars = input.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if in_quotes {
+            if ch == '"' {
+                if chars.peek() == Some(&'"') {
+                    chars.next();
+                    field.push('"');
+                } else {
+                    in_quotes = false;
+                }
+            } else {
+                field.push(ch);
+            }
+        } else if ch == '"' {
+            in_quotes = true;
+        } else if ch == delimiter {
+            row.push(field.clone());
+            field.clear();
+        } else if ch == '\r' {
+            if chars.peek() == Some(&'\n') {
+                chars.next();
+            }
+            row.push(field.clone());
+            field.clear();
+            rows.push(row.clone());
+            row.clear();
+        } else if ch == '\n' {
+            row.push(field.clone());
+            field.clear();
+            rows.push(row.clone());
+            row.clear();
+        } else {
+            field.push(ch);
+        }
+    }
+
+    row.push(field);
+    if !row.iter().all(|s| s.is_empty()) || !rows.is_empty() {
+        rows.push(row);
+    }
+    rows
+}
+
+fn stringify_csv_inner(rows: &[Value], delimiter: char) -> Result<String, RuntimeError> {
+    let mut lines: Vec<String> = Vec::new();
+    for row_val in rows {
+        let fields = match row_val {
+            Value::Array(rc) => rc.borrow().clone(),
+            other => {
+                return Err(RuntimeError::TypeError {
+                    expected: "array".to_string(),
+                    got: other.type_name().to_string(),
+                })
+            }
+        };
+        let mut parts: Vec<String> = Vec::new();
+        for field in &fields {
+            let s = format!("{}", field);
+            let delim_str = delimiter.to_string();
+            if s.contains(delimiter) || s.contains('"') || s.contains('\n') {
+                parts.push(format!("\"{}\"", s.replace('"', "\"\"")));
+            } else if s.contains(&delim_str) {
+                parts.push(format!("\"{}\"", s));
+            } else {
+                parts.push(s);
+            }
+        }
+        lines.push(parts.join(&delimiter.to_string()));
+    }
+    Ok(lines.join("\n"))
+}
+
+pub fn builtin_csv_parse(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.is_empty() || args.len() > 2 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    let input = match &args[0] {
+        Value::String(s) => s.as_str(),
+        other => {
+            return Err(RuntimeError::TypeError {
+                expected: "string".to_string(),
+                got: other.type_name().to_string(),
+            })
+        }
+    };
+    let delimiter = if args.len() == 2 {
+        match &args[1] {
+            Value::String(s) if s.chars().count() == 1 => s.chars().next().unwrap(),
+            Value::String(s) => {
+                return Err(RuntimeError::InvalidOperation(format!(
+                    "csv delimiter must be a single character, got {:?}",
+                    s.as_str()
+                )))
+            }
+            other => {
+                return Err(RuntimeError::TypeError {
+                    expected: "string".to_string(),
+                    got: other.type_name().to_string(),
+                })
+            }
+        }
+    } else {
+        ','
+    };
+    let rows = parse_csv_inner(input, delimiter);
+    let value = Value::array(
+        rows.into_iter()
+            .map(|row| Value::array(row.into_iter().map(Value::string).collect()))
+            .collect(),
+    );
+    Ok(value)
+}
+
+pub fn builtin_csv_stringify(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.is_empty() || args.len() > 2 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    let rows = match &args[0] {
+        Value::Array(rc) => rc.borrow().clone(),
+        other => {
+            return Err(RuntimeError::TypeError {
+                expected: "array".to_string(),
+                got: other.type_name().to_string(),
+            })
+        }
+    };
+    let delimiter = if args.len() == 2 {
+        match &args[1] {
+            Value::String(s) if s.chars().count() == 1 => s.chars().next().unwrap(),
+            Value::String(s) => {
+                return Err(RuntimeError::InvalidOperation(format!(
+                    "csv delimiter must be a single character, got {:?}",
+                    s.as_str()
+                )))
+            }
+            other => {
+                return Err(RuntimeError::TypeError {
+                    expected: "string".to_string(),
+                    got: other.type_name().to_string(),
+                })
+            }
+        }
+    } else {
+        ','
+    };
+    let result = stringify_csv_inner(&rows, delimiter)?;
+    Ok(Value::string(result))
+}
+
 /// Built-in function: http_get(url [, opts]) -> string
 pub fn builtin_http_get(args: &[Value]) -> Result<Value, RuntimeError> {
     if args.is_empty() || args.len() > 2 {

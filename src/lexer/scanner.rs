@@ -330,6 +330,7 @@ impl Scanner {
                 }
                 let escaped = match self.peek() {
                     'n' => '\n',
+                    'r' => '\r',
                     't' => '\t',
                     '\\' => '\\',
                     '"' => '"',

@@ -1,0 +1,49 @@
+fn main() {
+    // --- csv_parse ---
+    println("=== csv_parse ===")
+    let text = "name,age,city\nAlice,30,New York\nBob,25,London"
+    let rows = csv_parse(text)
+    println("headers:", rows[0])
+    println("row 1:", rows[1])
+    println("Alice's city:", rows[1][2])
+
+    // quoted fields with commas inside
+    let messy = "\"Smith, John\",42,\"New York, NY\""
+    let parsed = csv_parse(messy)
+    println("quoted name:", parsed[0][0])
+    println("quoted city:", parsed[0][2])
+
+    // custom delimiter
+    let tsv = "a\tb\tc\n1\t2\t3"
+    let tsv_rows = csv_parse(tsv, "\t")
+    println("tsv row 0:", tsv_rows[0])
+    println("tsv row 1:", tsv_rows[1])
+
+    // --- csv_stringify ---
+    println("")
+    println("=== csv_stringify ===")
+    let data = [
+        ["product", "price", "note"],
+        ["Apple", "1.50", "fresh"],
+        ["Banana", "0.75", "large, ripe"]
+    ]
+    let csv_text = csv_stringify(data)
+    println(csv_text)
+
+    // custom delimiter
+    let ssv = csv_stringify(data, ";")
+    println("semicolon delimited:")
+    println(ssv)
+
+    // --- roundtrip ---
+    println("")
+    println("=== roundtrip ===")
+    let original = [
+        ["city", "note"],
+        ["New York", "big, busy"],
+        ["say \"hi\"", "quoted"]
+    ]
+    let encoded = csv_stringify(original)
+    let decoded = csv_parse(encoded)
+    println("roundtrip matches:", decoded.equals(original))
+}
