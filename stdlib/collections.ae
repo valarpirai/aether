@@ -216,3 +216,85 @@ fn sum_by(array, func) {
     }
     return total
 }
+
+// first(array) - First element, or null if empty
+fn first(array) {
+    if (len(array) == 0) {
+        return null
+    }
+    return array[0]
+}
+
+// last(array) - Last element, or null if empty
+fn last(array) {
+    let n = len(array)
+    if (n == 0) {
+        return null
+    }
+    return array[n - 1]
+}
+
+// chunk(array, size) - Split array into chunks of given size
+fn chunk(array, size) {
+    let result = []
+    let i = 0
+    let n = len(array)
+    while (i < n) {
+        let end = i + size
+        if (end > n) {
+            end = n
+        }
+        result.push(array[i:end])
+        i = i + size
+    }
+    return result
+}
+
+// partition(array, predicate) - Returns [matches, non_matches]
+fn partition(array, predicate) {
+    let yes = []
+    let no = []
+    for item in array {
+        if (predicate(item)) {
+            yes.push(item)
+        } else {
+            no.push(item)
+        }
+    }
+    return [yes, no]
+}
+
+// zip_longest(arr1, arr2, fill) - Zip, padding the shorter with fill
+fn zip_longest(arr1, arr2, fill) {
+    let n1 = len(arr1)
+    let n2 = len(arr2)
+    let n = n1
+    if (n2 > n) {
+        n = n2
+    }
+    let result = []
+    let i = 0
+    while (i < n) {
+        let a = fill
+        let b = fill
+        if (i < n1) { a = arr1[i] }
+        if (i < n2) { b = arr2[i] }
+        result.push([a, b])
+        i = i + 1
+    }
+    return result
+}
+
+// uniq_by(array, fn) - Remove all duplicates by key function (stable, preserves first occurrence)
+fn uniq_by(array, func) {
+    let seen = {}
+    let result = []
+    for item in array {
+        let key = str(func(item))
+        if (!seen.contains(key)) {
+            seen[key] = true
+            result.push(item)
+        }
+    }
+    return result
+}
