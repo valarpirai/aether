@@ -78,7 +78,7 @@ pub enum Value {
 - Mutable aggregate values (`Instance` fields, `Iterator` state, `Promise` state) use `Rc<RefCell<T>>`.
 - Helper constructors: `Value::string(s)`, `Value::array(v)`, `Value::dict(pairs)`, `Value::set(h)`, `Value::promise(func, args)`, `Value::promise_io(rx)`.
 
-See [GC_DESIGN.md](GC_DESIGN.html) for details.
+See [MEMORY_MANAGEMENT.md](MEMORY_MANAGEMENT.html) for details.
 
 ## Evaluator Struct
 
@@ -194,4 +194,4 @@ let mut eval = Evaluator::new_without_stdlib();
 **Status**: Complete
 
 ---
-[← Parser](PARSER.html) &nbsp;&nbsp; [Garbage Collection →](GC_DESIGN.html)
+[← Parser](PARSER.html) &nbsp;&nbsp; [Memory Management →](MEMORY_MANAGEMENT.html)

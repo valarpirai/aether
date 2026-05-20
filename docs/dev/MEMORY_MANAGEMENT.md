@@ -1,15 +1,85 @@
 ---
 layout: default
-title: "Aether — Garbage Collection"
+title: "Aether — Memory Management"
 ---
 
-[Home](../index.html) › Developer Docs › Garbage Collection
+[Home](../index.html) › Developer Docs › Memory Management
 
-# Garbage Collection Design
+# Memory Management
 
 **Status**: ✅ Complete
 **Priority**: Critical (fixed 135 GB memory leak)
 **Approach**: Reference Counting with Rc<T>
+
+## Memory Model Decision
+
+### Why Not Stack + Heap?
+
+Languages like C, Java, and Go use two distinct regions:
+
+- **Stack** — local variables at fixed slot offsets, managed by the hardware stack pointer, freed on function return (LIFO).
+- **Heap** — dynamically allocated objects, freed by GC or `free()`.
+
+This model works because a **compiler** runs first and assigns every local variable a numeric slot index before the program executes:
+
+```
+Compile time:             Runtime:
+  int x = 1;    →    frame[0] = 1   (fixed offset, O(1) access)
+  int y = 2;    →    frame[1] = 2   (compiler assigned the slot)
+```
+
+Aether is a **tree-walking interpreter** — it evaluates the AST directly through recursive Rust function calls. There is no compilation step. At runtime the only handle on a variable is its name (`"x"`), not a numeric slot. The Rust call stack is the interpreter's call stack.
+
+To use a proper value stack for locals, one of the following would be required:
+
+1. **A compiler pass** — analyse the AST, assign each local a slot index, emit bytecode. This is how CPython and the JVM work.
+2. **A runtime name→index table per frame** — same HashMap lookup cost as the current approach, but far more complex to implement.
+
+Without (1), a `Vec<Value>` stack gives no advantage over `HashMap<String, Value>` because names still have to be resolved to indices at runtime.
+
+### Memory Model Comparison
+
+| Approach | Examples | How locals work | Tradeoffs |
+|---|---|---|---|
+| Tree-walking (Aether) | Early Ruby MRI, early Python | `HashMap<name, Value>` per scope | Simple; name lookup per access |
+| Bytecode VM | CPython, JVM, V8 Ignition | `frame[slot_index]` — O(1) indexed access | Requires compiler pass; much faster |
+| JIT compiled | V8 TurboFan, HotSpot | Real machine stack, register allocation | Fastest; most complex |
+
+### Why Reference Counting (`Rc<T>`)?
+
+Given that Aether is a tree-walker, variables live in `Environment` (a `HashMap<String, Value>`). The right question becomes: how do values share data without cloning it on every assignment?
+
+**Option A — Clone on every assignment (initial state)**
+- Every `Value::String(String)` copy duplicated the heap string.
+- Result: 135 GB memory usage in the test suite.
+
+**Option B — Arena allocator**
+- Allocate all values into a single region; free the whole arena at once.
+- Incompatible with per-scope lifetimes and closures that outlive their defining scope.
+
+**Option C — Tracing GC (mark-and-sweep)**
+- Periodically scan from roots, collect unreachable objects.
+- Handles cycles automatically.
+- Requires a centralised heap registry to enumerate all live objects; `Rc<T>` scattered across Rust's allocator has no such registry.
+- Significant implementation complexity for the current phase.
+
+**Option D — Reference Counting (`Rc<T>`) ← chosen**
+- Wrap heap-allocated values in `Rc<T>`; cloning only copies the pointer and increments a counter.
+- Memory freed immediately when the last reference drops (RC = 0).
+- Zero infrastructure beyond what Rust provides; composable with `RefCell<T>` for interior mutability.
+- Known limitation: reference cycles keep RC ≥ 1 and are never freed. Mitigated by exposing `make_weak()` / `upgrade_weak()` for user code.
+
+### Upgrade Path
+
+If Aether outgrows the tree-walking model, the natural evolution is:
+
+```
+Current:  AST → tree-walking evaluator  (HashMap scopes, Rc values)
+Step 1:   AST → bytecode compiler → bytecode VM  (frame stack, slot indices)
+Step 2:   hot bytecode → JIT to machine code  (real stack frames, registers)
+```
+
+This mirrors CPython (added bytecode compiler in 1994) and V8 (Ignition bytecode → TurboFan JIT). It is a significant redesign and not planned for the current phase.
 
 ## Problem Statement
 
@@ -247,7 +317,7 @@ use std::sync::Arc;  // Thread-safe RC
 
 ---
 
-**Last Updated**: April 17, 2026
+**Last Updated**: May 20, 2026
 **Phase**: 5 Complete (base)
 **Status**: Rc-based GC implemented and working, 99%+ memory reduction achieved
 

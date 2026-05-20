@@ -67,7 +67,7 @@ docs/
 ├── JSON.md             # JSON support
 ├── TIME.md             # Time functions
 ├── HTTP.md             # HTTP functions
-└── GC_DESIGN.md        # Garbage collection
+└── MEMORY_MANAGEMENT.md        # Garbage collection
 ```
 
 ## Navigation

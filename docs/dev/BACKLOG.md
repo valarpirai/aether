@@ -376,4 +376,4 @@ struct Dog extends Animal implements Printable {
 - JIT compilation — follow bytecode compiler first
 
 ---
-[← Garbage Collection](GC_DESIGN.html) &nbsp;&nbsp; [Home →](../index.html)
+[← Memory Management](MEMORY_MANAGEMENT.html) &nbsp;&nbsp; [Home →](../index.html)

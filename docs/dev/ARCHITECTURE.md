@@ -53,7 +53,7 @@ Source Code (.ae)
 | **Event Loop** | ✅ Complete | Callback-based async | See [EVENT_LOOP.md](EVENT_LOOP.html) |
 | **REPL** | ✅ Complete | Interactive mode | See [REPL.md](REPL.html) |
 | **Standard Library** | ✅ Complete | Core functions | See [STDLIB.md](STDLIB.html) |
-| **Garbage Collection** | ✅ Complete | Memory management | See [GC_DESIGN.md](GC_DESIGN.html) |
+| **Memory Management** | ✅ Complete | Memory management | See [MEMORY_MANAGEMENT.md](MEMORY_MANAGEMENT.html) |
 
 ### Project Structure
 
@@ -302,7 +302,7 @@ See **[BACKLOG.md](BACKLOG.html)** for the full prioritised list. Top items:
 - **[INTERPRETER.md](INTERPRETER.html)** — Execution engine implementation
 - **[REPL.md](REPL.html)** — Interactive mode implementation
 - **[STDLIB.md](STDLIB.html)** — Standard library design
-- **[GC_DESIGN.md](GC_DESIGN.html)** — Garbage collection architecture
+- **[MEMORY_MANAGEMENT.md](MEMORY_MANAGEMENT.html)** — Garbage collection architecture
 
 **Language Features:**
 - **[STRUCT.md](STRUCT.html)** — User-defined types with fields and methods

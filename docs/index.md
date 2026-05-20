@@ -168,7 +168,7 @@ Start here if you want to extend the language, fix a bug, or understand how the 
 | [Lexer](dev/LEXER.html) | Tokenisation — `src/lexer/` |
 | [Parser](dev/PARSER.html) | Recursive descent parsing — `src/parser/` |
 | [Interpreter](dev/INTERPRETER.html) | Tree-walking evaluator — `src/interpreter/evaluator/` |
-| [Garbage Collection](dev/GC_DESIGN.html) | Rc-based memory management and cycle avoidance |
+| [Memory Management](dev/MEMORY_MANAGEMENT.html) | Rc-based memory management and cycle avoidance |
 | [Event Loop Internals](dev/EVENT_LOOP.html) | on_ready, event_loop, queue controls |
 | [Backlog](dev/BACKLOG.html) | Planned features and open design questions |
 
