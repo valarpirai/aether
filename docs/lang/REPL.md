@@ -21,6 +21,18 @@ aether
 aether examples/hello.ae
 ```
 
+## CLI subcommands
+
+| Command | What it does |
+|---------|-------------|
+| `aether ast <file>` | Print the AST as an indented tree |
+| `aether ast --json <file>` | Print the AST as JSON |
+| `aether ast --json --output out.json <file>` | Write AST JSON to a file |
+| `aether fmt <file>` | Format an Aether source file in place |
+| `aether fmt --check <file>` | Check formatting without writing; exits 1 if unformatted |
+| `aether test [dir\|file]` | Discover and run `*_test.ae` files |
+| `aether check <file>` | Check for undefined variables without running |
+
 ## Session example
 
 ```

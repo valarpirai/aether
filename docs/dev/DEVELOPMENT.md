@@ -106,9 +106,10 @@ src/
 │   ├── token.rs           # Token type definitions
 │   ├── scanner.rs         # Tokenization logic
 │   └── lexer_tests.rs     # Lexer tests (14 tests) ✅
+├── test_runner.rs         # aether test subcommand — discovers and runs *_test.ae files
 ├── parser/
 │   ├── mod.rs             # Parser module exports
-│   ├── ast.rs             # AST node definitions
+│   ├── ast.rs             # AST node definitions + AST printer (run_ast, program_to_tree, program_to_json)
 │   ├── parse.rs           # Recursive descent parser
 │   └── parser_tests.rs    # Parser tests (53 tests) ✅
 └── interpreter/           # ✅ Complete

@@ -6,6 +6,7 @@ use aether_lang::checker;
 use aether_lang::formatter;
 use aether_lang::interpreter::Evaluator;
 use aether_lang::lexer::Scanner;
+use aether_lang::parser;
 use aether_lang::parser::Parser;
 use aether_lang::repl;
 use aether_lang::test_runner;
@@ -35,6 +36,10 @@ fn main() {
         println!("  -h, --help             Print this help and exit");
         println!();
         println!("Subcommands:");
+        println!("  ast [--json] [--output <file>] <file>");
+        println!(
+            "                         Print the AST (default: indented tree; --json for JSON)"
+        );
         println!("  fmt [--check] <file>   Format an Aether source file");
         println!(
             "    --check              Check formatting without writing; exit 1 if unformatted"
@@ -45,6 +50,11 @@ fn main() {
         println!();
         println!("If no subcommand or script is given, starts the interactive REPL.");
         return;
+    }
+
+    if first == "ast" {
+        let exit_code = parser::ast::run_ast(&args[2..]);
+        process::exit(exit_code);
     }
 
     if first == "fmt" {
