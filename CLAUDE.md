@@ -303,3 +303,9 @@ Top-of-backlog highlights: `format()`, variadic args, enums/tuples, named/defaul
 ## Documentation
 - gh-pages branch is used for the GitHub Pages website
 - Update docs in gh-pages when adding new user-facing features
+
+## Rules
+
+Before starting any task, check `.claude/rules/index.md` for the matching rule file and follow it.
+
+Rules live in `.claude/rules/`. Each file covers one action. Load the file for the task at hand.
