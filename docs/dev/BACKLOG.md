@@ -359,11 +359,11 @@ struct Dog extends Animal implements Printable {
 
 | Tool | Description |
 |------|-------------|
-| `aether fmt` | Auto-formatter for `.ae` files |
-| `aether check` | Type checker / linter without running |
-| `aether test` | Built-in test runner |
+| ~~`aether fmt`~~ | ~~Auto-formatter for `.ae` files~~ — **shipped 2026-05-23** |
+| ~~`aether check`~~ | ~~Type checker / linter without running~~ — **shipped 2026-05-23** (undefined variable detection) |
+| ~~`aether test`~~ | ~~Built-in test runner~~ — **shipped 2026-05-23** |
+| ~~REPL multi-line input~~ | ~~Paste multi-line code blocks in the REPL~~ — **shipped 2026-05-23** |
 | Package manager | `aether.toml`, versioned deps, registry |
-| REPL multi-line input | Paste multi-line code blocks in the REPL |
 | ~~Debugger~~ | ~~Breakpoints, step-through, variable inspection~~ — **shipped 2026-04-30** |
 | Bytecode compiler | Replace tree-walking interpreter; 5–20× speedup |
 

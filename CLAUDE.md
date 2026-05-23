@@ -79,6 +79,8 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 | Add statement execution | `src/interpreter/evaluator/statements.rs` | — |
 | Add expression evaluation | `src/interpreter/evaluator/expressions.rs` | — |
 | Add I/O async builtin | `src/interpreter/evaluator/functions.rs` (`try_submit_io_task`) | `tests/io_pool_test.rs` |
+| Extend static checker | `src/checker.rs` | `tests/checker_test.rs` |
+| Extend formatter | `src/formatter.rs` | `tests/fmt_test.rs` |
 
 ### Evaluator Sub-module Layout
 
@@ -195,8 +197,9 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, sign, join, repeat, reverse, starts_with, ends_with, first, last, chunk, partition, zip_longest, uniq_by, contains, index_of, replace, count, pad_left, pad_right, strip_prefix, strip_suffix, is_alpha, is_digit, is_space, pi, e, tau, factorial, trunc, degrees, radians, hypot, exp, sin, cos, tan |
 | **Number/string conversions** | `hex(n)`, `oct(n)`, `bin(n)`, `int(s, base)`, `base64_encode(s)`, `base64_decode(s)` |
 | **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
-| **REPL** | rustyline with history (`~/.aether_history`), tab-completion, `_help`/`_env`/`_exit` |
+| **REPL** | rustyline with history (`~/.aether_history`), tab-completion, `_help`/`_env`/`_exit`, multi-line input (`>>` / `..`) |
 | **Configuration** | `AETHER_IO_WORKERS`, `AETHER_CALL_DEPTH`, `HOME` (see [CONFIGURATION.md](docs/lang/CONFIGURATION.md)) |
+| **Tooling** | `aether fmt` (formatter), `aether test` (test runner), `aether check` (undefined variable linter) |
 
 ### Completed Milestones
 
@@ -211,10 +214,11 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | Phase 5 Sprint 3: Async/await + I/O pool | 476 |
 | Phase 5 Sprint 4: Error context + stack traces | ~547 |
 | Phase 5 Sprint 5: Null safety + Event loop | ~693 |
+| Phase 5 Sprint 6: Tooling (fmt, test, check, REPL multi-line) | ~1112 |
 
-### Test Coverage (2026-04-30)
+### Test Coverage (2026-05-23)
 
-- **Total**: ~859 tests passing (134 unit + ~725 integration)
+- **Total**: ~1112 tests passing (134 unit + ~978 integration)
 - **Ignored/skipped**: 5 http tests (require network), 2 known recursion stack-overflow
 - **Code quality**: cargo clippy clean (5 acceptable `mutable_key_type` warnings for HashSet)
 
@@ -276,6 +280,9 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | `file_io_test` | 2 |
 | `small_recursion_test` | 2 |
 | `recursion_limit_test` | 2 |
+| `fmt_test` | 26 |
+| `checker_test` | 27 |
+| `test_runner_test` | 10 |
 
 ### Backlog
 

@@ -36,6 +36,31 @@ Current environment: ...
 Goodbye!
 ```
 
+## Multi-line input
+
+The REPL automatically detects incomplete input and shows a `.. ` continuation prompt until the block is closed. Press **Ctrl+C** to cancel a multi-line block.
+
+```
+>> fn greet(name) {
+..     return "Hello " + name
+.. }
+>> greet("Alice")
+Hello Alice
+>> if (x > 0) {
+..     println("positive")
+.. }
+positive
+```
+
+Triple-quoted strings also continue across lines:
+
+```
+>> let msg = """
+..     hello
+..     world
+.. """
+```
+
 ## Special commands
 
 | Command | What it does |
