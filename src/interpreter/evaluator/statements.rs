@@ -75,6 +75,9 @@ impl Evaluator {
             Stmt::Break(label) => Ok(ControlFlow::Break(label.clone())),
             Stmt::Continue(label) => Ok(ControlFlow::Continue(label.clone())),
             Stmt::Function(name, params, body) => {
+                if name == "main" && self.environment.bindings().contains_key("main") {
+                    return Err(RuntimeError::DuplicateFunction { name: name.clone() });
+                }
                 let func = Value::Function {
                     params: params.clone(),
                     body: Rc::clone(body),
@@ -84,6 +87,9 @@ impl Evaluator {
                 Ok(ControlFlow::None)
             }
             Stmt::AsyncFunction(name, params, body) => {
+                if name == "main" && self.environment.bindings().contains_key("main") {
+                    return Err(RuntimeError::DuplicateFunction { name: name.clone() });
+                }
                 let func = Value::AsyncFunction {
                     params: params.clone(),
                     body: Rc::clone(body),

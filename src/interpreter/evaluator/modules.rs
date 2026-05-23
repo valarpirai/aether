@@ -58,6 +58,13 @@ impl Evaluator {
 
         self.modules.loading_stack.retain(|m| m != module_name);
 
+        if module_env.bindings().contains_key("main") {
+            return Err(RuntimeError::ReservedName {
+                name: "main".to_string(),
+                module: module_name.to_string(),
+            });
+        }
+
         self.modules
             .cache
             .insert(module_name.to_string(), module_env.clone());
@@ -166,16 +173,25 @@ impl Evaluator {
 
     /// Resolve and execute a module, checking embedded stdlib before the filesystem.
     fn load_module_env(&mut self, module_name: &str) -> Result<Environment, RuntimeError> {
-        if let Some(src) = super::super::stdlib::stdlib_modules()
+        let env = if let Some(src) = super::super::stdlib::stdlib_modules()
             .into_iter()
             .find(|(name, _)| *name == module_name)
             .map(|(_, src)| src)
         {
-            self.execute_module_source(module_name, src)
+            self.execute_module_source(module_name, src)?
         } else {
             let path = self.resolve_module_path(module_name)?;
-            self.execute_module_file(&path)
+            self.execute_module_file(&path)?
+        };
+
+        if env.bindings().contains_key("main") {
+            return Err(RuntimeError::ReservedName {
+                name: "main".to_string(),
+                module: module_name.to_string(),
+            });
         }
+
+        Ok(env)
     }
 
     /// Execute Aether source code in an isolated environment and return its bindings.

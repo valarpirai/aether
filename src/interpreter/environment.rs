@@ -98,6 +98,15 @@ pub enum RuntimeError {
     InvalidSpread {
         got: String,
     },
+
+    // --- Declarations ---
+    DuplicateFunction {
+        name: String,
+    },
+    ReservedName {
+        name: String,
+        module: String,
+    },
 }
 
 impl std::fmt::Display for RuntimeError {
@@ -187,6 +196,16 @@ impl std::fmt::Display for RuntimeError {
             }
             RuntimeError::InvalidSpread { got } => {
                 write!(f, "Spread operator requires an array, got '{}'", got)
+            }
+            RuntimeError::DuplicateFunction { name } => {
+                write!(f, "Function '{}' is already defined in this scope", name)
+            }
+            RuntimeError::ReservedName { name, module } => {
+                write!(
+                    f,
+                    "Module '{}' defines '{}', which is reserved for the program entry point",
+                    module, name
+                )
             }
         }
     }
