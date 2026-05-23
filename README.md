@@ -1,316 +1,348 @@
 # Aether Programming Language
 
-**Website**: https://valarpirai.github.io/aether/ | **Crate**: [aether-lang](https://crates.io/crates/aether-lang)
+[![crates.io](https://img.shields.io/crates/v/aether-lang.svg)](https://crates.io/crates/aether-lang)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A general-purpose, dynamically typed programming language with automatic memory management.
+**Website**: https://valarpirai.github.io/aether/ &nbsp;|&nbsp;
+**Crate**: [aether-lang on crates.io](https://crates.io/crates/aether-lang) &nbsp;|&nbsp;
+**Docs**: [Language Reference](https://valarpirai.github.io/aether/lang/) · [Developer Docs](https://valarpirai.github.io/aether/dev/)
 
-## Overview
+A general-purpose, dynamically typed programming language implemented in Rust — a fully-working tree-walking interpreter with a rich standard library, async I/O, structs, and a module system.
 
-Aether combines the familiarity of C-like syntax with the ease of use of modern interpreted languages. It features:
+---
 
-- **Dynamic typing** with runtime type checking
-- **Automatic memory management** through garbage collection
-- **C-like syntax** with curly braces, no semicolons
-- **First-class functions** with closures
-- **Block-scoped variables** using the `let` keyword
-- **Modern control flow** with range-based and for-each loops
-- **String interpolation** with `"Hello ${name}"` syntax
-- **Interactive REPL** for rapid development
+## Features
+
+| Area | What's included |
+|------|----------------|
+| **Types** | `int`, `float`, `string`, `bool`, `null`, `array`, `dict`, `set` |
+| **Operators** | arithmetic, comparison, logical, bitwise `& \| ^ ~ << >>`, power `**`, ternary `?:`, null coalesce `??`, optional chain `?.` |
+| **Functions** | declarations, expressions, closures, optional params, recursion |
+| **Strings** | interpolation `"Hello ${name}"`, indexing, slicing, upper/lower/trim/split |
+| **Collections** | array (push/pop/sort/slice/spread), dict (keys/values/contains), set (union/intersection/difference) |
+| **Pattern matching** | `match` with literals, wildcards `_`, bind, enum variants, or-patterns `\|` |
+| **Destructuring** | `let [a, b, ...rest] = arr`, `let {host, port: p = 5432} = dict` |
+| **Error handling** | `try`/`catch`/`throw` with `e.message` and `e.stack_trace` |
+| **Modules** | `import mod`, `from mod import fn`, `import mod as alias` |
+| **Structs** | fields, methods, `self` binding |
+| **Async/await** | `async fn`, `await`, `Promise.all`, `Promise.race`, `Promise.allSettled`, I/O thread pool |
+| **Null safety** | `??` null coalescing, `?.` optional chaining |
+| **Standard library** | 70+ functions: range, map, filter, reduce, math, string, testing and more |
+| **Tooling** | `aether fmt` formatter, `aether test` runner, `aether check` linter |
+| **REPL** | history, tab-completion, multi-line input |
+
+---
+
+## Installation
+
+### From crates.io
+
+```bash
+cargo install aether-lang
+aether --version   # aether 0.2.0
+```
+
+### From source
+
+```bash
+git clone https://github.com/valarpirai/aether.git
+cd aether
+cargo build --release
+./target/release/aether --version
+```
+
+---
 
 ## Quick Start
 
-### Prerequisites
-
-- Rust 1.70 or later
-- Cargo (comes with Rust)
-
-### Building
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/aether.git
-cd aether
-
-# Build the project
-cargo build
-
-# Run the interpreter
-cargo run
-
-# Run tests
-cargo test
-
-# Format code
-cargo fmt
-
-# Run linter
-cargo clippy
-```
-
-### Example Program
-
-Create a file `example.ae`:
+Create `hello.ae`:
 
 ```aether
-// Functional programming with stdlib
-fn square(x) { return x * x }
-fn is_even(x) { return x % 2 == 0 }
-
 fn main() {
-    println("=== Functional Pipeline Demo ===")
+    let name = "Aether"
+    println("Hello, ${name}!")
 
-    // Sum of squares of even numbers from 1-10
-    let numbers = range(1, 11)
-    let squares = map(numbers, square)
-    let even_squares = filter(squares, is_even)
-    let total = sum(even_squares)
-
-    println("Numbers:", numbers)
-    println("Squares:", squares)
-    println("Even squares:", even_squares)
-    println("Sum:", total)  // 220
-
-    println()
-    println("=== Text Processing ===")
-
-    let words = ["hello", "beautiful", "world"]
-    let sentence = join(words, " ")
-    println("Original:", sentence)
-    println("Uppercase:", sentence.upper())
-    println("Reversed:", reverse(sentence))
-}
-```
-
-Run it with:
-```bash
-cargo run example.ae
-```
-
-## Running Aether Programs
-
-### Quick Start
-
-```bash
-# Run a program (development mode)
-cargo run myprogram.ae
-
-# Start interactive REPL
-cargo run
-
-# Build optimized binary
-cargo build --release
-
-# Run with optimized binary
-./target/release/aether myprogram.ae
-```
-
-### REPL Mode (Interactive)
-
-Start the REPL by running Aether without arguments:
-
-```bash
-cargo run
-# or
-./target/release/aether
-```
-
-**REPL Features:**
-- Line editing with arrow keys
-- Command history (up/down arrows)
-- Multi-line support
-
-**Special Commands:**
-- `_help` - Show help information
-- `_env` - Display environment variables
-- `_exit` - Exit the REPL
-
-**Example REPL Session:**
-```
-Welcome to Aether REPL v0.1.0
-Type _help for more information, _exit to quit
-
->>> let x = 42
-null
->>> x * 2
-84
->>> fn greet(name) { return "Hello, " + name }
-null
->>> greet("World")
-Hello, World
->>> let nums = range(1, 6)
-null
->>> map(nums, fn(x) { return x * x })
-[1, 4, 9, 16, 25]
->>> _exit
-```
-
-### File Mode (Running Scripts)
-
-Run Aether programs from files:
-
-```bash
-# Using cargo (development)
-cargo run path/to/program.ae
-
-# Using built binary
-./target/release/aether path/to/program.ae
-```
-
-**Program Requirements:**
-- Every program needs a `main()` function as the entry point
-- Standard library functions are automatically available
-
-**Example Program (`hello.ae`):**
-```aether
-fn main() {
-    println("Hello, Aether!")
-
-    let numbers = range(1, 11)
-    let sum = sum(numbers)
-    println("Sum of 1-10:", sum)
+    let numbers = range(1, 6)
+    let squares = map(numbers, fn(x) { return x * x })
+    println("Squares:", squares)  // [1, 4, 9, 16, 25]
 }
 ```
 
 Run it:
-```bash
-cargo run hello.ae
-```
-
-### Example Programs
-
-Try the included example programs:
 
 ```bash
-# Simple hello world
-cargo run examples/hello.ae
-
-# Standard library demos
-cargo run examples/stdlib_demo.ae       # Core functions (range, enumerate)
-cargo run examples/collections_demo.ae  # map, filter, reduce
-cargo run examples/math_demo.ae         # Math utilities
-cargo run examples/string_demo.ae       # String operations
-
-# Performance test
-cargo run examples/gc_stress_test.ae    # GC stress test
+aether hello.ae
 ```
 
-### Building for Production
+---
 
-Create an optimized release build:
+## Language Tour
+
+### Variables and types
+
+```aether
+let x = 42
+let pi = 3.14
+let name = "Alice"
+let active = true
+let nothing = null
+```
+
+### Functions and closures
+
+```aether
+fn add(a, b) {
+    return a + b
+}
+
+let multiply = fn(a, b) { return a * b }
+
+fn make_adder(n) {
+    return fn(x) { return x + n }
+}
+
+let add5 = make_adder(5)
+println(add5(3))  // 8
+```
+
+### Collections
+
+```aether
+let arr = [1, 2, 3]
+arr.push(4)
+println(arr.len())   // 4
+
+let d = {"key": "value", "count": 42}
+println(d["key"])    // value
+
+let s = set([1, 2, 2, 3])
+println(s)           // {1, 2, 3}
+```
+
+### Control flow
+
+```aether
+// if / else
+if (x > 0) {
+    println("positive")
+} else if (x < 0) {
+    println("negative")
+} else {
+    println("zero")
+}
+
+// for loop
+for item in arr {
+    println(item)
+}
+
+// match
+match status {
+    "ok"  => println("success")
+    "err" => println("failed")
+    _     => println("unknown")
+}
+```
+
+### Error handling
+
+```aether
+fn divide(a, b) {
+    if (b == 0) { throw "division by zero" }
+    return a / b
+}
+
+try {
+    println(divide(10, 0))
+} catch(e) {
+    println("Error:", e.message)
+    println(e.stack_trace)
+}
+```
+
+### Structs
+
+```aether
+struct Point {
+    x
+    y
+    fn distance() {
+        return sqrt(self.x * self.x + self.y * self.y)
+    }
+}
+
+let p = Point { x: 3, y: 4 }
+println(p.distance())  // 5.0
+```
+
+### Async / await
+
+```aether
+async fn fetch(url) {
+    let body = await http_get(url)
+    return json_parse(body)
+}
+
+fn main() {
+    set_workers(4)
+    let data = await fetch("https://api.example.com/data")
+    println(data)
+}
+```
+
+### Modules
+
+```aether
+import math
+from testing import test, assert_eq, test_summary
+
+fn main() {
+    let results = []
+    results.push(test("sin", fn() {
+        assert_eq(math.sin(0), 0)
+    }))
+    test_summary(results)
+}
+```
+
+---
+
+## CLI Reference
+
+```
+aether                        # Start interactive REPL
+aether <file.ae>              # Run a script
+aether fmt [--check] <file>   # Format source (--check: exit 1 if unformatted)
+aether test [dir|file]        # Discover and run *_test.ae files
+aether check <file>           # Lint for undefined variables
+aether --version              # Print version
+aether --help                 # Print help
+```
+
+### REPL
+
+```
+>> let x = 10
+>> x * 2
+20
+>> fn greet(name) {
+..     return "Hello, " + name
+.. }
+>> greet("World")
+Hello, World
+>> _help    # show commands
+>> _env     # show bindings
+>> _exit    # quit (or Ctrl+D)
+```
+
+Multi-line blocks continue automatically with `.. `. Press **Ctrl+C** to cancel.
+
+### Formatter
 
 ```bash
-# Build with optimizations
-cargo build --release
-
-# Binary location
-./target/release/aether
-
-# Optional: Install globally
-cargo install --path .
-
-# Now run from anywhere
-aether myprogram.ae
+aether fmt myfile.ae           # format in place
+aether fmt --check myfile.ae   # CI-safe check (exit 1 if not canonical)
 ```
 
-### Usage Summary
+### Test runner
 
-```
-USAGE:
-    aether              # Start interactive REPL
-    aether <file.ae>    # Run an Aether program
+Write test files named `*_test.ae` using the `testing` stdlib module:
 
-EXAMPLES:
-    aether                          # Interactive mode
-    aether hello.ae                 # Run hello.ae
-    aether examples/stdlib_demo.ae  # Run example
-    aether /path/to/script.ae       # Run from any path
+```aether
+from testing import test, assert_eq, test_summary
+
+fn main() {
+    let results = []
+    results.push(test("addition", fn() {
+        assert_eq(1 + 2, 3)
+    }))
+    test_summary(results)
+}
 ```
+
+Run them:
+
+```bash
+aether test                     # discover all *_test.ae in current dir
+aether test examples/           # run tests in a specific directory
+aether test examples/math_test.ae  # run a single file
+```
+
+### Linter
+
+```bash
+aether check myfile.ae
+# myfile.ae: ok                   (exit 0)
+# myfile.ae:12: undefined variable 'resutls'  (exit 1)
+```
+
+---
+
+## Standard Library
+
+| Module | Functions |
+|--------|-----------|
+| **Core** | `range()`, `enumerate()` |
+| **Collections** | `map()`, `filter()`, `reduce()`, `find()`, `every()`, `some()`, `sort()`, `concat()`, `zip()`, `flatten()`, `flat_map()`, `take()`, `drop()`, `chunk()`, `partition()`, `uniq()`, `uniq_by()`, `group_by()`, `count_by()`, `zip_longest()`, `first()`, `last()` |
+| **Math** | `abs()`, `min()`, `max()`, `sum()`, `clamp()`, `sign()`, `floor()`, `ceil()`, `round()`, `sqrt()`, `pow()`, `log()`, `exp()`, `sin()`, `cos()`, `tan()`, `degrees()`, `radians()`, `hypot()`, `factorial()`, `gcd()`, `lcm()`, `pi`, `e`, `tau` |
+| **String** | `join()`, `repeat()`, `reverse()`, `starts_with()`, `ends_with()`, `contains()`, `index_of()`, `replace()`, `count()`, `pad_left()`, `pad_right()`, `strip_prefix()`, `strip_suffix()`, `is_alpha()`, `is_digit()`, `is_space()` |
+| **Testing** | `test()`, `test_summary()`, `assert_eq()`, `assert_true()`, `assert_false()`, `assert_null()`, `assert_not_null()`, `expect_error()` |
+
+Built-in functions also include: `len()`, `type()`, `str()`, `int()`, `float()`, `bool()`, `print()`, `println()`, `input()`, `clock()`, `sleep()`, `json_parse()`, `json_stringify()`, `http_get()`, `http_post()`, `read_file()`, `write_file()`, and more.
+
+---
 
 ## Documentation
 
-- **[Language Design](docs/DESIGN.md)** - Complete language specification
-- **[Architecture & Roadmap](docs/ARCHITECTURE.md)** - System architecture, features, and roadmap
-- **[Development Guidelines](docs/DEVELOPMENT.md)** - Code organization and best practices
-- **[Project Guide](CLAUDE.md)** - Quick reference for contributors
+### Language Reference
 
-## Development Status
+| Document | Description |
+|----------|-------------|
+| [Strings](https://valarpirai.github.io/aether/lang/STRINGS.html) | Literals, indexing, slicing, interpolation, methods |
+| [Destructuring](https://valarpirai.github.io/aether/lang/DESTRUCTURING.html) | Array and dict destructuring, rest, rename, defaults |
+| [Structs](https://valarpirai.github.io/aether/lang/STRUCT.html) | User-defined types with fields and methods |
+| [Error Handling](https://valarpirai.github.io/aether/lang/ERROR_HANDLING.html) | try/catch/throw with stack traces |
+| [Async](https://valarpirai.github.io/aether/lang/ASYNC.html) | async fn, await, Promise combinators, I/O pool |
+| [Iterators](https://valarpirai.github.io/aether/lang/ITERATORS.html) | Iterator protocol and built-in iterators |
+| [Module System](https://valarpirai.github.io/aether/lang/MODULE_SYSTEM.html) | import, from…import, stdlib modules |
+| [Standard Library](https://valarpirai.github.io/aether/lang/STDLIB.html) | Full stdlib reference |
+| [HTTP](https://valarpirai.github.io/aether/lang/HTTP.html) | http_get(), http_post() |
+| [JSON](https://valarpirai.github.io/aether/lang/JSON.html) | json_parse(), json_stringify() |
+| [REPL](https://valarpirai.github.io/aether/lang/REPL.html) | Interactive REPL and multi-line input |
+| [Configuration](https://valarpirai.github.io/aether/lang/CONFIGURATION.html) | Env vars and runtime knobs |
 
-**Current Phase**: Phase 5 Sprint 2 - Advanced Types (Complete ✅)
+### Developer Docs
 
-### What's Working
-- ✅ **Complete Interpreter** - Tree-walking interpreter with full language support
-- ✅ **~706 Tests Passing** - 100% success rate (134 unit + ~572 integration)
-- ✅ **Garbage Collection** - Rc-based reference counting with `make_weak`/`upgrade_weak` for cycle breaking
-- ✅ **Standard Library** - 40+ functions written in Aether itself
-  - Core: `range()`, `enumerate()`
-  - Collections: `map()`, `filter()`, `reduce()`, `find()`, `every()`, `some()`, `sort()`, `concat()`, `flatten()`, `flat_map()`, `zip()`, `take()`, `drop()`, `count_by()`, `group_by()`, `uniq()`, `sum_by()`
-  - Math: `abs()`, `min()`, `max()`, `sum()`, `clamp()`, `sign()`, `sqrt()`, `pow()`, `floor()`, `ceil()`, `round()`, `log()`, `gcd()`, `lcm()`
-  - String: `join()`, `repeat()`, `reverse()`, `starts_with()`, `ends_with()`
-- ✅ **Built-in Functions** - I/O, type introspection, conversions, JSON, time, HTTP
-- ✅ **Collection Methods** - Array, Dict, Set with comprehensive operations
-- ✅ **Set Type** - Unique collections with union, intersection, difference operations
-- ✅ **Structs** - User-defined types with fields and methods
-- ✅ **match statement** - Pattern matching with literal, wildcard, bind, enum-variant, and or-patterns
-- ✅ **Interactive REPL** - Line editing with history
-- ✅ **First-class Functions** - Functions with closures and recursion
+| Document | Description |
+|----------|-------------|
+| [Architecture](https://valarpirai.github.io/aether/dev/ARCHITECTURE.html) | System design and roadmap |
+| [Design](https://valarpirai.github.io/aether/dev/DESIGN.html) | Complete language specification |
+| [Development Guide](https://valarpirai.github.io/aether/dev/DEVELOPMENT.html) | TDD workflow, post-feature checklist |
+| [Testing Guide](https://valarpirai.github.io/aether/dev/TESTING.html) | Running tests, writing integration tests |
+| [Memory Management](https://valarpirai.github.io/aether/dev/MEMORY_MANAGEMENT.html) | Rc-based GC and design rationale |
+| [Backlog](https://valarpirai.github.io/aether/dev/BACKLOG.html) | Prioritised feature backlog |
 
-### Test Coverage
-- **~706 tests passing** ✅
-  - 134 unit tests
-  - ~572 integration tests
-- **0 clippy warnings**
-- **100% success rate**
+---
 
-### Recent Achievements
-- 🎉 **match statement** - Pattern matching with 6 pattern kinds (`|` or-patterns, enum variants, bind variables)
-- 🎉 **Parser refactor** - `parse_params()` helper eliminated 5× duplicated blocks; `FatArrow`/`Pipe` tokens
-- 🎉 **Expanded Stdlib** - Added sqrt, pow, floor/ceil/round, log, gcd, lcm, flatten, zip, take, drop, count_by, group_by, uniq, sum_by
-- 🎉 **Weak References** - `make_weak`/`upgrade_weak` builtins break GC cycles
-- 🎉 **Typed Errors** - 16 specific RuntimeError variants replace `InvalidOperation(String)` catch-all
+## Project Status
 
-### Up Next
-- ⏳ Parser error recovery (collect multiple errors instead of stopping at first)
-- ⏳ Destructuring assignment
-- ⏳ Variadic functions (`...args`)
-- ⏳ Performance optimizations (bytecode VM)
+**Version**: 0.2.0 — tooling milestone complete
 
-See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed roadmap and [CLAUDE.md](CLAUDE.md) for complete project status.
+- ~1112 tests passing (134 unit + ~978 integration)
+- `cargo clippy` clean
+- Published on [crates.io](https://crates.io/crates/aether-lang)
+
+---
 
 ## Contributing
 
-Contributions are welcome! Please see [CLAUDE.md](CLAUDE.md) for development guidelines.
+1. Enable the pre-commit hook: `git config core.hooksPath .githooks`
+2. Follow the [Development Guide](https://valarpirai.github.io/aether/dev/DEVELOPMENT.html)
+3. Write tests first (TDD)
+4. Run `cargo fmt && cargo clippy && cargo test -- --test-threads=1` before committing
 
-### Development Workflow
-
-1. Write tests first (TDD approach)
-2. Implement the feature
-3. Ensure all tests pass
-4. Run `cargo fmt` and `cargo clippy`
-5. Commit with clear messages
-
-## Code Quality
-
-| Area | Score | Notes |
-|------|-------|-------|
-| `value.rs` | 9/10 | Clean enum design, correct Rc/RefCell/Weak, comprehensive Display |
-| `operators.rs` | 9/10 | Short-circuit eval, numeric promotion, null coalescing |
-| `io_pool.rs` | 9/10 | Thread-safe, primitives-only boundary, clean task types |
-| `environment.rs` / `evaluator/mod.rs` | 8/10 | Solid; three clear sub-structs (CallContext, ModuleLoader, AsyncRuntime) |
-| `builtins.rs` | 8/10 | Good coverage; structured typed errors; some HTTP option duplication |
-| `evaluator/functions.rs` / `members.rs` | 8/10 | `write_back()` helper eliminated 5×6-line duplication; `Promise.all` two-phase parallel I/O polling |
-| Parser (`parse.rs`) | 8/10 | `parse_params()` eliminates 5× duplication; `match` stmt with 6 pattern kinds; FatArrow/Pipe tokens; still no error recovery |
-| Stdlib (`stdlib/*.ae`) | 8/10 | sqrt, pow, floor, ceil, round, log, gcd, lcm, flatten, zip, take, drop, count_by, group_by, uniq, sum_by |
-| Error handling | 8/10 | 16 typed RuntimeError variants; stack traces with filenames and line numbers |
-| Concurrency design | 7/10 | Parallel `Promise.all` + `Promise.race` + `Promise.allSettled`; event loop; still no cancellation or composable primitives |
-| **Overall** | **8.4/10** | Solid interpreter; clean pipeline; rich stdlib; `match` statement; parallel Promise combinators; growing toward production-ready |
+---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details
-
-## Resources
-
-- [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom
-- [Writing An Interpreter In Go](https://interpreterbook.com/) by Thorsten Ball
-- [The Rust Book](https://doc.rust-lang.org/book/)
-- [Rust by Example](https://doc.rust-lang.org/rust-by-example/)
+MIT — see [LICENSE](LICENSE) for details.
