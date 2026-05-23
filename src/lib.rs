@@ -22,3 +22,6 @@ pub mod interpreter;
 
 /// REPL module for interactive sessions
 pub mod repl;
+
+/// Source code formatter (canonical pretty-printer)
+pub mod formatter;

@@ -2,6 +2,7 @@ use std::env;
 use std::fs;
 use std::process;
 
+use aether_lang::formatter;
 use aether_lang::interpreter::Evaluator;
 use aether_lang::lexer::Scanner;
 use aether_lang::parser::Parser;
@@ -25,14 +26,25 @@ fn main() {
         return;
     }
     if first == "--help" || first == "-h" {
-        println!("Usage: aether [OPTIONS] [script] [args...]");
+        println!("Usage: aether [OPTIONS] [SUBCOMMAND] [script] [args...]");
         println!();
         println!("Options:");
-        println!("  -V, --version   Print version and exit");
-        println!("  -h, --help      Print this help and exit");
+        println!("  -V, --version          Print version and exit");
+        println!("  -h, --help             Print this help and exit");
         println!();
-        println!("If no script is given, starts the interactive REPL.");
+        println!("Subcommands:");
+        println!("  fmt [--check] <file>   Format an Aether source file");
+        println!(
+            "    --check              Check formatting without writing; exit 1 if unformatted"
+        );
+        println!();
+        println!("If no subcommand or script is given, starts the interactive REPL.");
         return;
+    }
+
+    if first == "fmt" {
+        let exit_code = run_fmt(&args[2..]);
+        process::exit(exit_code);
     }
 
     // First argument is the script; everything after it are script arguments
@@ -48,6 +60,63 @@ fn main() {
     if let Err(e) = run_file(filename, script_args) {
         eprintln!("Error: {}", e);
         process::exit(1);
+    }
+}
+
+/// Run `aether fmt [--check] <file>`. Returns exit code (0 = ok, 1 = error / unformatted).
+fn run_fmt(args: &[String]) -> i32 {
+    let mut check = false;
+    let mut file: Option<&str> = None;
+
+    for arg in args {
+        match arg.as_str() {
+            "--check" => check = true,
+            f if !f.starts_with('-') => file = Some(f),
+            other => {
+                eprintln!("fmt: unknown option '{}'", other);
+                return 1;
+            }
+        }
+    }
+
+    let path = match file {
+        Some(p) => p,
+        None => {
+            eprintln!("fmt: no file specified");
+            eprintln!("Usage: aether fmt [--check] <file>");
+            return 1;
+        }
+    };
+
+    let source = match fs::read_to_string(path) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("fmt: cannot read '{}': {}", path, e);
+            return 1;
+        }
+    };
+
+    let formatted = match formatter::format_source(&source) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("fmt: {}: {}", path, e);
+            return 1;
+        }
+    };
+
+    if check {
+        if formatted == source {
+            0
+        } else {
+            eprintln!("fmt: '{}' is not formatted", path);
+            1
+        }
+    } else {
+        if let Err(e) = fs::write(path, &formatted) {
+            eprintln!("fmt: cannot write '{}': {}", path, e);
+            return 1;
+        }
+        0
     }
 }
 
