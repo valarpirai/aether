@@ -163,8 +163,9 @@ After implementing any feature, before committing:
 1. **Tests** — `tests/<feature>_test.rs` with happy path, edge cases, and error cases
 2. **Example program** — `examples/<feature>_demo.ae` covering all new functions/syntax
 3. **Docs** — update the relevant component doc + CLAUDE.md feature table + BACKLOG.md
-4. **Memory check** — run `cargo test --test gc_test`; for new `Value` variants also run `leaks --atExit`
-5. **Code quality** — `cargo fmt && cargo clippy && cargo test -- --test-threads=1`
+4. **Static checker** — add any new builtin/stdlib names to `BUILTINS` in `src/checker.rs`; add match arms for any new AST variants in `check_stmt`/`check_expr`; verify with `cargo run -- check examples/<feature>_demo.ae`
+5. **Memory check** — run `cargo test --test gc_test`; for new `Value` variants also run `leaks --atExit`
+6. **Code quality** — `cargo fmt && cargo clippy && cargo test -- --test-threads=1`
 
 Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT.md#post-feature-checklist)**
 

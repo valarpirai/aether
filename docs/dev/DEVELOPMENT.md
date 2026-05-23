@@ -59,6 +59,26 @@ Every feature — no matter how small — must pass this checklist before commit
 - [ ] **`docs/BACKLOG.md` updated** — mark the item done or add any new items discovered during implementation
 - [ ] If the feature introduces a new env var or config knob: **`docs/CONFIGURATION.md` updated**
 
+### 3a. Static Checker (`aether check`)
+
+Any change that affects what names are valid at the top level **must** update `src/checker.rs`:
+
+| Change | What to update in `checker.rs` |
+|--------|--------------------------------|
+| New built-in function (added to `src/interpreter/builtins.rs`) | Add its name to the `BUILTINS` slice |
+| New stdlib function (added to `stdlib/*.ae`) | Add its name to the `BUILTINS` slice |
+| New keyword that introduces a binding (e.g. new loop form, new pattern) | Handle the new `Stmt`/`Expr` variant in `check_stmt` / `check_expr` |
+| New `Stmt` or `Expr` AST variant | Add a match arm in `check_stmt` / `check_expr`; omitting one causes a compile error |
+
+Verify after updating:
+
+```bash
+# Should report no false positives on well-formed code
+cargo run -- check examples/<feature>_demo.ae
+# New checker behaviour must be covered
+cargo test --test checker_test -- --test-threads=1
+```
+
 ### 4. Memory Leak Check
 
 - [ ] Run `cargo test --test gc_test -- --test-threads=1` — all GC tests pass
