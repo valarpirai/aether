@@ -2,6 +2,7 @@ use std::env;
 use std::fs;
 use std::process;
 
+use aether_lang::checker;
 use aether_lang::formatter;
 use aether_lang::interpreter::Evaluator;
 use aether_lang::lexer::Scanner;
@@ -39,6 +40,7 @@ fn main() {
         );
         println!("  test [dir|file]        Discover and run *_test.ae files");
         println!("    (no arg)             Search current directory recursively");
+        println!("  check <file>           Check for undefined variables without running");
         println!();
         println!("If no subcommand or script is given, starts the interactive REPL.");
         return;
@@ -51,6 +53,11 @@ fn main() {
 
     if first == "test" {
         let exit_code = run_test(&args[2..]);
+        process::exit(exit_code);
+    }
+
+    if first == "check" {
+        let exit_code = run_check(&args[2..]);
         process::exit(exit_code);
     }
 
@@ -67,6 +74,55 @@ fn main() {
     if let Err(e) = run_file(filename, script_args) {
         eprintln!("Error: {}", e);
         process::exit(1);
+    }
+}
+
+/// Run `aether check <file>`. Returns exit code (0 = clean, 1 = diagnostics found or error).
+fn run_check(args: &[String]) -> i32 {
+    let path = match args.first() {
+        Some(p) => p.as_str(),
+        None => {
+            eprintln!("check: no file specified");
+            eprintln!("Usage: aether check <file>");
+            return 1;
+        }
+    };
+
+    let source = match fs::read_to_string(path) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("check: cannot read '{}': {}", path, e);
+            return 1;
+        }
+    };
+
+    let mut scanner = Scanner::new(&source);
+    let tokens = match scanner.scan_tokens() {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("{}:0: error: {}", path, e);
+            return 1;
+        }
+    };
+
+    let mut parser = Parser::new(tokens);
+    let program = match parser.parse() {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("{}:0: error: {}", path, e);
+            return 1;
+        }
+    };
+
+    let diagnostics = checker::check(&program);
+    if diagnostics.is_empty() {
+        println!("{}: ok", path);
+        0
+    } else {
+        for d in &diagnostics {
+            eprintln!("{}:{}: {}", path, d.line, d.message);
+        }
+        1
     }
 }
 

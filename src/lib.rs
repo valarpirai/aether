@@ -25,3 +25,6 @@ pub mod repl;
 
 /// Source code formatter (canonical pretty-printer)
 pub mod formatter;
+
+/// Static analysis: undefined variable checker
+pub mod checker;
