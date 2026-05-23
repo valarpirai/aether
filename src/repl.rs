@@ -145,46 +145,65 @@ impl Highlighter for AetherHelper {
 }
 
 impl Validator for AetherHelper {
-    fn validate(&self, ctx: &mut ValidationContext) -> rustyline::Result<ValidationResult> {
-        let input = ctx.input();
-        if is_incomplete(input) {
-            Ok(ValidationResult::Incomplete)
-        } else {
-            Ok(ValidationResult::Valid(None))
-        }
+    fn validate(&self, _ctx: &mut ValidationContext) -> rustyline::Result<ValidationResult> {
+        // Multi-line accumulation is handled by the REPL loop with >> / .. prompts.
+        Ok(ValidationResult::Valid(None))
     }
 }
 
-/// Returns true when the input has unclosed braces/parens — signals multi-line continuation.
+/// Returns true when the input has unclosed braces/parens or an unclosed triple-quoted string.
 fn is_incomplete(input: &str) -> bool {
+    let bytes = input.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
     let mut depth = 0i32;
-    let mut in_string = false;
-    let mut escape = false;
-    let chars = input.chars().peekable();
+    let mut in_triple = false;
+    let mut in_single = false;
 
-    for c in chars {
-        if escape {
-            escape = false;
+    while i < len {
+        if in_triple {
+            if bytes[i] == b'\\' {
+                i += 2;
+                continue;
+            }
+            if i + 2 < len && bytes[i] == b'"' && bytes[i + 1] == b'"' && bytes[i + 2] == b'"' {
+                in_triple = false;
+                i += 3;
+                continue;
+            }
+            i += 1;
             continue;
         }
-        if c == '\\' && in_string {
-            escape = true;
+        if in_single {
+            if bytes[i] == b'\\' {
+                i += 2;
+                continue;
+            }
+            if bytes[i] == b'"' {
+                in_single = false;
+            }
+            i += 1;
             continue;
         }
-        if c == '"' {
-            in_string = !in_string;
+        // Outside any string — check for triple quote first
+        if i + 2 < len && bytes[i] == b'"' && bytes[i + 1] == b'"' && bytes[i + 2] == b'"' {
+            in_triple = true;
+            i += 3;
             continue;
         }
-        if in_string {
+        if bytes[i] == b'"' {
+            in_single = true;
+            i += 1;
             continue;
         }
-        match c {
-            '{' | '(' | '[' => depth += 1,
-            '}' | ')' | ']' => depth -= 1,
+        match bytes[i] {
+            b'{' | b'(' | b'[' => depth += 1,
+            b'}' | b')' | b']' => depth -= 1,
             _ => {}
         }
+        i += 1;
     }
-    depth > 0
+    depth > 0 || in_triple
 }
 
 // ── History file path ─────────────────────────────────────────────────────────
@@ -219,46 +238,64 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut evaluator = Evaluator::new();
 
-    loop {
-        let readline = rl.readline(">> ");
-        match readline {
-            Ok(line) => {
-                let trimmed = line.trim();
-                if trimmed.is_empty() {
-                    continue;
-                }
+    'repl: loop {
+        let mut buffer = String::new();
 
-                let _ = rl.add_history_entry(trimmed);
-
-                if trimmed.starts_with('_') {
-                    handle_command(trimmed, &evaluator);
-                    continue;
-                }
-
-                match execute_input(trimmed, &mut evaluator) {
-                    Ok(Some(result)) => println!("{}", result),
-                    Ok(None) => {}
-                    Err(e) => eprintln!("Error: {}", e),
-                }
-
-                // Add newly defined names to autocomplete
-                for name in evaluator.environment.bindings().keys() {
-                    if let Some(h) = rl.helper_mut() {
-                        h.add_name(name);
+        // Accumulate lines until the block is syntactically complete.
+        let input = loop {
+            let prompt = if buffer.is_empty() { ">> " } else { ".. " };
+            match rl.readline(prompt) {
+                Ok(line) => {
+                    if !buffer.is_empty() {
+                        buffer.push('\n');
+                    }
+                    buffer.push_str(&line);
+                    if !is_incomplete(&buffer) {
+                        break buffer.clone();
                     }
                 }
+                Err(ReadlineError::Interrupted) => {
+                    if !buffer.is_empty() {
+                        // Cancel the current multi-line block without exiting
+                        println!("^C");
+                        continue 'repl;
+                    }
+                    println!("^C");
+                    continue 'repl;
+                }
+                Err(ReadlineError::Eof) => {
+                    println!("Goodbye!");
+                    break 'repl;
+                }
+                Err(err) => {
+                    eprintln!("Error: {:?}", err);
+                    break 'repl;
+                }
             }
-            Err(ReadlineError::Interrupted) => {
-                println!("^C");
-                continue;
-            }
-            Err(ReadlineError::Eof) => {
-                println!("Goodbye!");
-                break;
-            }
-            Err(err) => {
-                eprintln!("Error: {:?}", err);
-                break;
+        };
+
+        let trimmed = input.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        let _ = rl.add_history_entry(trimmed);
+
+        if trimmed.starts_with('_') {
+            handle_command(trimmed, &evaluator);
+            continue;
+        }
+
+        match execute_input(trimmed, &mut evaluator) {
+            Ok(Some(result)) => println!("{}", result),
+            Ok(None) => {}
+            Err(e) => eprintln!("Error: {}", e),
+        }
+
+        // Add newly defined names to autocomplete
+        for name in evaluator.environment.bindings().keys() {
+            if let Some(h) = rl.helper_mut() {
+                h.add_name(name);
             }
         }
     }
@@ -311,6 +348,11 @@ fn handle_command(cmd: &str, evaluator: &Evaluator) {
             println!("  _help    Show this help");
             println!("  _env     Show all defined variables");
             println!("  _exit    Exit the REPL (or Ctrl+D)");
+            println!();
+            println!("Multi-line input:");
+            println!("  Blocks with unclosed {{, (, [ or \"\"\" continue on the next line.");
+            println!("  Prompt changes from >> to .. while a block is open.");
+            println!("  Ctrl+C cancels the current block and returns to >>.");
             println!();
             println!("Shortcuts:");
             println!("  Tab      Autocomplete");
