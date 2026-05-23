@@ -44,8 +44,17 @@ impl Evaluator {
 
         self.modules.loading_stack.push(module_name.to_string());
 
-        let module_path = self.resolve_module_path(module_name)?;
-        let module_env = self.execute_module_file(&module_path)?;
+        // Check embedded stdlib before the filesystem
+        let module_env = if let Some(src) = super::super::stdlib::stdlib_modules()
+            .into_iter()
+            .find(|(name, _)| *name == module_name)
+            .map(|(_, src)| src)
+        {
+            self.execute_module_source(module_name, src)?
+        } else {
+            let module_path = self.resolve_module_path(module_name)?;
+            self.execute_module_file(&module_path)?
+        };
 
         self.modules.loading_stack.retain(|m| m != module_name);
 
@@ -74,8 +83,7 @@ impl Evaluator {
         items: &[String],
     ) -> Result<(), RuntimeError> {
         if !self.modules.cache.contains_key(module_name) {
-            let module_path = self.resolve_module_path(module_name)?;
-            let module_env = self.execute_module_file(&module_path)?;
+            let module_env = self.load_module_env(module_name)?;
             self.modules
                 .cache
                 .insert(module_name.to_string(), module_env);
@@ -106,8 +114,7 @@ impl Evaluator {
         items: &[(String, String)],
     ) -> Result<(), RuntimeError> {
         if !self.modules.cache.contains_key(module_name) {
-            let module_path = self.resolve_module_path(module_name)?;
-            let module_env = self.execute_module_file(&module_path)?;
+            let module_env = self.load_module_env(module_name)?;
             self.modules
                 .cache
                 .insert(module_name.to_string(), module_env);
@@ -157,6 +164,62 @@ impl Evaluator {
         })
     }
 
+    /// Resolve and execute a module, checking embedded stdlib before the filesystem.
+    fn load_module_env(&mut self, module_name: &str) -> Result<Environment, RuntimeError> {
+        if let Some(src) = super::super::stdlib::stdlib_modules()
+            .into_iter()
+            .find(|(name, _)| *name == module_name)
+            .map(|(_, src)| src)
+        {
+            self.execute_module_source(module_name, src)
+        } else {
+            let path = self.resolve_module_path(module_name)?;
+            self.execute_module_file(&path)
+        }
+    }
+
+    /// Execute Aether source code in an isolated environment and return its bindings.
+    fn execute_module_source(
+        &mut self,
+        module_name: &str,
+        source: &str,
+    ) -> Result<Environment, RuntimeError> {
+        use crate::lexer::Scanner;
+        use crate::parser::Parser;
+
+        let mut scanner = Scanner::new(source);
+        let tokens = scanner
+            .scan_tokens()
+            .map_err(|e| RuntimeError::ModuleLoadError {
+                module: module_name.to_string(),
+                reason: e.to_string(),
+            })?;
+        let mut parser = Parser::new(tokens);
+        let program = parser.parse().map_err(|e| RuntimeError::ModuleLoadError {
+            module: module_name.to_string(),
+            reason: e.to_string(),
+        })?;
+
+        let saved_env = self.environment.clone();
+        let saved_file = self.current_file.clone();
+        self.environment = Environment::new();
+        self.register_builtins();
+        self.current_file = None;
+
+        for stmt in &program.statements {
+            if let Err(e) = self.exec_stmt(stmt) {
+                self.environment = saved_env;
+                self.current_file = saved_file;
+                return Err(e);
+            }
+        }
+
+        let module_env = self.environment.clone();
+        self.environment = saved_env;
+        self.current_file = saved_file;
+        Ok(module_env)
+    }
+
     pub(super) fn execute_module_file(
         &mut self,
         path: &PathBuf,
@@ -189,6 +252,7 @@ impl Evaluator {
         let saved_file = self.current_file.clone();
 
         self.environment = Environment::new();
+        self.register_builtins();
         self.current_file = Some(path.clone());
 
         for stmt in &program.statements {

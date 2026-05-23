@@ -1,0 +1,28 @@
+from testing import test, assert_eq, assert_true
+
+fn main() {
+    let results = []
+
+    results.push(test("addition", fn() {
+        assert_eq(1 + 2, 3)
+    }))
+
+    results.push(test("subtraction", fn() {
+        assert_eq(10 - 4, 6)
+    }))
+
+    results.push(test("multiplication", fn() {
+        assert_eq(3 * 4, 12)
+    }))
+
+    results.push(test("division", fn() {
+        assert_eq(10 / 2, 5)
+    }))
+
+    results.push(test("modulo", fn() {
+        assert_eq(7 % 3, 1)
+    }))
+
+    from testing import test_summary
+    test_summary(results)
+}
