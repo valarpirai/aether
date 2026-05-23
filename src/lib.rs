@@ -28,3 +28,6 @@ pub mod formatter;
 
 /// Static analysis: undefined variable checker
 pub mod checker;
+
+/// Runner for `aether test` — discovers and executes `*_test.ae` files
+pub mod test_runner;

@@ -708,3 +708,60 @@ fn escape_string(s: &str) -> String {
 fn escape_string_interp(s: &str) -> String {
     escape_string(s)
 }
+
+/// Run `aether fmt [--check] <file>`. Returns exit code (0 = ok, 1 = error / unformatted).
+pub fn run_fmt(args: &[String]) -> i32 {
+    let mut check = false;
+    let mut file: Option<&str> = None;
+
+    for arg in args {
+        match arg.as_str() {
+            "--check" => check = true,
+            f if !f.starts_with('-') => file = Some(f),
+            other => {
+                eprintln!("fmt: unknown option '{}'", other);
+                return 1;
+            }
+        }
+    }
+
+    let path = match file {
+        Some(p) => p,
+        None => {
+            eprintln!("fmt: no file specified");
+            eprintln!("Usage: aether fmt [--check] <file>");
+            return 1;
+        }
+    };
+
+    let source = match std::fs::read_to_string(path) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("fmt: cannot read '{}': {}", path, e);
+            return 1;
+        }
+    };
+
+    let formatted = match format_source(&source) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("fmt: {}: {}", path, e);
+            return 1;
+        }
+    };
+
+    if check {
+        if formatted == source {
+            0
+        } else {
+            eprintln!("fmt: '{}' is not formatted", path);
+            1
+        }
+    } else {
+        if let Err(e) = std::fs::write(path, &formatted) {
+            eprintln!("fmt: cannot write '{}': {}", path, e);
+            return 1;
+        }
+        0
+    }
+}

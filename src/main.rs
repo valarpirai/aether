@@ -8,6 +8,7 @@ use aether_lang::interpreter::Evaluator;
 use aether_lang::lexer::Scanner;
 use aether_lang::parser::Parser;
 use aether_lang::repl;
+use aether_lang::test_runner;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -47,12 +48,12 @@ fn main() {
     }
 
     if first == "fmt" {
-        let exit_code = run_fmt(&args[2..]);
+        let exit_code = formatter::run_fmt(&args[2..]);
         process::exit(exit_code);
     }
 
     if first == "test" {
-        let exit_code = run_test(&args[2..]);
+        let exit_code = test_runner::run_test(&args[2..]);
         process::exit(exit_code);
     }
 
@@ -123,238 +124,6 @@ fn run_check(args: &[String]) -> i32 {
             eprintln!("{}:{}: {}", path, d.line, d.message);
         }
         1
-    }
-}
-
-/// Run `aether fmt [--check] <file>`. Returns exit code (0 = ok, 1 = error / unformatted).
-fn run_fmt(args: &[String]) -> i32 {
-    let mut check = false;
-    let mut file: Option<&str> = None;
-
-    for arg in args {
-        match arg.as_str() {
-            "--check" => check = true,
-            f if !f.starts_with('-') => file = Some(f),
-            other => {
-                eprintln!("fmt: unknown option '{}'", other);
-                return 1;
-            }
-        }
-    }
-
-    let path = match file {
-        Some(p) => p,
-        None => {
-            eprintln!("fmt: no file specified");
-            eprintln!("Usage: aether fmt [--check] <file>");
-            return 1;
-        }
-    };
-
-    let source = match fs::read_to_string(path) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("fmt: cannot read '{}': {}", path, e);
-            return 1;
-        }
-    };
-
-    let formatted = match formatter::format_source(&source) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("fmt: {}: {}", path, e);
-            return 1;
-        }
-    };
-
-    if check {
-        if formatted == source {
-            0
-        } else {
-            eprintln!("fmt: '{}' is not formatted", path);
-            1
-        }
-    } else {
-        if let Err(e) = fs::write(path, &formatted) {
-            eprintln!("fmt: cannot write '{}': {}", path, e);
-            return 1;
-        }
-        0
-    }
-}
-
-// ── aether test ──────────────────────────────────────────────────────────────
-
-struct FileResult {
-    passed: usize,
-    failed: usize,
-    /// Lines starting with [FAIL] from the file's stdout
-    fail_lines: Vec<String>,
-    /// Lines from stderr (runtime errors, panics)
-    error_lines: Vec<String>,
-}
-
-/// Run `aether test [dir|file]`. Returns exit code.
-fn run_test(args: &[String]) -> i32 {
-    use std::path::Path;
-
-    let binary = match std::env::current_exe() {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!("test: cannot locate aether binary: {}", e);
-            return 1;
-        }
-    };
-
-    // Resolve target: explicit file, explicit dir, or default to "."
-    let target = args.first().map(String::as_str).unwrap_or(".");
-    let target_path = Path::new(target);
-
-    let files: Vec<std::path::PathBuf> = if target_path.is_file() {
-        vec![target_path.to_path_buf()]
-    } else if target_path.is_dir() {
-        discover_test_files(target_path)
-    } else {
-        eprintln!("test: '{}' is not a file or directory", target);
-        return 1;
-    };
-
-    if files.is_empty() {
-        println!("No *_test.ae files found in '{}'", target);
-        return 0;
-    }
-
-    println!("Running {} test file(s) in '{}'\n", files.len(), target);
-
-    let mut total_passed: usize = 0;
-    let mut total_failed: usize = 0;
-
-    for file in &files {
-        let display = file.display().to_string();
-        let result = run_one_test_file(&binary, file);
-
-        let status = if result.failed == 0 && result.error_lines.is_empty() {
-            "ok"
-        } else {
-            "FAILED"
-        };
-
-        println!(
-            "{} ... {} ({} passed, {} failed)",
-            display, status, result.passed, result.failed
-        );
-
-        for line in &result.fail_lines {
-            println!("    {}", line);
-        }
-        for line in &result.error_lines {
-            println!("    error: {}", line);
-        }
-
-        total_passed += result.passed;
-        total_failed += result.failed;
-    }
-
-    println!();
-    println!("{}", "─".repeat(50));
-    if total_failed == 0 {
-        println!(
-            "All tests passed: {} passed, {} failed",
-            total_passed, total_failed
-        );
-        0
-    } else {
-        println!("FAILED: {} passed, {} failed", total_passed, total_failed);
-        1
-    }
-}
-
-/// Walk `dir` recursively and collect files matching `*_test.ae` or `test_*.ae`.
-/// Skips `target/` and hidden directories.
-fn discover_test_files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
-    let mut found = Vec::new();
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return found;
-    };
-    let mut entries: Vec<_> = entries.filter_map(|e| e.ok()).collect();
-    entries.sort_by_key(|e| e.path());
-
-    for entry in entries {
-        let path = entry.path();
-        if path.is_dir() {
-            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            if name == "target" || name.starts_with('.') {
-                continue;
-            }
-            found.extend(discover_test_files(&path));
-        } else if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-            if name.ends_with("_test.ae") || (name.starts_with("test_") && name.ends_with(".ae")) {
-                found.push(path);
-            }
-        }
-    }
-    found
-}
-
-/// Run a single test file as a subprocess, parse its output, return counts.
-fn run_one_test_file(binary: &std::path::Path, file: &std::path::Path) -> FileResult {
-    use std::process::Command;
-
-    let output = match Command::new(binary).arg(file).output() {
-        Ok(o) => o,
-        Err(e) => {
-            return FileResult {
-                passed: 0,
-                failed: 1,
-                fail_lines: Vec::new(),
-                error_lines: vec![e.to_string()],
-            };
-        }
-    };
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-
-    let mut passed = 0usize;
-    let mut failed = 0usize;
-    let mut fail_lines: Vec<String> = Vec::new();
-
-    for line in stdout.lines() {
-        if line.starts_with("[PASS]") {
-            passed += 1;
-        } else if line.starts_with("[FAIL]") {
-            failed += 1;
-            fail_lines.push(line.to_string());
-        }
-    }
-
-    // If the file uses no test framework, fall back to exit code
-    let error_lines: Vec<String> = if passed == 0 && failed == 0 {
-        if output.status.success() {
-            passed = 1;
-            Vec::new()
-        } else {
-            failed = 1;
-            stderr
-                .lines()
-                .map(|l| l.to_string())
-                .filter(|l| !l.is_empty())
-                .collect()
-        }
-    } else {
-        // Framework-based: include stderr only if non-empty
-        stderr
-            .lines()
-            .map(|l| l.to_string())
-            .filter(|l| !l.is_empty())
-            .collect()
-    };
-
-    FileResult {
-        passed,
-        failed,
-        fail_lines,
-        error_lines,
     }
 }
 
