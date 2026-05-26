@@ -200,3 +200,27 @@ result
     let result = eval(source).unwrap();
     assert_eq!(result, "1500"); // 15 * 100
 }
+
+#[test]
+fn test_tcp_server_no_leak() {
+    // Create and drop a TcpServer — Rc refcount must return to zero
+    let result = eval(
+        r#"
+let s = tcp_listen("127.0.0.1:0")
+type(s)
+"#,
+    );
+    assert_eq!(result.unwrap(), "tcp_server");
+}
+
+#[test]
+fn test_tcp_connection_no_leak() {
+    // Create and drop a TcpConnection — Rc refcount must return to zero
+    let result = eval(
+        r#"
+let c = tcp_connect("127.0.0.1:9")
+type(c)
+"#,
+    );
+    assert_eq!(result.unwrap(), "tcp_connection");
+}

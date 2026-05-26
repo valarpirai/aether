@@ -1364,3 +1364,135 @@ pub fn builtin_copy(args: &[Value]) -> Result<Value, RuntimeError> {
     }
     Ok(shallow_copy(&args[0]))
 }
+
+/// Built-in function: tcp_listen(addr [, opts]) -> tcp_server
+///
+/// Binds a TCP listener on `addr` (e.g. `"0.0.0.0:8080"`) and returns a
+/// `tcp_server` value. The optional `opts` dict supports `{ "delimiter": "\n" }`
+/// for framed line-mode.
+pub fn builtin_tcp_listen(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.is_empty() || args.len() > 2 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    let addr = match &args[0] {
+        Value::String(s) => s.as_str().to_string(),
+        _ => {
+            return Err(RuntimeError::TypeError {
+                expected: "string".to_string(),
+                got: args[0].type_name().to_string(),
+            })
+        }
+    };
+
+    let delimiter = if args.len() == 2 {
+        match &args[1] {
+            Value::Dict(pairs) => {
+                let pairs = pairs.borrow();
+                pairs.iter().find_map(|(k, v)| {
+                    if matches!(k, Value::String(s) if s.as_str() == "delimiter") {
+                        if let Value::String(d) = v {
+                            Some(d.as_str().to_string())
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                })
+            }
+            _ => {
+                return Err(RuntimeError::TypeError {
+                    expected: "dict".to_string(),
+                    got: args[1].type_name().to_string(),
+                })
+            }
+        }
+    } else {
+        None
+    };
+
+    use std::net::TcpListener;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::Arc;
+
+    let listener = TcpListener::bind(&addr).map_err(|e| {
+        RuntimeError::InvalidOperation(format!("tcp_listen: cannot bind {}: {}", addr, e))
+    })?;
+    // Non-blocking so the accept loop can poll the shutdown flag
+    listener.set_nonblocking(true).map_err(|e| {
+        RuntimeError::InvalidOperation(format!("tcp_listen: set_nonblocking failed: {}", e))
+    })?;
+
+    let (event_tx, event_rx) = std::sync::mpsc::channel();
+    let shutdown = Arc::new(AtomicBool::new(false));
+
+    use super::tcp::TcpServerState;
+    use std::collections::HashMap;
+
+    let state = TcpServerState {
+        listener: Arc::new(listener),
+        event_tx,
+        event_rx,
+        on_listen: None,
+        on_connect: None,
+        on_message: None,
+        on_disconnect: None,
+        on_error: None,
+        on_timeout: None,
+        delimiter,
+        active_conns: HashMap::new(),
+        closed: false,
+        next_conn_id: 0,
+        shutdown,
+    };
+    Ok(Value::tcp_server(state))
+}
+
+/// Built-in function: tcp_connect(addr) -> tcp_connection
+///
+/// Returns a `tcp_connection` value for `addr`. The actual TCP connection is
+/// established when `conn.start()` is called after the lifecycle handlers are
+/// registered.
+pub fn builtin_tcp_connect(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    let addr = match &args[0] {
+        Value::String(s) => s.as_str().to_string(),
+        _ => {
+            return Err(RuntimeError::TypeError {
+                expected: "string".to_string(),
+                got: args[0].type_name().to_string(),
+            })
+        }
+    };
+
+    use std::sync::atomic::AtomicBool;
+    use std::sync::Arc;
+
+    let (event_tx, event_rx) = std::sync::mpsc::channel();
+    let shutdown = Arc::new(AtomicBool::new(false));
+
+    use super::tcp::TcpConnectionState;
+
+    let state = TcpConnectionState {
+        addr,
+        stream: None,
+        event_tx,
+        event_rx,
+        on_connect: None,
+        on_message: None,
+        on_disconnect: None,
+        on_error: None,
+        on_timeout: None,
+        closed: false,
+        shutdown,
+    };
+    Ok(Value::tcp_connection(state))
+}

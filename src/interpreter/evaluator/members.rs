@@ -1187,6 +1187,104 @@ impl Evaluator {
             // Promise (IoWaiting): enqueues callback in the event loop.
             // Promise (Pending/Resolved) or non-promise: fires callback immediately.
             // Mirrors on_ready() so code works uniformly with or without set_workers().
+            // --- TcpServer methods ---
+            (Value::TcpServer(state_rc), "on_listen") => {
+                let cb = self.require_fn_arg(args, 0, "on_listen")?;
+                state_rc.borrow_mut().on_listen = Some(cb);
+                Ok(obj_val)
+            }
+            (Value::TcpServer(state_rc), "on_connect") => {
+                let cb = self.require_fn_arg(args, 0, "on_connect")?;
+                state_rc.borrow_mut().on_connect = Some(cb);
+                Ok(obj_val)
+            }
+            (Value::TcpServer(state_rc), "on_message") => {
+                let cb = self.require_fn_arg(args, 0, "on_message")?;
+                state_rc.borrow_mut().on_message = Some(cb);
+                Ok(obj_val)
+            }
+            (Value::TcpServer(state_rc), "on_disconnect") => {
+                let cb = self.require_fn_arg(args, 0, "on_disconnect")?;
+                state_rc.borrow_mut().on_disconnect = Some(cb);
+                Ok(obj_val)
+            }
+            (Value::TcpServer(state_rc), "on_error") => {
+                let cb = self.require_fn_arg(args, 0, "on_error")?;
+                state_rc.borrow_mut().on_error = Some(cb);
+                Ok(obj_val)
+            }
+            (Value::TcpServer(state_rc), "on_timeout") => {
+                let cb = self.require_fn_arg(args, 0, "on_timeout")?;
+                state_rc.borrow_mut().on_timeout = Some(cb);
+                Ok(obj_val)
+            }
+            (Value::TcpServer(state_rc), "close") => {
+                use std::sync::atomic::Ordering;
+                let mut state = state_rc.borrow_mut();
+                state.shutdown.store(true, Ordering::Relaxed);
+                state.closed = true;
+                Ok(Value::Null)
+            }
+            (Value::TcpServer(state_rc), "accept") => self.run_tcp_server(state_rc.clone()),
+
+            // --- TcpConnection methods ---
+            (Value::TcpConnection(state_rc), "on_connect") => {
+                let cb = self.require_fn_arg(args, 0, "on_connect")?;
+                state_rc.borrow_mut().on_connect = Some(cb);
+                Ok(obj_val)
+            }
+            (Value::TcpConnection(state_rc), "on_message") => {
+                let cb = self.require_fn_arg(args, 0, "on_message")?;
+                state_rc.borrow_mut().on_message = Some(cb);
+                Ok(obj_val)
+            }
+            (Value::TcpConnection(state_rc), "on_disconnect") => {
+                let cb = self.require_fn_arg(args, 0, "on_disconnect")?;
+                state_rc.borrow_mut().on_disconnect = Some(cb);
+                Ok(obj_val)
+            }
+            (Value::TcpConnection(state_rc), "on_error") => {
+                let cb = self.require_fn_arg(args, 0, "on_error")?;
+                state_rc.borrow_mut().on_error = Some(cb);
+                Ok(obj_val)
+            }
+            (Value::TcpConnection(state_rc), "on_timeout") => {
+                let cb = self.require_fn_arg(args, 0, "on_timeout")?;
+                state_rc.borrow_mut().on_timeout = Some(cb);
+                Ok(obj_val)
+            }
+            (Value::TcpConnection(state_rc), "write") => {
+                if args.len() != 1 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 1,
+                        got: args.len(),
+                    });
+                }
+                let data_val = self.eval_expr(&args[0])?;
+                let bytes = tcp_value_to_bytes(&data_val)?;
+                let stream_arc = {
+                    let state = state_rc.borrow();
+                    state.stream.clone().ok_or_else(|| {
+                        RuntimeError::InvalidOperation(
+                            "conn.write: connection not started".to_string(),
+                        )
+                    })?
+                };
+                use std::io::Write;
+                (&*stream_arc)
+                    .write_all(&bytes)
+                    .map_err(|e| RuntimeError::InvalidOperation(format!("conn.write: {}", e)))?;
+                Ok(Value::Null)
+            }
+            (Value::TcpConnection(state_rc), "close") => {
+                use std::sync::atomic::Ordering;
+                let mut state = state_rc.borrow_mut();
+                state.shutdown.store(true, Ordering::Relaxed);
+                state.closed = true;
+                Ok(Value::Null)
+            }
+            (Value::TcpConnection(state_rc), "start") => self.run_tcp_client(state_rc.clone()),
+
             (_, "then") => {
                 if args.len() != 1 {
                     return Err(RuntimeError::ArityMismatch {
@@ -1204,5 +1302,54 @@ impl Evaluator {
                 method: meth.to_string(),
             }),
         }
+    }
+
+    /// Evaluate `args[idx]` and verify it is a callable (Function / AsyncFunction / BuiltinFn).
+    fn require_fn_arg(
+        &mut self,
+        args: &[Expr],
+        idx: usize,
+        _method: &str,
+    ) -> Result<Value, RuntimeError> {
+        if args.len() <= idx {
+            return Err(RuntimeError::ArityMismatch {
+                expected: idx + 1,
+                got: args.len(),
+            });
+        }
+        let val = self.eval_expr(&args[idx])?;
+        match &val {
+            Value::Function { .. } | Value::AsyncFunction { .. } | Value::BuiltinFn { .. } => {
+                Ok(val)
+            }
+            other => Err(RuntimeError::TypeError {
+                expected: "function".to_string(),
+                got: other.type_name().to_string(),
+            }),
+        }
+    }
+}
+
+/// Convert an Aether value to raw bytes for `conn.write()`.
+/// Accepts string (UTF-8 encoded) or array-of-ints (byte values).
+fn tcp_value_to_bytes(val: &Value) -> Result<Vec<u8>, RuntimeError> {
+    match val {
+        Value::String(s) => Ok(s.as_bytes().to_vec()),
+        Value::Array(arr) => {
+            let arr = arr.borrow();
+            arr.iter()
+                .map(|v| match v {
+                    Value::Int(n) if (0..=255).contains(n) => Ok(*n as u8),
+                    other => Err(RuntimeError::TypeError {
+                        expected: "int (0-255)".to_string(),
+                        got: other.type_name().to_string(),
+                    }),
+                })
+                .collect()
+        }
+        other => Err(RuntimeError::TypeError {
+            expected: "string or array".to_string(),
+            got: other.type_name().to_string(),
+        }),
     }
 }

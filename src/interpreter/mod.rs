@@ -6,6 +6,7 @@ pub mod evaluator;
 pub mod event_loop;
 pub mod io_pool;
 pub mod stdlib;
+pub mod tcp;
 pub mod value;
 
 #[cfg(test)]

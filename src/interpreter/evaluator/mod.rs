@@ -761,6 +761,24 @@ impl Evaluator {
             },
         );
 
+        // TCP networking
+        self.environment.define(
+            "tcp_listen".to_string(),
+            Value::BuiltinFn {
+                name: "tcp_listen".to_string(),
+                arity: usize::MAX, // 1 or 2 args
+                func: builtins::builtin_tcp_listen,
+            },
+        );
+        self.environment.define(
+            "tcp_connect".to_string(),
+            Value::BuiltinFn {
+                name: "tcp_connect".to_string(),
+                arity: 1,
+                func: builtins::builtin_tcp_connect,
+            },
+        );
+
         // set_workers(n) — registered as placeholder; handled by name in eval_call
         self.environment.define(
             "set_workers".to_string(),

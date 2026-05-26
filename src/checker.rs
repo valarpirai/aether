@@ -411,6 +411,8 @@ const BUILTINS: &[&str] = &[
     "json_stringify",
     "http_get",
     "http_post",
+    "tcp_listen",
+    "tcp_connect",
     "set_workers",
     "args",
     "Promise",

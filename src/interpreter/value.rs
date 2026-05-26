@@ -7,6 +7,7 @@ use std::hash::{Hash, Hasher};
 use std::rc::{Rc, Weak};
 
 use super::environment::{RuntimeError, StackFrame};
+use super::tcp::{TcpConnectionState, TcpServerState};
 
 /// Type for built-in function implementations
 pub type BuiltinFn = fn(&[Value]) -> Result<Value, RuntimeError>;
@@ -101,6 +102,10 @@ pub enum Value {
     /// Weak reference — holds a non-owning pointer to a heap-allocated value.
     /// Used to break reference cycles in Instance, Array, or Dict structures.
     Weak(WeakTarget),
+    /// TCP server (bound listener + lifecycle callbacks).
+    TcpServer(Rc<RefCell<TcpServerState>>),
+    /// TCP client connection (stream + lifecycle callbacks).
+    TcpConnection(Rc<RefCell<TcpConnectionState>>),
 }
 
 /// Non-owning pointer variant. Stores enough metadata to reconstruct the
@@ -264,6 +269,16 @@ impl Value {
         Value::Promise(Rc::new(RefCell::new(PromiseState::IoWaiting(rx))))
     }
 
+    /// Helper: create a TCP server value
+    pub fn tcp_server(state: TcpServerState) -> Self {
+        Value::TcpServer(Rc::new(RefCell::new(state)))
+    }
+
+    /// Helper: create a TCP connection value
+    pub fn tcp_connection(state: TcpConnectionState) -> Self {
+        Value::TcpConnection(Rc::new(RefCell::new(state)))
+    }
+
     /// Check if value is hashable (can be used in sets/dict keys)
     pub fn is_hashable(&self) -> bool {
         matches!(
@@ -311,6 +326,8 @@ impl Value {
             Value::EnumConstructor { .. } => "enum_constructor",
             Value::EnumVariant { type_name, .. } => type_name.as_str(),
             Value::Weak(_) => "weak",
+            Value::TcpServer(_) => "tcp_server",
+            Value::TcpConnection(_) => "tcp_connection",
         }
     }
 }
@@ -375,7 +392,9 @@ impl PartialEq for Value {
                     ..
                 },
             ) => ta == tb && fa == fb,
-            (Value::Weak(_), Value::Weak(_)) => false, // identity is not tracked
+            (Value::Weak(_), Value::Weak(_)) => false,
+            (Value::TcpServer(a), Value::TcpServer(b)) => Rc::ptr_eq(a, b),
+            (Value::TcpConnection(a), Value::TcpConnection(b)) => Rc::ptr_eq(a, b),
             _ => false,
         }
     }
@@ -517,6 +536,22 @@ impl fmt::Display for Value {
                         write!(f, "{}", v)?;
                     }
                     write!(f, ")")
+                }
+            }
+            Value::TcpServer(s) => {
+                let state = s.borrow();
+                if state.closed {
+                    write!(f, "<tcp_server:closed>")
+                } else {
+                    write!(f, "<tcp_server:listening>")
+                }
+            }
+            Value::TcpConnection(c) => {
+                let state = c.borrow();
+                if state.closed {
+                    write!(f, "<tcp_connection:closed>")
+                } else {
+                    write!(f, "<tcp_connection:{}>", state.addr)
                 }
             }
             Value::Weak(w) => match w {

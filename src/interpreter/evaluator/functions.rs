@@ -738,4 +738,399 @@ impl Evaluator {
 
         Ok(Value::Null)
     }
+
+    /// Start the TCP server accept loop and event dispatch.
+    ///
+    /// Spawns a background accept thread and a per-connection reader thread for
+    /// each incoming client. Runs a polling event loop on the main thread that
+    /// dispatches `TcpEvent`s to the registered Aether callbacks.
+    ///
+    /// Exits when:
+    /// - `server.close()` is called from a callback, or
+    /// - Ctrl+C (SIGINT) is received (graceful drain then exit).
+    pub(crate) fn run_tcp_server(
+        &mut self,
+        state_rc: std::rc::Rc<std::cell::RefCell<crate::interpreter::tcp::TcpServerState>>,
+    ) -> Result<Value, RuntimeError> {
+        use crate::interpreter::tcp::{graceful_shutdown_timeout_secs, SIGINT_COUNT};
+        use std::sync::atomic::Ordering;
+        use std::thread;
+        use std::time::{Duration, Instant};
+
+        crate::interpreter::tcp::register_sigint_handler();
+
+        // Fire on_listen callback before starting the accept thread
+        let on_listen_cb = state_rc.borrow().on_listen.clone();
+        if let Some(cb) = on_listen_cb {
+            self.call_value(cb, vec![])?;
+        }
+
+        // Spawn the accept thread
+        {
+            let state = state_rc.borrow();
+            let listener = state.listener.clone();
+            let event_tx = state.event_tx.clone();
+            let shutdown = state.shutdown.clone();
+            let delimiter = state.delimiter.clone();
+
+            thread::spawn(move || {
+                tcp_accept_loop(listener, event_tx, shutdown, delimiter);
+            });
+        }
+
+        // Main event dispatch loop
+        loop {
+            // Check server.close() or double-SIGINT (force exit)
+            {
+                let state = state_rc.borrow();
+                if state.closed || SIGINT_COUNT.load(Ordering::Relaxed) >= 2 {
+                    break;
+                }
+            }
+
+            // Graceful shutdown on first SIGINT
+            if SIGINT_COUNT.load(Ordering::Relaxed) >= 1 {
+                state_rc.borrow().shutdown.store(true, Ordering::Relaxed);
+                let deadline =
+                    Instant::now() + Duration::from_secs(graceful_shutdown_timeout_secs());
+                while Instant::now() < deadline {
+                    let event = state_rc.borrow_mut().event_rx.try_recv().ok();
+                    match event {
+                        Some(evt) => self.dispatch_tcp_server_event(&state_rc, evt)?,
+                        None => {
+                            if state_rc.borrow().active_conns.is_empty() {
+                                break;
+                            }
+                            thread::sleep(Duration::from_millis(10));
+                        }
+                    }
+                }
+                break;
+            }
+
+            // Normal poll for events
+            loop {
+                let event = state_rc.borrow_mut().event_rx.try_recv().ok();
+                match event {
+                    Some(evt) => self.dispatch_tcp_server_event(&state_rc, evt)?,
+                    None => break,
+                }
+            }
+
+            thread::sleep(Duration::from_millis(1));
+        }
+
+        state_rc.borrow_mut().closed = true;
+        Ok(Value::Null)
+    }
+
+    /// Dispatch a single `TcpEvent` to the appropriate Aether callback on the server.
+    fn dispatch_tcp_server_event(
+        &mut self,
+        state_rc: &std::rc::Rc<std::cell::RefCell<crate::interpreter::tcp::TcpServerState>>,
+        event: crate::interpreter::tcp::TcpEvent,
+    ) -> Result<(), RuntimeError> {
+        use crate::interpreter::tcp::TcpConnectionState;
+        use crate::interpreter::tcp::TcpEvent;
+        use std::sync::atomic::AtomicBool;
+        use std::sync::Arc;
+
+        match event {
+            TcpEvent::Connected {
+                conn_id,
+                stream,
+                peer_addr,
+            } => {
+                // Build a TcpConnection value representing this client
+                let (conn_tx, conn_rx) = std::sync::mpsc::channel();
+                let conn_shutdown = Arc::new(AtomicBool::new(false));
+                let conn_state = TcpConnectionState {
+                    addr: peer_addr,
+                    stream: Some(stream),
+                    event_tx: conn_tx,
+                    event_rx: conn_rx,
+                    on_connect: None,
+                    on_message: None,
+                    on_disconnect: None,
+                    on_error: None,
+                    on_timeout: None,
+                    closed: false,
+                    shutdown: conn_shutdown,
+                };
+                let conn_val = Value::tcp_connection(conn_state);
+                state_rc
+                    .borrow_mut()
+                    .active_conns
+                    .insert(conn_id, conn_val.clone());
+                // Release borrow before calling into Aether (callback may mutate state)
+                let cb = state_rc.borrow().on_connect.clone();
+                if let Some(cb) = cb {
+                    self.call_value(cb, vec![conn_val])?;
+                }
+            }
+
+            TcpEvent::Message { conn_id, data } => {
+                // Release borrow before calling into Aether
+                let conn_val = state_rc.borrow().active_conns.get(&conn_id).cloned();
+                let cb = state_rc.borrow().on_message.clone();
+                if let (Some(conn), Some(cb)) = (conn_val, cb) {
+                    let bytes: Vec<Value> = data.iter().map(|&b| Value::Int(b as i64)).collect();
+                    let data_val = Value::array(bytes);
+                    self.call_value(cb, vec![conn, data_val])?;
+                }
+            }
+
+            TcpEvent::Disconnected { conn_id } => {
+                let conn_val = state_rc.borrow_mut().active_conns.remove(&conn_id);
+                let cb = state_rc.borrow().on_disconnect.clone();
+                if let (Some(conn), Some(cb)) = (conn_val, cb) {
+                    self.call_value(cb, vec![conn])?;
+                }
+            }
+
+            TcpEvent::Error(msg) => {
+                let cb = state_rc.borrow().on_error.clone();
+                if let Some(cb) = cb {
+                    self.call_value(cb, vec![Value::string(msg)])?;
+                }
+            }
+
+            TcpEvent::Timeout { conn_id } => {
+                let conn_val = state_rc.borrow().active_conns.get(&conn_id).cloned();
+                let cb = state_rc.borrow().on_timeout.clone();
+                if let (Some(conn), Some(cb)) = (conn_val, cb) {
+                    self.call_value(cb, vec![conn])?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Connect a client connection and start its reader loop.
+    pub(crate) fn run_tcp_client(
+        &mut self,
+        state_rc: std::rc::Rc<std::cell::RefCell<crate::interpreter::tcp::TcpConnectionState>>,
+    ) -> Result<Value, RuntimeError> {
+        use crate::interpreter::tcp::{graceful_shutdown_timeout_secs, SIGINT_COUNT};
+        use std::sync::atomic::Ordering;
+        use std::thread;
+        use std::time::{Duration, Instant};
+
+        crate::interpreter::tcp::register_sigint_handler();
+
+        // Establish the TCP connection
+        let addr = state_rc.borrow().addr.clone();
+        let stream = std::net::TcpStream::connect(&addr).map_err(|e| {
+            RuntimeError::InvalidOperation(format!(
+                "tcp_connect: cannot connect to {}: {}",
+                addr, e
+            ))
+        })?;
+        let write_arc = std::sync::Arc::new(stream.try_clone().map_err(|e| {
+            RuntimeError::InvalidOperation(format!("tcp_connect: stream clone failed: {}", e))
+        })?);
+        state_rc.borrow_mut().stream = Some(write_arc);
+
+        // Fire on_connect
+        let on_connect_cb = state_rc.borrow().on_connect.clone();
+        if let Some(cb) = on_connect_cb {
+            self.call_value(cb, vec![])?;
+        }
+
+        // Spawn reader thread
+        {
+            let state = state_rc.borrow();
+            let event_tx = state.event_tx.clone();
+            let shutdown = state.shutdown.clone();
+            thread::spawn(move || {
+                tcp_client_read_loop(stream, event_tx, shutdown, 0);
+            });
+        }
+
+        // Main event dispatch loop for the client
+        loop {
+            {
+                let state = state_rc.borrow();
+                if state.closed || SIGINT_COUNT.load(Ordering::Relaxed) >= 2 {
+                    break;
+                }
+            }
+
+            if SIGINT_COUNT.load(Ordering::Relaxed) >= 1 {
+                state_rc.borrow().shutdown.store(true, Ordering::Relaxed);
+                let deadline =
+                    Instant::now() + Duration::from_secs(graceful_shutdown_timeout_secs());
+                while Instant::now() < deadline {
+                    let event = state_rc.borrow_mut().event_rx.try_recv().ok();
+                    match event {
+                        Some(evt) => self.dispatch_tcp_client_event(&state_rc, evt)?,
+                        None => break,
+                    }
+                }
+                break;
+            }
+
+            loop {
+                let event = state_rc.borrow_mut().event_rx.try_recv().ok();
+                match event {
+                    Some(evt) => self.dispatch_tcp_client_event(&state_rc, evt)?,
+                    None => break,
+                }
+            }
+
+            thread::sleep(Duration::from_millis(1));
+        }
+
+        state_rc.borrow_mut().closed = true;
+        Ok(Value::Null)
+    }
+
+    fn dispatch_tcp_client_event(
+        &mut self,
+        state_rc: &std::rc::Rc<std::cell::RefCell<crate::interpreter::tcp::TcpConnectionState>>,
+        event: crate::interpreter::tcp::TcpEvent,
+    ) -> Result<(), RuntimeError> {
+        use crate::interpreter::tcp::TcpEvent;
+        use std::sync::atomic::Ordering;
+
+        match event {
+            TcpEvent::Message { data, .. } => {
+                let cb = state_rc.borrow().on_message.clone();
+                if let Some(cb) = cb {
+                    let bytes: Vec<Value> = data.iter().map(|&b| Value::Int(b as i64)).collect();
+                    self.call_value(cb, vec![Value::array(bytes)])?;
+                }
+            }
+            TcpEvent::Disconnected { .. } => {
+                let cb = state_rc.borrow().on_disconnect.clone();
+                {
+                    let mut s = state_rc.borrow_mut();
+                    s.closed = true;
+                    s.shutdown.store(true, Ordering::Relaxed);
+                }
+                if let Some(cb) = cb {
+                    self.call_value(cb, vec![])?;
+                }
+            }
+            TcpEvent::Error(msg) => {
+                let cb = state_rc.borrow().on_error.clone();
+                if let Some(cb) = cb {
+                    self.call_value(cb, vec![Value::string(msg)])?;
+                }
+            }
+            TcpEvent::Timeout { .. } => {
+                let cb = state_rc.borrow().on_timeout.clone();
+                if let Some(cb) = cb {
+                    self.call_value(cb, vec![])?;
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+}
+
+/// Background thread: accept incoming connections and spawn a reader per connection.
+fn tcp_accept_loop(
+    listener: std::sync::Arc<std::net::TcpListener>,
+    event_tx: std::sync::mpsc::Sender<crate::interpreter::tcp::TcpEvent>,
+    shutdown: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    delimiter: Option<String>,
+) {
+    use crate::interpreter::tcp::TcpEvent;
+    use std::io::ErrorKind;
+    use std::sync::atomic::Ordering;
+    use std::thread;
+    use std::time::Duration;
+
+    let mut next_id: u64 = 0;
+
+    loop {
+        if shutdown.load(Ordering::Relaxed) {
+            break;
+        }
+        match listener.accept() {
+            Ok((stream, addr)) => {
+                let conn_id = next_id;
+                next_id += 1;
+
+                let write_stream = match stream.try_clone() {
+                    Ok(s) => std::sync::Arc::new(s),
+                    Err(e) => {
+                        let _ =
+                            event_tx.send(TcpEvent::Error(format!("stream clone failed: {}", e)));
+                        continue;
+                    }
+                };
+
+                let _ = event_tx.send(TcpEvent::Connected {
+                    conn_id,
+                    stream: write_stream,
+                    peer_addr: addr.to_string(),
+                });
+
+                let tx = event_tx.clone();
+                let sd = shutdown.clone();
+                let delim = delimiter.clone();
+                thread::spawn(move || {
+                    tcp_client_read_loop(stream, tx, sd, conn_id);
+                    drop(delim);
+                });
+            }
+            Err(ref e) if e.kind() == ErrorKind::WouldBlock || e.kind() == ErrorKind::TimedOut => {
+                thread::sleep(Duration::from_millis(10));
+            }
+            Err(e) => {
+                let _ = event_tx.send(TcpEvent::Error(e.to_string()));
+                break;
+            }
+        }
+    }
+}
+
+/// Background thread: read data from a connection and send events.
+fn tcp_client_read_loop(
+    mut stream: std::net::TcpStream,
+    event_tx: std::sync::mpsc::Sender<crate::interpreter::tcp::TcpEvent>,
+    shutdown: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    conn_id: u64,
+) {
+    use crate::interpreter::tcp::TcpEvent;
+    use std::io::Read;
+    use std::sync::atomic::Ordering;
+    use std::time::Duration;
+
+    stream
+        .set_read_timeout(Some(Duration::from_millis(500)))
+        .ok();
+
+    let mut buf = vec![0u8; 4096];
+
+    loop {
+        if shutdown.load(Ordering::Relaxed) {
+            break;
+        }
+        match stream.read(&mut buf) {
+            Ok(0) => {
+                let _ = event_tx.send(TcpEvent::Disconnected { conn_id });
+                break;
+            }
+            Ok(n) => {
+                let _ = event_tx.send(TcpEvent::Message {
+                    conn_id,
+                    data: buf[..n].to_vec(),
+                });
+            }
+            Err(ref e)
+                if e.kind() == std::io::ErrorKind::TimedOut
+                    || e.kind() == std::io::ErrorKind::WouldBlock =>
+            {
+                continue;
+            }
+            Err(_) => {
+                let _ = event_tx.send(TcpEvent::Disconnected { conn_id });
+                break;
+            }
+        }
+    }
 }
