@@ -6,11 +6,23 @@ use aether_lang::lexer::Scanner;
 use aether_lang::parser::Parser;
 
 fn run(source: &str) -> Result<Value, String> {
+    run_inner(source, false)
+}
+
+fn run_with_workers(source: &str) -> Result<Value, String> {
+    run_inner(source, true)
+}
+
+fn run_inner(source: &str, with_workers: bool) -> Result<Value, String> {
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens().map_err(|e| e.to_string())?;
     let mut parser = Parser::new(tokens);
     let program = parser.parse().map_err(|e| e.to_string())?;
-    let mut evaluator = Evaluator::new_without_stdlib();
+    let mut evaluator = if with_workers {
+        Evaluator::new_with_pool(1)
+    } else {
+        Evaluator::new_without_stdlib()
+    };
     let stmts = &program.statements;
     if stmts.is_empty() {
         return Ok(Value::Null);
@@ -241,6 +253,10 @@ fn spawn_server(source: String) -> std::thread::JoinHandle<Result<String, String
     std::thread::spawn(move || run(&source).map(|v| format!("{}", v)))
 }
 
+fn spawn_server_with_workers(source: String) -> std::thread::JoinHandle<Result<String, String>> {
+    std::thread::spawn(move || run_with_workers(&source).map(|v| format!("{}", v)))
+}
+
 // --- echo server integration test (uses threads) ---
 //
 // Binds an ephemeral port, exchanges one message, then closes.
@@ -443,4 +459,82 @@ server.accept()
 
     let result = server_thread.join().expect("server thread panicked");
     assert!(result.is_ok(), "write string test failed: {:?}", result);
+}
+
+// --- TCP + async I/O integration ---
+
+// await inside an on_message callback: server uses await sleep() before echoing.
+// Verifies that the TCP dispatch loop co-operates with blocking await.
+#[test]
+fn test_await_inside_tcp_callback() {
+    use std::io::{Read, Write};
+
+    let port = free_port();
+    let addr = format!("127.0.0.1:{}", port);
+    let addr_clone = addr.clone();
+
+    let server_thread = spawn_server_with_workers(format!(
+        r#"
+let server = tcp_listen("{addr}")
+server.on_message(fn(conn, data) {{
+    await sleep(0.001)
+    conn.write("ok")
+    server.close()
+}})
+server.accept()
+"#
+    ));
+
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    let mut stream = std::net::TcpStream::connect(&addr_clone).unwrap();
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(3)))
+        .unwrap();
+    stream.write_all(b"ping").unwrap();
+
+    let mut buf = [0u8; 2];
+    stream.read_exact(&mut buf).unwrap();
+    assert_eq!(&buf, b"ok");
+
+    let result = server_thread.join().expect("server thread panicked");
+    assert!(result.is_ok(), "await-in-tcp test failed: {:?}", result);
+}
+
+// .then() inside an on_message callback: verifies the TCP dispatch loop ticks
+// the EventLoopQueue so async callbacks registered from TCP handlers fire.
+#[test]
+fn test_then_inside_tcp_callback() {
+    use std::io::{Read, Write};
+
+    let port = free_port();
+    let addr = format!("127.0.0.1:{}", port);
+    let addr_clone = addr.clone();
+
+    let server_thread = spawn_server_with_workers(format!(
+        r#"
+let server = tcp_listen("{addr}")
+server.on_message(fn(conn, data) {{
+    let p = sleep(0.001)
+    p.then(fn(_) {{
+        conn.write("async-ok")
+        server.close()
+    }})
+}})
+server.accept()
+"#
+    ));
+
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    let mut stream = std::net::TcpStream::connect(&addr_clone).unwrap();
+    stream
+        .set_read_timeout(Some(std::time::Duration::from_secs(3)))
+        .unwrap();
+    stream.write_all(b"ping").unwrap();
+
+    let mut buf = [0u8; 8];
+    stream.read_exact(&mut buf).unwrap();
+    assert_eq!(&buf, b"async-ok");
+
+    let result = server_thread.join().expect("server thread panicked");
+    assert!(result.is_ok(), "then-in-tcp test failed: {:?}", result);
 }

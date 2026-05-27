@@ -739,6 +739,22 @@ impl Evaluator {
         Ok(Value::Null)
     }
 
+    /// Drain the async EventLoopQueue and fire any ready callbacks.
+    ///
+    /// Called from the TCP dispatch loops so that `.then()` / `on_ready` callbacks
+    /// registered inside TCP handlers (e.g. `await http_get(...)` inside
+    /// `on_message`) fire without requiring a separate `event_loop()` call.
+    pub(crate) fn tick_async_callbacks(&mut self) -> Result<(), RuntimeError> {
+        let ready = self.async_rt.event_loop_queue.drain_ready();
+        for (result, callback) in ready {
+            match result {
+                Ok(val) => self.call_value(callback, vec![val]).map(|_| ())?,
+                Err(e) => eprintln!("tcp: async task failed (callback skipped): {}", e),
+            }
+        }
+        Ok(())
+    }
+
     /// Start the TCP server event loop (event-driven via mio).
     ///
     /// Spawns a single I/O thread that owns all `TcpStream` handles and drives
@@ -821,12 +837,16 @@ impl Evaluator {
                 }
             }
 
-            // Block up to 10 ms for the next event
+            // Block up to 10 ms for the next TCP event
             match event_rx.recv_timeout(Duration::from_millis(10)) {
                 Ok(evt) => self.dispatch_tcp_server_event(&state_rc, evt)?,
                 Err(RecvTimeoutError::Disconnected) => break,
                 Err(RecvTimeoutError::Timeout) => {}
             }
+
+            // Tick the async event loop so .then() / on_ready callbacks registered
+            // inside TCP handlers (e.g. await http_get inside on_message) can fire.
+            self.tick_async_callbacks()?;
         }
 
         state_rc.borrow_mut().closed = true;
@@ -956,6 +976,9 @@ impl Evaluator {
                 Err(RecvTimeoutError::Disconnected) => break,
                 Err(RecvTimeoutError::Timeout) => {}
             }
+
+            // Tick async event loop alongside the TCP client loop.
+            self.tick_async_callbacks()?;
 
             if state_rc.borrow().closed {
                 break;
