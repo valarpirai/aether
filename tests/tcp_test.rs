@@ -331,7 +331,7 @@ server.accept()
 // on_disconnect fires when the client closes the connection
 #[test]
 fn test_on_disconnect_fires() {
-    use std::io::{Read, Write};
+    use std::io::{Read, Write as _};
 
     let port = free_port();
     let addr = format!("127.0.0.1:{}", port);
@@ -363,27 +363,26 @@ server.accept()
 }
 
 // Multiple sequential connections: each client connects, sends one message, reads echo.
-// This avoids TCP coalescing ambiguity while still testing multi-client handling.
-// Marked ignore: slow due to accept-thread 10ms poll + on_disconnect processing delay.
-// Run explicitly with: cargo test test_multiple_sequential_connections -- --ignored
+// Uses an array counter (reference semantics) since Aether primitive captures are per-call copies.
 #[test]
-#[ignore]
 fn test_multiple_sequential_connections() {
-    use std::io::{Read, Write};
+    use std::io::{Read, Write as _};
 
     let port = free_port();
     let addr = format!("127.0.0.1:{}", port);
     let addr_clone = addr.clone();
 
     // Server echoes each message and counts; closes after 3 connections
+    // count is an array so closure captures a shared reference (Rc), not a copy.
+    // Aether primitive captures are per-call copies; arrays/dicts share state.
     let server_thread = spawn_server(format!(
         r#"
-let count = 0
+let count = [0]
 let server = tcp_listen("{addr}")
 server.on_message(fn(conn, data) {{
     conn.write(data)
-    count = count + 1
-    if (count >= 3) {{
+    count[0] = count[0] + 1
+    if (count[0] >= 3) {{
         server.close()
     }}
 }})

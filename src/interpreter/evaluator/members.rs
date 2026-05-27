@@ -1219,21 +1219,14 @@ impl Evaluator {
                 Ok(obj_val)
             }
             (Value::TcpServer(state_rc), "close") => {
-                use std::net::Shutdown;
+                use crate::interpreter::tcp::TcpCommand;
                 use std::sync::atomic::Ordering;
                 let mut state = state_rc.borrow_mut();
-                state.shutdown.store(true, Ordering::Relaxed);
                 state.closed = true;
-                // Shut down every active connection: stop the reader thread and
-                // send FIN to the client so it gets EOF immediately.
-                for conn_val in state.active_conns.values() {
-                    if let Value::TcpConnection(conn_rc) = conn_val {
-                        let conn_state = conn_rc.borrow();
-                        conn_state.shutdown.store(true, Ordering::Relaxed);
-                        if let Some(stream) = &conn_state.stream {
-                            let _ = stream.shutdown(Shutdown::Both);
-                        }
-                    }
+                state.shutdown.store(true, Ordering::Relaxed);
+                if let (Some(cmd_tx), Some(waker)) = (&state.cmd_tx, &state.waker) {
+                    let _ = cmd_tx.send(TcpCommand::Shutdown);
+                    let _ = waker.wake();
                 }
                 Ok(Value::Null)
             }
@@ -1274,28 +1267,40 @@ impl Evaluator {
                 }
                 let data_val = self.eval_expr(&args[0])?;
                 let bytes = tcp_value_to_bytes(&data_val)?;
-                let stream_arc = {
-                    let state = state_rc.borrow();
-                    state.stream.clone().ok_or_else(|| {
-                        RuntimeError::InvalidOperation(
+                use crate::interpreter::tcp::TcpCommand;
+                let state = state_rc.borrow();
+                match (&state.cmd_tx, &state.waker) {
+                    (Some(cmd_tx), Some(waker)) => {
+                        let _ = cmd_tx.send(TcpCommand::Write {
+                            conn_id: state.conn_id,
+                            data: bytes,
+                        });
+                        let _ = waker.wake();
+                    }
+                    _ => {
+                        return Err(RuntimeError::InvalidOperation(
                             "conn.write: connection not started".to_string(),
-                        )
-                    })?
-                };
-                use std::io::Write;
-                (&*stream_arc)
-                    .write_all(&bytes)
-                    .map_err(|e| RuntimeError::InvalidOperation(format!("conn.write: {}", e)))?;
+                        ))
+                    }
+                }
                 Ok(Value::Null)
             }
             (Value::TcpConnection(state_rc), "close") => {
-                use std::net::Shutdown;
+                use crate::interpreter::tcp::TcpCommand;
                 use std::sync::atomic::Ordering;
                 let mut state = state_rc.borrow_mut();
-                state.shutdown.store(true, Ordering::Relaxed);
                 state.closed = true;
-                if let Some(stream) = &state.stream {
-                    let _ = stream.shutdown(Shutdown::Both);
+                state.shutdown.store(true, Ordering::Relaxed);
+                if let (Some(cmd_tx), Some(waker)) = (&state.cmd_tx, &state.waker) {
+                    let cmd = if state.is_client {
+                        TcpCommand::Shutdown
+                    } else {
+                        TcpCommand::CloseConn {
+                            conn_id: state.conn_id,
+                        }
+                    };
+                    let _ = cmd_tx.send(cmd);
+                    let _ = waker.wake();
                 }
                 Ok(Value::Null)
             }

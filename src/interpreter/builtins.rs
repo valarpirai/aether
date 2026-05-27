@@ -1421,21 +1421,19 @@ pub fn builtin_tcp_listen(args: &[Value]) -> Result<Value, RuntimeError> {
     let listener = TcpListener::bind(&addr).map_err(|e| {
         RuntimeError::InvalidOperation(format!("tcp_listen: cannot bind {}: {}", addr, e))
     })?;
-    // Non-blocking so the accept loop can poll the shutdown flag
+    // mio requires a non-blocking socket
     listener.set_nonblocking(true).map_err(|e| {
         RuntimeError::InvalidOperation(format!("tcp_listen: set_nonblocking failed: {}", e))
     })?;
-
-    let (event_tx, event_rx) = std::sync::mpsc::channel();
-    let shutdown = Arc::new(AtomicBool::new(false));
 
     use super::tcp::TcpServerState;
     use std::collections::HashMap;
 
     let state = TcpServerState {
-        listener: Arc::new(listener),
-        event_tx,
-        event_rx,
+        std_listener: Some(listener),
+        cmd_tx: None,
+        waker: None,
+        shutdown: Arc::new(AtomicBool::new(false)),
         on_listen: None,
         on_connect: None,
         on_message: None,
@@ -1445,8 +1443,6 @@ pub fn builtin_tcp_listen(args: &[Value]) -> Result<Value, RuntimeError> {
         delimiter,
         active_conns: HashMap::new(),
         closed: false,
-        next_conn_id: 0,
-        shutdown,
     };
     Ok(Value::tcp_server(state))
 }
@@ -1473,26 +1469,23 @@ pub fn builtin_tcp_connect(args: &[Value]) -> Result<Value, RuntimeError> {
         }
     };
 
+    use super::tcp::TcpConnectionState;
     use std::sync::atomic::AtomicBool;
     use std::sync::Arc;
 
-    let (event_tx, event_rx) = std::sync::mpsc::channel();
-    let shutdown = Arc::new(AtomicBool::new(false));
-
-    use super::tcp::TcpConnectionState;
-
     let state = TcpConnectionState {
+        conn_id: 0,
         addr,
-        stream: None,
-        event_tx,
-        event_rx,
+        is_client: true,
+        cmd_tx: None,
+        waker: None,
+        shutdown: Arc::new(AtomicBool::new(false)),
         on_connect: None,
         on_message: None,
         on_disconnect: None,
         on_error: None,
         on_timeout: None,
         closed: false,
-        shutdown,
     };
     Ok(Value::tcp_connection(state))
 }
