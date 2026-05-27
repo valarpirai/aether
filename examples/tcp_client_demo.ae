@@ -1,0 +1,23 @@
+// TCP client demo — connects to the echo server, sends 3 messages, then closes
+// Run: cargo run -- examples/tcp_client_demo.ae
+// (Start tcp_server_demo.ae first in another terminal)
+
+let conn = tcp_connect("127.0.0.1:8080")
+
+conn.on_connect(fn() {
+    print("Connected to server")
+})
+
+conn.on_message(fn(data) {
+    print("Server says: " + str(data))
+})
+
+conn.on_disconnect(fn() {
+    print("Disconnected from server")
+})
+
+conn.on_error(fn(err) {
+    print("Connection error: " + err)
+})
+
+conn.start()

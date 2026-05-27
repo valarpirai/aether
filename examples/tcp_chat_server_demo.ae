@@ -1,0 +1,49 @@
+// TCP chat server demo — broadcasts each message to all connected clients
+// Run: cargo run -- examples/tcp_chat_server_demo.ae
+// Connect with: nc 127.0.0.1:9090
+
+let clients = []
+
+let server = tcp_listen("127.0.0.1:9090", { "delimiter": "\n" })
+
+server.on_listen(fn() {
+    print("Chat server listening on 127.0.0.1:9090")
+    print("Connect with: nc 127.0.0.1:9090")
+})
+
+server.on_connect(fn(conn) {
+    clients.push(conn)
+    conn.write("Welcome! " + str(len(clients)) + " user(s) online.\n")
+    print("Client joined. Total: " + str(len(clients)))
+})
+
+server.on_message(fn(conn, data) {
+    let msg = str(data)
+    print("Broadcasting: " + msg)
+    let i = 0
+    while (i < len(clients)) {
+        clients[i].write(msg)
+        i = i + 1
+    }
+})
+
+server.on_disconnect(fn(conn) {
+    // Remove disconnected client from the list
+    let remaining = []
+    let i = 0
+    while (i < len(clients)) {
+        if (clients[i] != conn) {
+            remaining.push(clients[i])
+        }
+        i = i + 1
+    }
+    clients = remaining
+    print("Client left. Total: " + str(len(clients)))
+})
+
+server.on_error(fn(err) {
+    print("Error: " + err)
+})
+
+server.accept()
+print("Chat server stopped.")

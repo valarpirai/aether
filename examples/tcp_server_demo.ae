@@ -1,0 +1,31 @@
+// TCP echo server demo
+// Run: cargo run -- examples/tcp_server_demo.ae
+// Stop: Ctrl+C (graceful), Ctrl+C again (force)
+
+let server = tcp_listen("127.0.0.1:8080")
+
+server.on_listen(fn() {
+    print("Server listening on 127.0.0.1:8080")
+})
+
+server.on_connect(fn(conn) {
+    print("Client connected")
+    conn.write("Welcome to Aether TCP server!\n")
+})
+
+server.on_message(fn(conn, data) {
+    let msg = str(data)
+    print("Received: " + msg)
+    conn.write("Echo: " + msg)
+})
+
+server.on_disconnect(fn(conn) {
+    print("Client disconnected")
+})
+
+server.on_error(fn(err) {
+    print("Server error: " + err)
+})
+
+server.accept()
+print("Server stopped.")

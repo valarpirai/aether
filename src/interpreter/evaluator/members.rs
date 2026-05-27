@@ -1219,10 +1219,22 @@ impl Evaluator {
                 Ok(obj_val)
             }
             (Value::TcpServer(state_rc), "close") => {
+                use std::net::Shutdown;
                 use std::sync::atomic::Ordering;
                 let mut state = state_rc.borrow_mut();
                 state.shutdown.store(true, Ordering::Relaxed);
                 state.closed = true;
+                // Shut down every active connection: stop the reader thread and
+                // send FIN to the client so it gets EOF immediately.
+                for conn_val in state.active_conns.values() {
+                    if let Value::TcpConnection(conn_rc) = conn_val {
+                        let conn_state = conn_rc.borrow();
+                        conn_state.shutdown.store(true, Ordering::Relaxed);
+                        if let Some(stream) = &conn_state.stream {
+                            let _ = stream.shutdown(Shutdown::Both);
+                        }
+                    }
+                }
                 Ok(Value::Null)
             }
             (Value::TcpServer(state_rc), "accept") => self.run_tcp_server(state_rc.clone()),
@@ -1277,10 +1289,14 @@ impl Evaluator {
                 Ok(Value::Null)
             }
             (Value::TcpConnection(state_rc), "close") => {
+                use std::net::Shutdown;
                 use std::sync::atomic::Ordering;
                 let mut state = state_rc.borrow_mut();
                 state.shutdown.store(true, Ordering::Relaxed);
                 state.closed = true;
+                if let Some(stream) = &state.stream {
+                    let _ = stream.shutdown(Shutdown::Both);
+                }
                 Ok(Value::Null)
             }
             (Value::TcpConnection(state_rc), "start") => self.run_tcp_client(state_rc.clone()),
