@@ -1,4 +1,11 @@
-# TCP
+---
+layout: default
+title: "Aether — TCP / UDP"
+---
+
+[Home](../index.html) › Language Reference › TCP / UDP
+
+# TCP / UDP
 
 Aether provides built-in TCP server and client support via `tcp_listen` and `tcp_connect`.  
 Both are event-driven: a single background I/O thread drives all connections via `epoll`/`kqueue` (mio), and events are dispatched to your Aether callbacks on the main thread.
@@ -292,3 +299,6 @@ server.on_message(fn(conn, data) {
 - `examples/tcp_client_demo.ae` — client that sends two messages and disconnects
 - `examples/tcp_chat_server_demo.ae` — broadcast chat server with delimiter framing
 - `examples/udp_demo.ae` — UDP echo server
+
+---
+[← Async/Await](ASYNC.html) &nbsp;&nbsp; [Configuration →](CONFIGURATION.html)

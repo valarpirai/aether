@@ -65,8 +65,8 @@ fn main() {
 ## Status
 
 - **Phase**: 5 Complete ✅
-- **Version**: 0.1.4
-- **Tests**: ~859 passing (134 unit + ~725 integration)
+- **Version**: 0.2.1
+- **Tests**: ~1140 passing (134 unit + ~1017 integration)
 - **Code Quality**: 0 clippy warnings
 - **Documentation**: 20+ comprehensive guides
 
@@ -150,9 +150,11 @@ Start here if you want to use the language — build scripts, automate tasks, or
 | [Standard Library](lang/STDLIB.html) | range, map, filter, reduce, math, string, testing |
 | [Iterators](lang/ITERATORS.html) | has_next() / next() protocol, custom iterators |
 | [JSON](lang/JSON.html) | json_parse(), json_stringify() |
+| [CSV](lang/CSV.html) | csv_parse(), csv_stringify() |
 | [HTTP](lang/HTTP.html) | http_get(), http_post() |
 | [Time](lang/TIME.html) | clock(), sleep() |
 | [Async/Await](lang/ASYNC.html) | async fn, await, .then(), Promise.all/race/allSettled, I/O pool |
+| [TCP](lang/TCP.html) | tcp_listen(), tcp_connect(), server/client lifecycle events, UDP |
 | [Configuration](lang/CONFIGURATION.html) | Env vars and runtime configuration |
 
 ### Hacking on Aether's interpreter
@@ -170,6 +172,7 @@ Start here if you want to extend the language, fix a bug, or understand how the 
 | [Interpreter](dev/INTERPRETER.html) | Tree-walking evaluator — `src/interpreter/evaluator/` |
 | [Memory Management](dev/MEMORY_MANAGEMENT.html) | Rc-based memory management and cycle avoidance |
 | [Event Loop Internals](dev/EVENT_LOOP.html) | on_ready, event_loop, queue controls |
+| [TCP/UDP Internals](dev/TCP_UDP.html) | mio I/O loop, state types, channels, SIGINT, UDP design |
 | [Backlog](dev/BACKLOG.html) | Planned features and open design questions |
 
 ## What's Working
@@ -225,8 +228,8 @@ MIT License — see [LICENSE](https://github.com/valarpirai/aether/blob/main/LIC
 
 ---
 
-**Last Updated**: 2026-05-14  
-**Version**: 0.1.4  
+**Last Updated**: 2026-05-27  
+**Version**: 0.2.1  
 **Status**: Active Development
 
 [View on GitHub](https://github.com/valarpirai/aether){: .btn .btn-outline}

@@ -409,6 +409,8 @@ const BUILTINS: &[&str] = &[
     "copy",
     "json_parse",
     "json_stringify",
+    "csv_parse",
+    "csv_stringify",
     "http_get",
     "http_post",
     "tcp_listen",

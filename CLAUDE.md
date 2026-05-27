@@ -38,13 +38,14 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 | [STRINGS.md](docs/lang/STRINGS.md) | Literals, indexing, slicing, interpolation, methods |
 | [DESTRUCTURING.md](docs/lang/DESTRUCTURING.md) | Array and dict destructuring, rest, rename, defaults |
 | [STRUCT.md](docs/lang/STRUCT.md) | User-defined types with fields and methods |
-| [ERROR_HANDLING.md](docs/lang/ERROR_HANDLING.md) | try/catch/throw with stack traces |
+| [ERROR_HANDLING.md](docs/lang/ERROR_HANDLING.md) | try/catch/finally/throw with stack traces |
 | [ASYNC.md](docs/lang/ASYNC.md) | async fn, await, .then(), Promise.all/race/allSettled, I/O pool |
 | [ITERATORS.md](docs/lang/ITERATORS.md) | Iterator protocol, built-in and custom iterators |
 | [MODULE_SYSTEM.md](docs/lang/MODULE_SYSTEM.md) | import, from…import, stdlib modules |
 | [STDLIB.md](docs/lang/STDLIB.md) | range, map, filter, reduce, math, string, testing |
 | [HTTP.md](docs/lang/HTTP.md) | http_get(), http_post() |
 | [JSON.md](docs/lang/JSON.md) | json_parse(), json_stringify() |
+| [CSV.md](docs/lang/CSV.md) | csv_parse(), csv_stringify() |
 | [TIME.md](docs/lang/TIME.md) | clock(), sleep() |
 | [REPL.md](docs/lang/REPL.md) | Interactive REPL and file execution |
 | [CONFIGURATION.md](docs/lang/CONFIGURATION.md) | Env vars and runtime configuration builtins |
@@ -186,7 +187,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | **Functions** | declarations, expressions, closures, optional params, recursion (depth limit 100) |
 | **Strings** | indexing, interpolation `${expr}`, slicing `str[1:3]`, spread `[...arr]`, upper/lower/trim/split |
 | **Collections** | array (push/pop/sort/concat/slice/spread), dict (keys/values/contains), set (union/intersection/difference/subset); reference semantics for array/dict/struct; `==` is identity; `.equals()` depth-1 structural; `copy()` depth-1 shallow clone; `id()` for object identity |
-| **Error handling** | try/catch/throw; `e.message`, `e.stack_trace`; stack frames include filename and line number |
+| **Error handling** | try/catch/finally/throw; `e.message`, `e.stack_trace`; stack frames include filename and line number |
 | **Modules** | `import mod`, `from mod import fn`, `import mod as alias`; filesystem + embedded stdlib |
 | **Structs** | fields, methods, `self` binding, mutable fields via RefCell; `.equals()` for depth-1 structural comparison |
 | **Iterators** | `has_next()`, `next()`, for-in over array/dict/set/string/iterator |
@@ -195,6 +196,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | **Event loop** | `on_ready(promise, callback)`, `event_loop()`; callback-based async; chained callbacks |
 | **Null safety** | `??` null coalescing (short-circuit), `?.` optional member/method chaining |
 | **JSON** | `json_parse()`, `json_stringify()` via serde_json |
+| **CSV** | `csv_parse(str[, delim])`, `csv_stringify(rows[, delim])`; parse CSV/TSV text to array of arrays and back |
 | **HTTP** | `http_get(url)`, `http_post(url, body)` via reqwest (blocking or async) |
 | **Time** | `clock()` (Unix epoch float), `sleep(secs)` |
 | **TCP** | `tcp_listen(addr[, opts])`, `tcp_connect(addr)`; server events: `on_listen/connect/message/disconnect/error/timeout`, `accept()`, `close()`; client events: `on_connect/message/disconnect/error/timeout`, `start()`, `close()`, `write(data)`; event-driven via mio (single I/O thread, ~8–260 KB per connection); use array/dict for mutable closure state |
@@ -221,10 +223,10 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | Phase 5 Sprint 5: Null safety + Event loop | ~693 |
 | Phase 5 Sprint 6: Tooling (fmt, test, check, REPL multi-line) | ~1112 |
 
-### Test Coverage (2026-05-23)
+### Test Coverage (2026-05-27)
 
-- **Total**: ~1112 tests passing (134 unit + ~978 integration)
-- **Ignored/skipped**: 5 http tests (require network), 2 known recursion stack-overflow
+- **Total**: ~1140 tests passing (134 unit + ~1017 integration)
+- **Ignored/skipped**: ~9 http tests (require network), 2 known recursion stack-overflow
 - **Code quality**: cargo clippy clean (5 acceptable `mutable_key_type` warnings for HashSet)
 
 **Unit tests (134):**
@@ -237,57 +239,64 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | Built-ins | 15 |
 | Other unit | 35 |
 
-**Integration tests (~725):**
+**Integration tests (~1017):**
 
 | Suite | Count |
 |-------|-------|
-| `stdlib_collections_test` | 39 |
-| `parser_tests` | 54 |
-| `integration_test` | 30 |
-| `null_coalesce_test` | 31 |
-| `operators_test` | 31 |
+| `stdlib_collections_test` | 54 |
+| `stdlib_math_test` | 39 |
+| `stdlib_string2_test` | 38 |
+| `operators_test` | 36 |
+| `number_conversion_test` | 35 |
+| `event_loop_test` | 32 |
+| `stdlib_math2_test` | 31 |
+| `async_test` | 30 |
+| `tcp_test` | 29 |
+| `integration_test` | 29 |
+| `reference_semantics_test` | 27 |
 | `dict_test` | 27 |
-| `stdlib_math_test` | 26 |
+| `checker_test` | 27 |
+| `fmt_test` | 26 |
+| `struct_test` | 25 |
 | `json_test` | 25 |
+| `file_io_test` | 25 |
 | `stdlib_string_test` | 24 |
 | `set_test` | 24 |
+| `stdlib_collections2_test` | 23 |
+| `null_coalesce_test` | 23 |
 | `iterator_test` | 22 |
 | `array_methods_test` | 22 |
-| `async_test` | 21 |
+| `enum_test` | 20 |
 | `destructure_test` | 20 |
+| `csv_test` | 20 |
 | `clippy_fix_regression_test` | 20 |
 | `stdlib_testing_test` | 19 |
 | `string_indexing_test` | 16 |
-| `event_loop_test` | 15 |
 | `slice_test` | 15 |
-| `enum_test` | 14 |
-| `struct_test` | 14 |
+| `error_handling_test` | 15 |
 | `io_pool_test` | 14 |
-| `match_test` | 13 |
 | `module_test` | 13 |
+| `match_test` | 13 |
+| `gc_test` | 13 |
 | `function_expr_test` | 13 |
 | `error_context_test` | 11 |
 | `time_test` | 10 |
-| `error_handling_test` | 10 |
-| `labeled_loop_test` | 10 |
+| `test_runner_test` | 10 |
+| `multiline_string_test` | 10 |
 | `string_interp_test` | 9 |
 | `stdlib_test` | 9 |
 | `spread_test` | 9 |
-| `multiline_string_test` | 9 |
+| `http_test` | 9 (ignored — network) |
+| `udp_test` | 8 |
 | `string_methods_test` | 8 |
 | `member_access_test` | 8 |
-| `args_test` | 8 |
-| `gc_test` | 6 |
+| `labeled_loop_test` | 8 |
+| `args_test` | 6 |
 | `io_test` | 5 |
-| `http_test` | 5 (ignored — network) |
-| `closure_leak_test` | 4 |
 | `debugger_test` | 5 |
-| `file_io_test` | 2 |
+| `closure_leak_test` | 4 |
 | `small_recursion_test` | 2 |
 | `recursion_limit_test` | 2 |
-| `fmt_test` | 26 |
-| `checker_test` | 27 |
-| `test_runner_test` | 10 |
 
 ### Backlog
 
