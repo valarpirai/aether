@@ -1,23 +1,35 @@
-// TCP client demo — connects to the echo server, sends 3 messages, then closes
-// Run: cargo run -- examples/tcp_client_demo.ae
-// (Start tcp_server_demo.ae first in another terminal)
+// TCP client demo — connects, sends two messages, then disconnects
+// Run (with tcp_server_demo.ae already running):
+//   cargo run -- examples/tcp_client_demo.ae
+
+let messages = ["Hello from Aether client!\n", "Goodbye!\n"]
+let sent = [0]
 
 let conn = tcp_connect("127.0.0.1:8080")
 
 conn.on_connect(fn() {
-    print("Connected to server")
+    print("Connected")
+    conn.write(messages[sent[0]])
+    sent[0] = sent[0] + 1
 })
 
+// data is an array of byte values; use conn.write(data) to forward as-is
 conn.on_message(fn(data) {
-    print("Server says: " + str(data))
+    print("Server echoed " + str(len(data)) + " bytes")
+    if (sent[0] < len(messages)) {
+        conn.write(messages[sent[0]])
+        sent[0] = sent[0] + 1
+    } else {
+        conn.close()
+    }
 })
 
 conn.on_disconnect(fn() {
-    print("Disconnected from server")
+    print("Disconnected")
 })
 
 conn.on_error(fn(err) {
-    print("Connection error: " + err)
+    print("Error: " + err)
 })
 
 conn.start()

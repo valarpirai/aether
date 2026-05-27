@@ -1,22 +1,24 @@
-// TCP echo server demo
+// TCP echo server — demonstrates all server lifecycle events
 // Run: cargo run -- examples/tcp_server_demo.ae
+// Test: echo "hello" | nc 127.0.0.1:8080
 // Stop: Ctrl+C (graceful), Ctrl+C again (force)
 
 let server = tcp_listen("127.0.0.1:8080")
 
 server.on_listen(fn() {
-    print("Server listening on 127.0.0.1:8080")
+    print("Listening on 127.0.0.1:8080")
 })
 
 server.on_connect(fn(conn) {
     print("Client connected")
-    conn.write("Welcome to Aether TCP server!\n")
+    conn.write("Welcome to Aether TCP!\n")
 })
 
+// data is an array of byte values [104, 101, 108, 108, 111, ...]
+// conn.write accepts a string or a byte array — both work
 server.on_message(fn(conn, data) {
-    let msg = str(data)
-    print("Received: " + msg)
-    conn.write("Echo: " + msg)
+    print("Received " + str(len(data)) + " bytes")
+    conn.write(data)
 })
 
 server.on_disconnect(fn(conn) {
@@ -24,7 +26,7 @@ server.on_disconnect(fn(conn) {
 })
 
 server.on_error(fn(err) {
-    print("Server error: " + err)
+    print("Error: " + err)
 })
 
 server.accept()
