@@ -1,0 +1,17 @@
+// UDP echo server — echoes every datagram back to its sender
+// Run: cargo run -- examples/udp_demo.ae
+// Test: echo "hello" | nc -u 127.0.0.1 9001
+// Stop: Ctrl+C
+
+fn main() {
+    let sock = udp_bind("127.0.0.1:9001")
+
+    // data is an array of byte ints; addr is a "host:port" string
+    sock.on_message(fn(data, addr) {
+        print("Received " + str(len(data)) + " bytes from " + addr)
+        sock.send_to(data, addr)
+    })
+
+    sock.listen()
+    print("UDP server stopped.")
+}

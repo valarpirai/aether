@@ -1306,6 +1306,60 @@ impl Evaluator {
             }
             (Value::TcpConnection(state_rc), "start") => self.run_tcp_client(state_rc.clone()),
 
+            // --- UdpSocket methods ---
+            (Value::UdpSocket(state_rc), "on_message") => {
+                let cb = self.require_fn_arg(args, 0, "on_message")?;
+                state_rc.borrow_mut().on_message = Some(cb);
+                Ok(obj_val)
+            }
+            (Value::UdpSocket(state_rc), "send_to") => {
+                if args.len() != 2 {
+                    return Err(RuntimeError::ArityMismatch {
+                        expected: 2,
+                        got: args.len(),
+                    });
+                }
+                let data_val = self.eval_expr(&args[0])?;
+                let bytes = tcp_value_to_bytes(&data_val)?;
+                let addr_val = self.eval_expr(&args[1])?;
+                let addr = match &addr_val {
+                    Value::String(s) => s.as_str().to_string(),
+                    _ => {
+                        return Err(RuntimeError::TypeError {
+                            expected: "string".to_string(),
+                            got: addr_val.type_name().to_string(),
+                        })
+                    }
+                };
+                use crate::interpreter::udp::UdpCommand;
+                let state = state_rc.borrow();
+                match (&state.cmd_tx, &state.waker) {
+                    (Some(cmd_tx), Some(waker)) => {
+                        let _ = cmd_tx.send(UdpCommand::SendTo { addr, data: bytes });
+                        let _ = waker.wake();
+                    }
+                    _ => {
+                        return Err(RuntimeError::InvalidOperation(
+                            "sock.send_to: socket not started".to_string(),
+                        ))
+                    }
+                }
+                Ok(Value::Null)
+            }
+            (Value::UdpSocket(state_rc), "close") => {
+                use crate::interpreter::udp::UdpCommand;
+                use std::sync::atomic::Ordering;
+                let mut state = state_rc.borrow_mut();
+                state.closed = true;
+                state.shutdown.store(true, Ordering::Relaxed);
+                if let (Some(cmd_tx), Some(waker)) = (&state.cmd_tx, &state.waker) {
+                    let _ = cmd_tx.send(UdpCommand::Shutdown);
+                    let _ = waker.wake();
+                }
+                Ok(Value::Null)
+            }
+            (Value::UdpSocket(state_rc), "listen") => self.run_udp_socket(state_rc.clone()),
+
             (_, "then") => {
                 if args.len() != 1 {
                     return Err(RuntimeError::ArityMismatch {

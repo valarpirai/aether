@@ -1037,4 +1037,88 @@ impl Evaluator {
         }
         Ok(())
     }
+
+    /// Start the UDP socket event loop (event-driven via mio).
+    pub(crate) fn run_udp_socket(
+        &mut self,
+        state_rc: std::rc::Rc<std::cell::RefCell<crate::interpreter::udp::UdpSocketState>>,
+    ) -> Result<Value, RuntimeError> {
+        use crate::interpreter::tcp::SIGINT_COUNT;
+        use crate::interpreter::udp::{run_udp_io_loop, UdpCommand, UdpEvent, WAKER_TOKEN};
+        use mio::{Poll, Waker};
+        use std::sync::atomic::Ordering;
+        use std::sync::mpsc::RecvTimeoutError;
+        use std::sync::Arc;
+        use std::time::Duration;
+
+        crate::interpreter::tcp::register_sigint_handler();
+
+        let std_socket = state_rc.borrow_mut().std_socket.take().ok_or_else(|| {
+            RuntimeError::InvalidOperation("sock.listen() already called".to_string())
+        })?;
+
+        let (event_tx, event_rx) = std::sync::mpsc::channel::<UdpEvent>();
+        let (cmd_tx, cmd_rx) = std::sync::mpsc::channel::<UdpCommand>();
+
+        let poll = Poll::new().map_err(|e| RuntimeError::InvalidOperation(e.to_string()))?;
+        let waker = Arc::new(
+            Waker::new(poll.registry(), WAKER_TOKEN)
+                .map_err(|e| RuntimeError::InvalidOperation(e.to_string()))?,
+        );
+
+        {
+            let mut state = state_rc.borrow_mut();
+            state.cmd_tx = Some(cmd_tx);
+            state.waker = Some(waker);
+        }
+
+        let shutdown = state_rc.borrow().shutdown.clone();
+
+        std::thread::spawn(move || {
+            run_udp_io_loop(std_socket, event_tx, cmd_rx, poll, shutdown);
+        });
+
+        loop {
+            if SIGINT_COUNT.load(Ordering::Relaxed) >= 2 {
+                break;
+            }
+
+            match event_rx.recv_timeout(Duration::from_millis(10)) {
+                Ok(evt) => self.dispatch_udp_event(&state_rc, evt)?,
+                Err(RecvTimeoutError::Disconnected) => break,
+                Err(RecvTimeoutError::Timeout) => {}
+            }
+
+            self.tick_async_callbacks()?;
+
+            if state_rc.borrow().closed {
+                break;
+            }
+        }
+
+        state_rc.borrow_mut().closed = true;
+        Ok(Value::Null)
+    }
+
+    fn dispatch_udp_event(
+        &mut self,
+        state_rc: &std::rc::Rc<std::cell::RefCell<crate::interpreter::udp::UdpSocketState>>,
+        event: crate::interpreter::udp::UdpEvent,
+    ) -> Result<(), RuntimeError> {
+        use crate::interpreter::udp::UdpEvent;
+
+        match event {
+            UdpEvent::Message { data, addr } => {
+                let cb = state_rc.borrow().on_message.clone();
+                if let Some(cb) = cb {
+                    let bytes: Vec<Value> = data.iter().map(|&b| Value::Int(b as i64)).collect();
+                    self.call_value(cb, vec![Value::array(bytes), Value::string(addr)])?;
+                }
+            }
+            UdpEvent::Error(msg) => {
+                eprintln!("udp: {}", msg);
+            }
+        }
+        Ok(())
+    }
 }

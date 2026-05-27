@@ -778,6 +778,14 @@ impl Evaluator {
                 func: builtins::builtin_tcp_connect,
             },
         );
+        self.environment.define(
+            "udp_bind".to_string(),
+            Value::BuiltinFn {
+                name: "udp_bind".to_string(),
+                arity: 1,
+                func: builtins::builtin_udp_bind,
+            },
+        );
 
         // set_workers(n) — registered as placeholder; handled by name in eval_call
         self.environment.define(

@@ -413,6 +413,7 @@ const BUILTINS: &[&str] = &[
     "http_post",
     "tcp_listen",
     "tcp_connect",
+    "udp_bind",
     "set_workers",
     "args",
     "Promise",

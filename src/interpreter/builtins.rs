@@ -1489,3 +1489,47 @@ pub fn builtin_tcp_connect(args: &[Value]) -> Result<Value, RuntimeError> {
     };
     Ok(Value::tcp_connection(state))
 }
+
+/// Built-in function: udp_bind(addr) -> udp_socket
+///
+/// Binds a UDP socket on `addr` and returns a `udp_socket` value.
+/// The socket is ready to receive datagrams after `sock.listen()` is called.
+pub fn builtin_udp_bind(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    let addr = match &args[0] {
+        Value::String(s) => s.as_str().to_string(),
+        _ => {
+            return Err(RuntimeError::TypeError {
+                expected: "string".to_string(),
+                got: args[0].type_name().to_string(),
+            })
+        }
+    };
+
+    use super::udp::UdpSocketState;
+    use std::net::UdpSocket;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::Arc;
+
+    let socket = UdpSocket::bind(&addr).map_err(|e| {
+        RuntimeError::InvalidOperation(format!("udp_bind: cannot bind {}: {}", addr, e))
+    })?;
+    socket.set_nonblocking(true).map_err(|e| {
+        RuntimeError::InvalidOperation(format!("udp_bind: set_nonblocking failed: {}", e))
+    })?;
+
+    let state = UdpSocketState {
+        std_socket: Some(socket),
+        cmd_tx: None,
+        waker: None,
+        shutdown: Arc::new(AtomicBool::new(false)),
+        on_message: None,
+        closed: false,
+    };
+    Ok(Value::udp_socket(state))
+}

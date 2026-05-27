@@ -8,6 +8,7 @@ use std::rc::{Rc, Weak};
 
 use super::environment::{RuntimeError, StackFrame};
 use super::tcp::{TcpConnectionState, TcpServerState};
+use super::udp::UdpSocketState;
 
 /// Type for built-in function implementations
 pub type BuiltinFn = fn(&[Value]) -> Result<Value, RuntimeError>;
@@ -106,6 +107,8 @@ pub enum Value {
     TcpServer(Rc<RefCell<TcpServerState>>),
     /// TCP client connection (stream + lifecycle callbacks).
     TcpConnection(Rc<RefCell<TcpConnectionState>>),
+    /// UDP socket (bound datagram socket + lifecycle callbacks).
+    UdpSocket(Rc<RefCell<UdpSocketState>>),
 }
 
 /// Non-owning pointer variant. Stores enough metadata to reconstruct the
@@ -279,6 +282,11 @@ impl Value {
         Value::TcpConnection(Rc::new(RefCell::new(state)))
     }
 
+    /// Helper: create a UDP socket value
+    pub fn udp_socket(state: UdpSocketState) -> Self {
+        Value::UdpSocket(Rc::new(RefCell::new(state)))
+    }
+
     /// Check if value is hashable (can be used in sets/dict keys)
     pub fn is_hashable(&self) -> bool {
         matches!(
@@ -328,6 +336,7 @@ impl Value {
             Value::Weak(_) => "weak",
             Value::TcpServer(_) => "tcp_server",
             Value::TcpConnection(_) => "tcp_connection",
+            Value::UdpSocket(_) => "udp_socket",
         }
     }
 }
@@ -395,6 +404,7 @@ impl PartialEq for Value {
             (Value::Weak(_), Value::Weak(_)) => false,
             (Value::TcpServer(a), Value::TcpServer(b)) => Rc::ptr_eq(a, b),
             (Value::TcpConnection(a), Value::TcpConnection(b)) => Rc::ptr_eq(a, b),
+            (Value::UdpSocket(a), Value::UdpSocket(b)) => Rc::ptr_eq(a, b),
             _ => false,
         }
     }
@@ -552,6 +562,14 @@ impl fmt::Display for Value {
                     write!(f, "<tcp_connection:closed>")
                 } else {
                     write!(f, "<tcp_connection:{}>", state.addr)
+                }
+            }
+            Value::UdpSocket(s) => {
+                let state = s.borrow();
+                if state.closed {
+                    write!(f, "<udp_socket:closed>")
+                } else {
+                    write!(f, "<udp_socket:listening>")
                 }
             }
             Value::Weak(w) => match w {
