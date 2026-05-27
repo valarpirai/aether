@@ -95,26 +95,48 @@ fn run_check(args: &[String]) -> i32 {
     let target = args.first().map(|s| s.as_str()).unwrap_or(".");
     let path = std::path::Path::new(target);
 
-    let files = if path.is_dir() {
-        collect_ae_files(path)
-    } else if path.extension().and_then(|e| e.to_str()) == Some("ae") {
-        vec![path.to_path_buf()]
-    } else {
-        eprintln!("check: '{}' is not an .ae file or directory", target);
-        return 1;
-    };
+    // Single-file mode: warn if no main(), report errors.
+    if !path.is_dir() {
+        if path.extension().and_then(|e| e.to_str()) != Some("ae") {
+            eprintln!("check: '{}' is not an .ae file or directory", target);
+            return 1;
+        }
+        return check_one_file(path, true);
+    }
 
+    // Directory mode: check every file for errors, then verify exactly one main().
+    let files = collect_ae_files(path);
     if files.is_empty() {
         println!("check: no .ae files found in '{}'", target);
         return 0;
     }
 
     let mut exit_code = 0;
+    let mut entry_points: Vec<String> = Vec::new();
+
     for file in &files {
-        if check_one_file(file) != 0 {
+        let (file_ok, has_main) = check_one_file_report(file);
+        if !file_ok {
             exit_code = 1;
         }
+        if has_main {
+            entry_points.push(file.display().to_string());
+        }
     }
+
+    match entry_points.len() {
+        0 => {
+            eprintln!("warning: no main() entry point found in '{}'", target);
+        }
+        1 => {} // exactly one — correct
+        _ => {
+            eprintln!("warning: multiple main() functions found (expected exactly one):");
+            for ep in &entry_points {
+                eprintln!("  {}", ep);
+            }
+        }
+    }
+
     exit_code
 }
 
@@ -141,8 +163,55 @@ fn collect_ae_files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
     found
 }
 
-/// Check a single `.ae` file. Prints results and returns 0 (ok) or 1 (issues).
-fn check_one_file(path: &std::path::Path) -> i32 {
+/// Parse and lint a file. Returns `(ok, has_main)`.
+/// Used by directory mode — does not warn about missing main() per-file.
+fn check_one_file_report(path: &std::path::Path) -> (bool, bool) {
+    let display = path.display();
+
+    let source = match fs::read_to_string(path) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("{}: error: {}", display, e);
+            return (false, false);
+        }
+    };
+
+    let mut scanner = Scanner::new(&source);
+    let tokens = match scanner.scan_tokens() {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("{}:0: error: {}", display, e);
+            return (false, false);
+        }
+    };
+
+    let mut parser = Parser::new(tokens);
+    let program = match parser.parse() {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("{}:0: error: {}", display, e);
+            return (false, false);
+        }
+    };
+
+    let has_main = program.statements.iter().any(
+        |s| matches!(s, aether_lang::parser::ast::Stmt::Function(name, _, _) if name == "main"),
+    );
+
+    let diagnostics = checker::check(&program);
+    if diagnostics.is_empty() {
+        println!("{}: ok", display);
+        (true, has_main)
+    } else {
+        for d in &diagnostics {
+            eprintln!("{}:{}: {}", display, d.line, d.message);
+        }
+        (false, has_main)
+    }
+}
+
+/// Check a single `.ae` file (single-file mode). Warns if main() is missing.
+fn check_one_file(path: &std::path::Path, warn_no_main: bool) -> i32 {
     let display = path.display();
 
     let source = match fs::read_to_string(path) {
@@ -174,7 +243,7 @@ fn check_one_file(path: &std::path::Path) -> i32 {
     let has_main = program.statements.iter().any(
         |s| matches!(s, aether_lang::parser::ast::Stmt::Function(name, _, _) if name == "main"),
     );
-    if !has_main {
+    if warn_no_main && !has_main {
         eprintln!("{}:0: warning: no main() function defined", display);
     }
 
