@@ -125,9 +125,18 @@ fn run_check(args: &[String]) -> i32 {
         }
     };
 
+    let has_main = program.statements.iter().any(
+        |s| matches!(s, aether_lang::parser::ast::Stmt::Function(name, _, _) if name == "main"),
+    );
+    if !has_main {
+        eprintln!("{}:0: warning: no main() function defined", path);
+    }
+
     let diagnostics = checker::check(&program);
     if diagnostics.is_empty() {
-        println!("{}: ok", path);
+        if has_main {
+            println!("{}: ok", path);
+        }
         0
     } else {
         for d in &diagnostics {
