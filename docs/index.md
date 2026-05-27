@@ -24,6 +24,7 @@ A general-purpose, dynamically typed programming language implemented in Rust �
 - **Operators** — Bitwise `& | ^ ~ << >>`, power `**`, ternary `?:`, null coalesce `??`
 - **File I/O** — Read/write files, directory listing, path utilities
 - **Multi-line Strings** — Triple-quoted `"""..."""` strings with raw content
+- **TCP/UDP** — `tcp_listen()`, `tcp_connect()`, `udp_bind()`; event-driven via mio, single I/O thread
 - **CSV** — `csv_parse()` and `csv_stringify()` built-in
 - **Number Conversions** — `hex()`, `oct()`, `bin()`, `int(s, base)`, `base64_encode()`, `base64_decode()`
 - **Rich Standard Library** — 50+ functions written in Aether itself
@@ -199,6 +200,8 @@ Start here if you want to extend the language, fix a bug, or understand how the 
 | **I/O thread pool** | `set_workers(n)`, `AETHER_IO_WORKERS`; async http, sleep, file I/O |
 | **JSON** | `json_parse()`, `json_stringify()` |
 | **HTTP** | `http_get(url [, opts])`, `http_post(url, body [, opts])` — per-request timeout and user-agent |
+| **TCP** | `tcp_listen(addr[, opts])`, `tcp_connect(addr)`; server events: `on_listen/connect/message/disconnect/error/timeout`; client events: `on_connect/message/disconnect`; event-driven via mio |
+| **UDP** | `udp_bind(addr)`; `on_message(fn(data, addr))`, `send_to(data, addr)`, `listen()`, `close()`; connectionless datagrams |
 | **Number conversions** | `hex(n)`, `oct(n)`, `bin(n)`, `int(s, base)`, `base64_encode(s)`, `base64_decode(s)` |
 | **CSV** | `csv_parse(str)`, `csv_stringify(rows)` |
 | **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, join, repeat, reverse, starts_with, ends_with, chunk, partition, zip_longest, uniq_by, pad_left, pad_right, factorial, sin, cos, tan, and more |
@@ -220,6 +223,8 @@ Browse the [examples directory](lang/EXAMPLES.html) or jump straight to a topic:
 | [Shapes (Structs)](lang/EXAMPLES.html#shapes) | User-defined types with methods |
 | [Async / Concurrent I/O](lang/EXAMPLES.html#async) | Promise.all, thread pool |
 | [Event Loop](lang/EXAMPLES.html#event-loop) | on_ready, chained callbacks |
+| [TCP Server](lang/TCP.html#server) | tcp_listen, lifecycle events, echo server |
+| [CSV Processing](lang/CSV.html) | csv_parse, csv_stringify, roundtrip |
 | [Data Processing](lang/EXAMPLES.html#data-processing) | Functional pipeline |
 | [Collections](lang/EXAMPLES.html#collections) | Arrays, dicts, sets |
 
