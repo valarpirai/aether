@@ -64,6 +64,7 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 | [INTERPRETER.md](docs/dev/INTERPRETER.md) | Interpreter / evaluator sub-modules |
 | [MEMORY_MANAGEMENT.md](docs/dev/MEMORY_MANAGEMENT.md) | Memory model, Rc-based GC, and design rationale |
 | [EVENT_LOOP.md](docs/dev/EVENT_LOOP.md) | Event loop internals: on_ready, event_loop, queue controls |
+| [TCP_UDP.md](docs/dev/TCP_UDP.md) | TCP/UDP implementation: mio I/O loop, state types, channels, SIGINT, UDP design |
 
 ## Quick Reference for Claude Code
 
@@ -300,7 +301,7 @@ Top-of-backlog highlights: `format()`, variadic args, enums/tuples, named/defaul
 - **[ARCHITECTURE.md](docs/dev/ARCHITECTURE.md)** — system design and roadmap
 - **[BACKLOG.md](docs/dev/BACKLOG.md)** — feature backlog
 - **[CONFIGURATION.md](docs/lang/CONFIGURATION.md)** — all knobs and env vars
-- Component docs: LEXER.md, PARSER.md, INTERPRETER.md, REPL.md, STDLIB.md, MEMORY_MANAGEMENT.md
+- Component docs: LEXER.md, PARSER.md, INTERPRETER.md, REPL.md, STDLIB.md, MEMORY_MANAGEMENT.md, TCP_UDP.md
 
 ## Documentation
 - gh-pages branch is used for the GitHub Pages website
