@@ -65,6 +65,7 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 | [INTERPRETER.md](docs/dev/INTERPRETER.md) | Interpreter / evaluator sub-modules |
 | [MEMORY_MANAGEMENT.md](docs/dev/MEMORY_MANAGEMENT.md) | Memory model, Rc-based GC, and design rationale |
 | [EVENT_LOOP.md](docs/dev/EVENT_LOOP.md) | Event loop internals: on_ready, event_loop, queue controls |
+| [ASYNC_IO.md](docs/dev/ASYNC_IO.md) | IoPool, EventLoopQueue, TCP dispatch loop, await vs .then() patterns |
 | [TCP_UDP.md](docs/dev/TCP_UDP.md) | TCP/UDP implementation: mio I/O loop, state types, channels, SIGINT, UDP design |
 
 ## Quick Reference for Claude Code

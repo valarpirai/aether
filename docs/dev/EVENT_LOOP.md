@@ -115,12 +115,27 @@ http_get("https://api.example.com/users").then(fn(u) { process_users(u) })
 http_get("https://api.example.com/posts").then(fn(p) { process_posts(p) })
 ```
 
+## Inside a TCP or UDP server
+
+Inside a TCP `on_message` or UDP `on_message` handler, `.then()` callbacks do **not** require `event_loop()`. The TCP/UDP dispatch loop calls `tick_async_callbacks()` after every event, which drains the queue automatically.
+
+```aether
+server.on_message(fn(conn, data) {
+    http_get("https://api.example.com/").then(fn(resp) {
+        conn.write(resp)   // fires via tick_async_callbacks, not event_loop
+    })
+})
+server.accept()
+```
+
+Using `await` inside a TCP handler blocks the dispatch loop for the duration of the I/O call — no further messages can be processed until it returns. Prefer `.then()` when handling multiple concurrent connections.
+
 ## Queue controls
 
-These are operational knobs, not part of normal programs. See [Configuration](CONFIGURATION.html) for details.
+These are operational knobs, not part of normal programs. See [Configuration](../lang/CONFIGURATION.html) for details.
 
 - `set_queue_limit(n)` — cap the number of pending callbacks (backpressure)
 - `set_task_timeout(secs)` / `set_task_timeout(null)` — per-callback deadline
 
 ---
-[← Home](../index.html)
+[← Architecture](ARCHITECTURE.html) &nbsp;&nbsp; [Async I/O Architecture →](ASYNC_IO.html)

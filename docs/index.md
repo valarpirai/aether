@@ -172,6 +172,7 @@ Start here if you want to extend the language, fix a bug, or understand how the 
 | [Interpreter](dev/INTERPRETER.html) | Tree-walking evaluator — `src/interpreter/evaluator/` |
 | [Memory Management](dev/MEMORY_MANAGEMENT.html) | Rc-based memory management and cycle avoidance |
 | [Event Loop Internals](dev/EVENT_LOOP.html) | on_ready, event_loop, queue controls |
+| [Async I/O Architecture](dev/ASYNC_IO.html) | IoPool, EventLoopQueue, TCP dispatch loop, await vs .then() |
 | [TCP/UDP Internals](dev/TCP_UDP.html) | mio I/O loop, state types, channels, SIGINT, UDP design |
 | [Backlog](dev/BACKLOG.html) | Planned features and open design questions |
 
