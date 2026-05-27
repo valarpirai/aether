@@ -202,7 +202,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
 | **REPL** | rustyline with history (`~/.aether_history`), tab-completion, `_help`/`_env`/`_exit`, multi-line input (`>>` / `..`) |
 | **Configuration** | `AETHER_IO_WORKERS`, `AETHER_CALL_DEPTH`, `HOME` (see [CONFIGURATION.md](docs/lang/CONFIGURATION.md)) |
-| **Tooling** | `aether ast` (AST printer — indented tree or JSON), `aether fmt` (formatter), `aether test` (test runner), `aether check` (undefined variable linter) |
+| **Tooling** | `aether ast` (AST printer — indented tree or JSON), `aether fmt` (formatter), `aether test` (test runner), `aether check [file\|dir]` (undefined variable linter; dir mode enforces exactly one `main()`; missing `main()` is a warning not an error) |
 
 ### Completed Milestones
 

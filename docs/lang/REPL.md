@@ -31,7 +31,33 @@ aether examples/hello.ae
 | `aether fmt <file>` | Format an Aether source file in place |
 | `aether fmt --check <file>` | Check formatting without writing; exits 1 if unformatted |
 | `aether test [dir\|file]` | Discover and run `*_test.ae` files |
-| `aether check <file>` | Check for undefined variables without running |
+| `aether check [file\|dir]` | Check for undefined variables without running (default: current dir) |
+
+## Entry point
+
+Every Aether program file must define a `fn main()` function. Running a file without one is an error:
+
+```bash
+$ aether script.ae
+Error: script.ae: no main() function defined. Every Aether program must have a main() function.
+```
+
+`aether check` reports a **warning** (not an error) when `main()` is absent:
+
+```bash
+$ aether check script.ae
+script.ae:0: warning: no main() function defined
+```
+
+When checking a directory, exactly one file across the whole directory should define `main()`:
+
+```bash
+$ aether check src/
+src/lib.ae: ok
+src/main.ae: ok          # ← the one entry point
+```
+
+If zero or multiple files define `main()`, a warning is printed.
 
 ## Session example
 

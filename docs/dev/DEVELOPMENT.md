@@ -61,19 +61,40 @@ Every feature — no matter how small — must pass this checklist before commit
 
 ### 3a. Static Checker (`aether check`)
 
-Any change that affects what names are valid at the top level **must** update `src/checker.rs`:
+`aether check` lints Aether source without executing it.
 
-| Change | What to update in `checker.rs` |
-|--------|--------------------------------|
-| New built-in function (added to `src/interpreter/builtins.rs`) | Add its name to the `BUILTINS` slice |
-| New stdlib function (added to `stdlib/*.ae`) | Add its name to the `BUILTINS` slice |
-| New keyword that introduces a binding (e.g. new loop form, new pattern) | Handle the new `Stmt`/`Expr` variant in `check_stmt` / `check_expr` |
-| New `Stmt` or `Expr` AST variant | Add a match arm in `check_stmt` / `check_expr`; omitting one causes a compile error |
+**Usage:**
+
+```bash
+aether check file.ae          # single file
+aether check src/             # scan directory recursively
+aether check                  # scan current directory (default)
+```
+
+**What it checks:**
+
+| Check | Mode | Severity |
+|---|---|---|
+| Undefined variable references | file + dir | error (exit 1) |
+| Missing `main()` | single file | warning (exit 0) |
+| No `main()` anywhere in directory | dir | warning (exit 0) |
+| Multiple `main()` functions in directory | dir | warning (exit 0) |
+
+Warnings do not change the exit code. Only undefined-variable errors cause exit 1.
+
+**After adding a new built-in or stdlib function**, update `src/checker.rs` so `aether check` does not produce false positives on valid code:
+
+| Change | What to update |
+|--------|----------------|
+| New built-in function | Add its name to the `BUILTINS` slice in `src/checker.rs` |
+| New stdlib function | Add its name to the `BUILTINS` slice |
+| New `Stmt` AST variant | Add a match arm in `check_stmt`; missing arms are compile errors |
+| New `Expr` AST variant | Add a match arm in `check_expr`; missing arms are compile errors |
 
 Verify after updating:
 
 ```bash
-# Should report no false positives on well-formed code
+# Must report no false positives on well-formed code
 cargo run -- check examples/<feature>_demo.ae
 # New checker behaviour must be covered
 cargo test --test checker_test -- --test-threads=1

@@ -200,7 +200,7 @@ Start here if you want to extend the language, fix a bug, or understand how the 
 | **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, join, repeat, reverse, starts_with, ends_with, chunk, partition, zip_longest, uniq_by, pad_left, pad_right, factorial, sin, cos, tan, and more |
 | **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
 | **REPL** | rustyline with history, tab-completion, `_help`/`_env`/`_exit`, multi-line input (`>>` / `..`), `--version`/`--help` flags |
-| **Tooling** | `aether fmt` — auto-formatter; `aether test` — test runner; `aether check` — undefined variable linter |
+| **Tooling** | `aether fmt` — auto-formatter; `aether test` — test runner; `aether check [file\|dir]` — undefined variable linter with directory scanning and `main()` entry-point enforcement |
 
 ## Examples
 
