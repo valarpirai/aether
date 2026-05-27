@@ -201,34 +201,12 @@ println(r.unwrap_or(0))
 
 ## Tier 3 — Networking and concurrency
 
-### TCP / UDP server support
-Use the event loop for network programming. Requires OS-level async sockets feeding into `EventLoopQueue` via channels, mirroring how `sleep`/`read_file` work today.
+### ~~TCP / UDP server support~~ ✅ DONE (2026-05-27)
 
-```aether
-fn main() {
-    set_workers(4)
-    let server = tcp_listen("0.0.0.0:8080")
+`tcp_listen` / `tcp_connect` with full event-based lifecycle callbacks implemented.
+See `docs/lang/TCP.md`. UDP designed but not yet implemented.
 
-    fn accept_next() {
-        let conn = server.accept()           // returns Promise
-        on_ready(conn, fn(c) {
-            let req = await c.read()
-            await c.write("HTTP/1.1 200 OK\r\n\r\nHello")
-            c.close()
-            accept_next()                    // chain: accept next connection
-        })
-    }
-
-    accept_next()
-    event_loop_forever()   // keeps waiting between connections
-}
-```
-
-**What's needed:**
-- `tcp_listen(addr)` → `Value::TcpListener` (wraps `std::net::TcpListener`)
-- `server.accept()` → submits accept task to pool, returns Promise
-- `conn.read()` / `conn.write(data)` / `conn.close()` → async via pool
-- `IoTask::TcpAccept`, `IoTask::TcpRead`, `IoTask::TcpWrite` variants in `io_pool.rs`
+**Remaining:** UDP (`udp_bind`, `socket.send_to`, `socket.on_message`)
 
 ---
 

@@ -48,6 +48,7 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 | [TIME.md](docs/lang/TIME.md) | clock(), sleep() |
 | [REPL.md](docs/lang/REPL.md) | Interactive REPL and file execution |
 | [CONFIGURATION.md](docs/lang/CONFIGURATION.md) | Env vars and runtime configuration builtins |
+| [TCP.md](docs/lang/TCP.md) | tcp_listen(), tcp_connect(), server/client lifecycle events |
 
 ### Developer Docs (`docs/dev/`) — how Aether is built
 
@@ -195,6 +196,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | **JSON** | `json_parse()`, `json_stringify()` via serde_json |
 | **HTTP** | `http_get(url)`, `http_post(url, body)` via reqwest (blocking or async) |
 | **Time** | `clock()` (Unix epoch float), `sleep(secs)` |
+| **TCP** | `tcp_listen(addr[, opts])`, `tcp_connect(addr)`; server events: `on_listen/connect/message/disconnect/error/timeout`, `accept()`, `close()`; client events: `on_connect/message/disconnect/error/timeout`, `start()`, `close()`, `write(data)` |
 | **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, sign, join, repeat, reverse, starts_with, ends_with, first, last, chunk, partition, zip_longest, uniq_by, contains, index_of, replace, count, pad_left, pad_right, strip_prefix, strip_suffix, is_alpha, is_digit, is_space, pi, e, tau, factorial, trunc, degrees, radians, hypot, exp, sin, cos, tan |
 | **Number/string conversions** | `hex(n)`, `oct(n)`, `bin(n)`, `int(s, base)`, `base64_encode(s)`, `base64_decode(s)` |
 | **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
@@ -289,7 +291,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 
 See **[docs/dev/BACKLOG.md](docs/dev/BACKLOG.md)** for the full prioritised backlog (~30 features across 6 tiers).
 
-Top-of-backlog highlights: `format()`, variadic args, enums/tuples, named/default params, TCP/UDP server support.
+Top-of-backlog highlights: `format()`, variadic args, enums/tuples, named/default params, UDP server support.
 
 ## Development Resources
 
