@@ -46,7 +46,7 @@ fn main() {
         );
         println!("  test [dir|file]        Discover and run *_test.ae files");
         println!("    (no arg)             Search current directory recursively");
-        println!("  check <file>           Check for undefined variables without running");
+        println!("  check [file|dir]       Check for undefined variables without running (default: current dir)");
         println!();
         println!("If no subcommand or script is given, starts the interactive REPL.");
         return;
@@ -88,21 +88,67 @@ fn main() {
     }
 }
 
-/// Run `aether check <file>`. Returns exit code (0 = clean, 1 = diagnostics found or error).
+/// Run `aether check [file|dir]`. Returns exit code (0 = clean, 1 = issues found).
+/// Accepts a single `.ae` file or a directory to scan recursively.
+/// Defaults to the current directory when no argument is given.
 fn run_check(args: &[String]) -> i32 {
-    let path = match args.first() {
-        Some(p) => p.as_str(),
-        None => {
-            eprintln!("check: no file specified");
-            eprintln!("Usage: aether check <file>");
-            return 1;
-        }
+    let target = args.first().map(|s| s.as_str()).unwrap_or(".");
+    let path = std::path::Path::new(target);
+
+    let files = if path.is_dir() {
+        collect_ae_files(path)
+    } else if path.extension().and_then(|e| e.to_str()) == Some("ae") {
+        vec![path.to_path_buf()]
+    } else {
+        eprintln!("check: '{}' is not an .ae file or directory", target);
+        return 1;
     };
+
+    if files.is_empty() {
+        println!("check: no .ae files found in '{}'", target);
+        return 0;
+    }
+
+    let mut exit_code = 0;
+    for file in &files {
+        if check_one_file(file) != 0 {
+            exit_code = 1;
+        }
+    }
+    exit_code
+}
+
+/// Recursively collect all `.ae` files under `dir`, skipping `target/` and hidden dirs.
+fn collect_ae_files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut found = Vec::new();
+    let Ok(entries) = fs::read_dir(dir) else {
+        return found;
+    };
+    let mut entries: Vec<_> = entries.filter_map(|e| e.ok()).collect();
+    entries.sort_by_key(|e| e.path());
+    for entry in entries {
+        let p = entry.path();
+        if p.is_dir() {
+            let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if name == "target" || name.starts_with('.') {
+                continue;
+            }
+            found.extend(collect_ae_files(&p));
+        } else if p.extension().and_then(|e| e.to_str()) == Some("ae") {
+            found.push(p);
+        }
+    }
+    found
+}
+
+/// Check a single `.ae` file. Prints results and returns 0 (ok) or 1 (issues).
+fn check_one_file(path: &std::path::Path) -> i32 {
+    let display = path.display();
 
     let source = match fs::read_to_string(path) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("check: cannot read '{}': {}", path, e);
+            eprintln!("{}: error: {}", display, e);
             return 1;
         }
     };
@@ -111,7 +157,7 @@ fn run_check(args: &[String]) -> i32 {
     let tokens = match scanner.scan_tokens() {
         Ok(t) => t,
         Err(e) => {
-            eprintln!("{}:0: error: {}", path, e);
+            eprintln!("{}:0: error: {}", display, e);
             return 1;
         }
     };
@@ -120,7 +166,7 @@ fn run_check(args: &[String]) -> i32 {
     let program = match parser.parse() {
         Ok(p) => p,
         Err(e) => {
-            eprintln!("{}:0: error: {}", path, e);
+            eprintln!("{}:0: error: {}", display, e);
             return 1;
         }
     };
@@ -129,18 +175,18 @@ fn run_check(args: &[String]) -> i32 {
         |s| matches!(s, aether_lang::parser::ast::Stmt::Function(name, _, _) if name == "main"),
     );
     if !has_main {
-        eprintln!("{}:0: warning: no main() function defined", path);
+        eprintln!("{}:0: warning: no main() function defined", display);
     }
 
     let diagnostics = checker::check(&program);
     if diagnostics.is_empty() {
         if has_main {
-            println!("{}: ok", path);
+            println!("{}: ok", display);
         }
         0
     } else {
         for d in &diagnostics {
-            eprintln!("{}:{}: {}", path, d.line, d.message);
+            eprintln!("{}:{}: {}", display, d.line, d.message);
         }
         1
     }
