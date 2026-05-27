@@ -8,56 +8,57 @@
 // Note: plain variable rebinding inside callbacks does NOT persist across calls —
 // use arrays or dicts for mutable closure state.
 
-let clients = []
+fn main() {
+    let clients = []
 
-let server = tcp_listen("127.0.0.1:9090", { "delimiter": "\n" })
+    let server = tcp_listen("127.0.0.1:9090", { "delimiter": "\n" })
 
-server.on_listen(fn() {
-    print("Chat server on 127.0.0.1:9090 — connect with: nc 127.0.0.1:9090")
-})
+    server.on_listen(fn() {
+        print("Chat server on 127.0.0.1:9090 — connect with: nc 127.0.0.1:9090")
+    })
 
-server.on_connect(fn(conn) {
-    clients.push(conn)
-    conn.write("Welcome! " + str(len(clients)) + " user(s) online.\n")
-    print("Client joined. Total: " + str(len(clients)))
-})
+    server.on_connect(fn(conn) {
+        clients.push(conn)
+        conn.write("Welcome! " + str(len(clients)) + " user(s) online.\n")
+        print("Client joined. Total: " + str(len(clients)))
+    })
 
-server.on_message(fn(conn, data) {
-    // Broadcast to every connected client
-    let i = 0
-    while (i < len(clients)) {
-        clients[i].write(data)
-        clients[i].write("\n")
-        i = i + 1
-    }
-})
-
-server.on_disconnect(fn(conn) {
-    // Rebuild clients in-place: pop all, push back the ones still connected.
-    // Plain rebinding (clients = filtered) does not persist across closure calls
-    // because Aether closures capture primitives by copy. Arrays mutate through Rc.
-    let remaining = []
-    let i = 0
-    while (i < len(clients)) {
-        if (clients[i] != conn) {
-            remaining.push(clients[i])
+    server.on_message(fn(conn, data) {
+        let i = 0
+        while (i < len(clients)) {
+            clients[i].write(data)
+            clients[i].write("\n")
+            i = i + 1
         }
-        i = i + 1
-    }
-    while (len(clients) > 0) {
-        clients.pop()
-    }
-    let j = 0
-    while (j < len(remaining)) {
-        clients.push(remaining[j])
-        j = j + 1
-    }
-    print("Client left. Total: " + str(len(clients)))
-})
+    })
 
-server.on_error(fn(err) {
-    print("Error: " + err)
-})
+    server.on_disconnect(fn(conn) {
+        // Rebuild clients in-place: pop all, push back the ones still connected.
+        // Plain rebinding (clients = filtered) does not persist across closure calls
+        // because Aether closures capture primitives by copy. Arrays mutate through Rc.
+        let remaining = []
+        let i = 0
+        while (i < len(clients)) {
+            if (clients[i] != conn) {
+                remaining.push(clients[i])
+            }
+            i = i + 1
+        }
+        while (len(clients) > 0) {
+            clients.pop()
+        }
+        let j = 0
+        while (j < len(remaining)) {
+            clients.push(remaining[j])
+            j = j + 1
+        }
+        print("Client left. Total: " + str(len(clients)))
+    })
 
-server.accept()
-print("Chat server stopped.")
+    server.on_error(fn(err) {
+        print("Error: " + err)
+    })
+
+    server.accept()
+    print("Chat server stopped.")
+}

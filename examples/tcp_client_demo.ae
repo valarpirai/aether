@@ -2,34 +2,36 @@
 // Run (with tcp_server_demo.ae already running):
 //   cargo run -- examples/tcp_client_demo.ae
 
-let messages = ["Hello from Aether client!\n", "Goodbye!\n"]
-let sent = [0]
+fn main() {
+    let messages = ["Hello from Aether client!\n", "Goodbye!\n"]
+    let sent = [0]
 
-let conn = tcp_connect("127.0.0.1:8080")
+    let conn = tcp_connect("127.0.0.1:8080")
 
-conn.on_connect(fn() {
-    print("Connected")
-    conn.write(messages[sent[0]])
-    sent[0] = sent[0] + 1
-})
-
-// data is an array of byte values; use conn.write(data) to forward as-is
-conn.on_message(fn(data) {
-    print("Server echoed " + str(len(data)) + " bytes")
-    if (sent[0] < len(messages)) {
+    conn.on_connect(fn() {
+        print("Connected")
         conn.write(messages[sent[0]])
         sent[0] = sent[0] + 1
-    } else {
-        conn.close()
-    }
-})
+    })
 
-conn.on_disconnect(fn() {
-    print("Disconnected")
-})
+    // data is an array of byte values; use conn.write(data) to forward as-is
+    conn.on_message(fn(data) {
+        print("Server echoed " + str(len(data)) + " bytes")
+        if (sent[0] < len(messages)) {
+            conn.write(messages[sent[0]])
+            sent[0] = sent[0] + 1
+        } else {
+            conn.close()
+        }
+    })
 
-conn.on_error(fn(err) {
-    print("Error: " + err)
-})
+    conn.on_disconnect(fn() {
+        print("Disconnected")
+    })
 
-conn.start()
+    conn.on_error(fn(err) {
+        print("Error: " + err)
+    })
+
+    conn.start()
+}
