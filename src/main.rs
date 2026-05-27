@@ -158,6 +158,18 @@ fn run_file(filename: &str, script_args: &[String]) -> Result<(), String> {
     let mut parser = Parser::new(tokens);
     let program = parser.parse().map_err(|e| e.to_string())?;
 
+    // Require main() — check before executing any code so we fail cleanly
+    // without running top-level side effects first.
+    let has_main = program.statements.iter().any(
+        |s| matches!(s, aether_lang::parser::ast::Stmt::Function(name, _, _) if name == "main"),
+    );
+    if !has_main {
+        return Err(format!(
+            "{}: no main() function defined. Every Aether program must have a main() function.",
+            filename
+        ));
+    }
+
     // Execute — use I/O thread pool if AETHER_IO_WORKERS is set
     let mut evaluator = if let Some(n) = std::env::var("AETHER_IO_WORKERS")
         .ok()
