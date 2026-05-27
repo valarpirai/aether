@@ -198,6 +198,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | **HTTP** | `http_get(url)`, `http_post(url, body)` via reqwest (blocking or async) |
 | **Time** | `clock()` (Unix epoch float), `sleep(secs)` |
 | **TCP** | `tcp_listen(addr[, opts])`, `tcp_connect(addr)`; server events: `on_listen/connect/message/disconnect/error/timeout`, `accept()`, `close()`; client events: `on_connect/message/disconnect/error/timeout`, `start()`, `close()`, `write(data)`; event-driven via mio (single I/O thread, ~8–260 KB per connection); use array/dict for mutable closure state |
+| **UDP** | `udp_bind(addr)`; `on_message(fn(data, addr) { })`, `send_to(data, addr)`, `listen()`, `close()`; connectionless datagram socket; same mio I/O thread architecture as TCP |
 | **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, sign, join, repeat, reverse, starts_with, ends_with, first, last, chunk, partition, zip_longest, uniq_by, contains, index_of, replace, count, pad_left, pad_right, strip_prefix, strip_suffix, is_alpha, is_digit, is_space, pi, e, tau, factorial, trunc, degrees, radians, hypot, exp, sin, cos, tan |
 | **Number/string conversions** | `hex(n)`, `oct(n)`, `bin(n)`, `int(s, base)`, `base64_encode(s)`, `base64_decode(s)` |
 | **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
@@ -292,7 +293,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 
 See **[docs/dev/BACKLOG.md](docs/dev/BACKLOG.md)** for the full prioritised backlog (~30 features across 6 tiers).
 
-Top-of-backlog highlights: `format()`, variadic args, enums/tuples, named/default params, UDP server support.
+Top-of-backlog highlights: `format()`, variadic args, enums/tuples, named/default params.
 
 ## Development Resources
 

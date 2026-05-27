@@ -261,35 +261,64 @@ Practical upper bound: ~100 k simultaneous connections per GB of RAM
 
 ---
 
-## UDP — design (not yet implemented)
+## UDP (`src/interpreter/udp.rs`)
 
-UDP support was designed alongside TCP. Key differences from TCP:
+UDP is implemented with the same two-thread architecture as TCP.
 
-- **Connectionless**: no accept loop, no per-connection state.
-- **Datagrams**: each `send_to` / `on_message` is one self-contained packet.
-- **No ordering or reliability** guarantees.
+### Key differences from TCP
 
-Planned API:
+| | TCP | UDP |
+|---|---|---|
+| Connection | yes (accept → conn object) | no (single socket, addr per datagram) |
+| Framing | optional delimiter | none (datagram boundary = message) |
+| Per-conn state | `TcpConnectionState` | none |
+| Max datagram | n/a | 65535 bytes |
+
+### API
 
 ```aether
 let sock = udp_bind("0.0.0.0:9000")
 
+// data = array of byte ints; addr = "host:port" string
 sock.on_message(fn(data, addr) {
     sock.send_to(data, addr)   // echo back to sender
 })
 
-sock.listen()    // enters event loop
-sock.close()
+sock.listen()    // blocks (event loop)
+sock.close()     // stops the loop
 ```
 
-Implementation plan:
-- Add `Value::UdpSocket(Rc<RefCell<UdpSocketState>>)` to `value.rs`.
-- Add `builtin_udp_bind(args)` to `builtins.rs`.
-- Add `run_udp_io_loop` to `tcp.rs` (or a new `udp.rs`).
-- Use `mio::net::UdpSocket` registered with `Interest::READABLE`.
-- `send_to` is a `TcpCommand::SendTo { addr, data }` sent to the I/O thread
-  (same channel pattern as TCP writes).
-- No delimiter framing (datagrams are already message-bounded).
+### State type (`UdpSocketState`)
+
+```rust
+pub struct UdpSocketState {
+    pub std_socket: Option<std::net::UdpSocket>,  // consumed by listen()
+    pub cmd_tx: Option<Sender<UdpCommand>>,
+    pub waker: Option<Arc<Waker>>,
+    pub shutdown: Arc<AtomicBool>,
+    pub on_message: Option<Value>,
+    pub closed: bool,
+}
+```
+
+### Commands / events
+
+```rust
+enum UdpCommand { SendTo { addr: String, data: Vec<u8> }, Shutdown }
+enum UdpEvent   { Message { data: Vec<u8>, addr: String }, Error(String) }
+```
+
+### I/O loop token scheme
+
+```
+Token(0)  WAKER_TOKEN   — mio::Waker
+Token(1)  SOCKET_TOKEN  — UdpSocket (single token, no per-connection tokens)
+```
+
+### Async integration
+
+`tick_async_callbacks()` is called on every iteration of the UDP dispatch loop,
+so `.then()` and `await` inside `on_message` callbacks work correctly.
 
 ---
 

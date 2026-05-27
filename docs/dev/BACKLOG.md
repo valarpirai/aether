@@ -203,10 +203,12 @@ println(r.unwrap_or(0))
 
 ### ~~TCP / UDP server support~~ ✅ DONE (2026-05-27)
 
-`tcp_listen` / `tcp_connect` with full event-based lifecycle callbacks implemented.
-See `docs/lang/TCP.md`. UDP designed but not yet implemented.
+TCP and UDP both implemented with event-driven mio I/O.
+See `docs/lang/TCP.md`.
 
-**Remaining:** UDP (`udp_bind`, `socket.send_to`, `socket.on_message`)
+- TCP: `tcp_listen`, `tcp_connect`, full lifecycle callbacks, delimiter framing
+- UDP: `udp_bind`, `on_message`, `send_to`, `listen`, `close`
+- Both: async callbacks (`await`, `.then()`) work inside event handlers
 
 ---
 

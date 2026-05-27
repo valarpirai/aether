@@ -223,6 +223,67 @@ The I/O thread is **shared** across all connections (unlike the old one-thread-p
 
 ---
 
+---
+
+## UDP
+
+`udp_bind` creates a UDP socket. UDP is connectionless — each datagram arrives with the sender's address; `send_to` addresses each reply explicitly.
+
+### `udp_bind(addr)`
+
+```aether
+let sock = udp_bind("0.0.0.0:9000")
+```
+
+### Events
+
+| Method | Callback signature | Fires when |
+|---|---|---|
+| `on_message(fn(data, addr) { })` | `data` = array of ints, `addr` = `"host:port"` string | A datagram arrives |
+
+### `sock.send_to(data, addr)`
+
+Send `data` (string or byte array) to `addr` (`"host:port"` string).
+
+### `sock.listen()`
+
+Starts the event loop. Blocks until `sock.close()` or Ctrl+C.
+
+### `sock.close()`
+
+Stops the event loop.
+
+### UDP echo server example
+
+```aether
+fn main() {
+    let sock = udp_bind("127.0.0.1:9000")
+
+    sock.on_message(fn(data, addr) {
+        sock.send_to(data, addr)
+    })
+
+    sock.listen()
+}
+```
+
+---
+
+## Async inside callbacks
+
+Both TCP and UDP callbacks support `await` and `.then()` — the dispatch loop ticks the async event queue on every iteration:
+
+```aether
+server.on_message(fn(conn, data) {
+    set_workers(1)
+    let resp = await http_get("https://api.example.com")
+    conn.write(resp)
+    server.close()
+})
+```
+
+---
+
 ## See also
 
 - [ASYNC.md](ASYNC.md) — async/await and the I/O thread pool
@@ -230,3 +291,4 @@ The I/O thread is **shared** across all connections (unlike the old one-thread-p
 - `examples/tcp_server_demo.ae` — echo server with all lifecycle events
 - `examples/tcp_client_demo.ae` — client that sends two messages and disconnects
 - `examples/tcp_chat_server_demo.ae` — broadcast chat server with delimiter framing
+- `examples/udp_demo.ae` — UDP echo server
