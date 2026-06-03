@@ -16,6 +16,7 @@ Items without a milestone are unscheduled.
 
 | Feature | Date |
 |---------|------|
+| Dict O(1) lookup — `IndexMap` replaces `Vec` linear scan | 2026-06-03 |
 | `finally` block | 2026-04-29 |
 | `??` null coalescing | 2026-04-29 |
 | `?.` optional chaining | 2026-04-29 |
@@ -58,6 +59,30 @@ fn sum(*args) {
 }
 sum(1, 2, 3, 4)   // 10
 ```
+
+---
+
+### `random()` / `rand_int(n)` — random number generation
+No built-in random today; programs must hand-roll an LCG.
+
+```aether
+random()        // float in [0, 1)
+rand_int(6)     // int in [0, 6)  — e.g. dice roll
+```
+
+**Implementation:** `random()` wraps `rand::random::<f64>()` (add `rand` crate); `rand_int(n)` returns `(random() * n) as int`. Both are pure builtins — no state needed.
+
+---
+
+### `int(str)` implicit base 10
+`int("42", 10)` works today but the base argument is mandatory. Most callers want decimal.
+
+```aether
+int("42")       // 42   — currently errors (requires base)
+int("ff", 16)   // 255  — still works
+```
+
+**Implementation:** In `builtin_int`, when one argument is a string and no base is given, default to base 10.
 
 ---
 
@@ -326,6 +351,82 @@ struct Dog extends Animal implements Printable {
 
 ## Tier 6 — I/O and stdlib
 
+### Missing math functions
+`sqrt`, `log2`, `log10` are absent; workarounds exist but are unreadable.
+
+```aether
+sqrt(9)       // 3.0
+log2(1024)    // 10.0
+log10(1000)   // 3.0
+```
+
+**Implementation:** Add to `stdlib/math.ae` using `exp(0.5 * log(n))` for `sqrt` and `log(n, 2)` / `log(n, 10)` for the others — no Rust changes needed.
+
+---
+
+### `dict.merge(other)` — merge two dicts
+No clean way to combine two dicts today; must iterate manually.
+
+```aether
+let defaults = {"timeout": 30, "retries": 3}
+let overrides = {"timeout": 10}
+let config = defaults.merge(overrides)   // {"timeout": 10, "retries": 3}
+```
+
+Keys in `other` overwrite keys in `self`. Returns a new dict; does not mutate either input.
+
+---
+
+### `array.flat_map(fn)` and `array.group_by(fn)`
+
+```aether
+// flat_map: map then flatten one level
+let words = [["hello", "world"], ["foo"]].flat_map(fn(arr) { return arr })
+// ["hello", "world", "foo"]
+
+// group_by: partition into a dict of arrays
+let grouped = [1,2,3,4,5,6].group_by(fn(n) { return n % 2 == 0 ? "even" : "odd" })
+// {"odd": [1,3,5], "even": [2,4,6]}
+```
+
+Both can be written in `stdlib/collections.ae`.
+
+---
+
+### `sort_by_key(arr, fn)` — sort with a key extractor
+
+```aether
+let people = [{"name": "Zara", "age": 25}, {"name": "Ali", "age": 30}]
+sort_by_key(people, fn(p) { return p["age"] })
+```
+
+Currently `.sort()` on an array of dicts fails. Add to `stdlib/collections.ae`.
+
+---
+
+### `str.find(substr)` — returns index
+
+```aether
+"hello world".find("world")   // 6
+"hello world".find("xyz")     // -1
+```
+
+Today `str.contains(s)` gives a bool but not the position. Add to `members.rs`.
+
+---
+
+### `str.replace_all(from, to)` — replace every occurrence
+
+```aether
+"aabbaa".replace_all("a", "x")   // "xxbbxx"
+```
+
+Current `replace` only replaces the first match. Add a `replace_all` arm in `members.rs`.
+
+---
+
+### Other I/O and stdlib
+
 | Feature | API sketch |
 |---------|-----------|
 | stderr / log levels | `eprintln(msg)`, `log.warn(msg)` |
@@ -335,7 +436,27 @@ struct Dog extends Animal implements Printable {
 
 ---
 
-## Tier 7 — Tooling (longer horizon)
+## Tier 7 — Performance (interpreter internals)
+
+### String interning
+Every `Value::string()` allocates a new `Rc<String>`. Common dict keys (`"min"`, `"max"`, `"status"`, `"message"`) are heap-allocated fresh on every call.
+
+**Fix:** A global intern table `HashMap<String, Rc<String>>` — identical strings share one allocation. No user-visible API change; `Value::string(s)` looks up before allocating.
+
+**Impact:** 2–5× speedup on programs that do heavy dict access with string keys (JSON parsing, config handling, HTTP headers).
+
+---
+
+### `split()` lazy iterator / limit parameter
+`str.split(delim)` allocates a full `Rc<RefCell<Vec<Value>>>` plus a new `Rc<String>` per part. For 10M rows in 1BRC, that is ~30M allocations from split alone.
+
+**Two independent fixes:**
+1. `str.split(delim, limit)` — stop after `limit` parts. Avoids allocating the tail when only the first part is needed.
+2. `str.split_iter(delim)` — returns a lazy iterator that yields parts one at a time without building the full array.
+
+---
+
+## Tier 8 — Tooling (longer horizon)
 
 | Tool | Description |
 |------|-------------|
@@ -346,6 +467,8 @@ struct Dog extends Animal implements Printable {
 | Package manager | `aether.toml`, versioned deps, registry |
 | ~~Debugger~~ | ~~Breakpoints, step-through, variable inspection~~ — **shipped 2026-04-30** |
 | Bytecode compiler | Replace tree-walking interpreter; 5–20× speedup |
+| LSP server | Language Server Protocol — autocomplete, go-to-def, inline errors in VS Code / Neovim |
+| `aether watch` | Re-run file on save: `aether watch script.ae` |
 
 ---
 
