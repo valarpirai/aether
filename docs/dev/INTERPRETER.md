@@ -45,7 +45,7 @@ pub enum Value {
     Bool(bool),
     Null,
     Array(Rc<Vec<Value>>),  // Rc for cheap clone / GC
-    Dict(Rc<Vec<(Value, Value)>>),  // insertion-ordered, key: string/int/bool
+    Dict(Rc<IndexMap<Value, Value>>),  // insertion-ordered, O(1) lookup, key: string/int/bool
     Set(Rc<HashSet<Value>>),
     Function {
         params: Vec<String>,
@@ -75,6 +75,7 @@ pub enum Value {
 ### GC: Rc-based reference counting
 
 - `String`, `Array`, `Dict`, `Set` use `Rc<T>` — clone is O(1), data freed when count drops to zero.
+- `Dict` uses `IndexMap<Value, Value>`: O(1) average lookup and insert, insertion-order preserved.
 - Mutable aggregate values (`Instance` fields, `Iterator` state, `Promise` state) use `Rc<RefCell<T>>`.
 - Helper constructors: `Value::string(s)`, `Value::array(v)`, `Value::dict(pairs)`, `Value::set(h)`, `Value::promise(func, args)`, `Value::promise_io(rx)`.
 

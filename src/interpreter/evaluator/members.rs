@@ -56,12 +56,11 @@ impl Evaluator {
                     return Ok(Value::Int(pairs.borrow().len() as i64));
                 }
                 let key_val = Value::string(key.to_string());
-                for (k, v) in pairs.borrow().iter() {
-                    if k == &key_val {
-                        return Ok(v.clone());
-                    }
-                }
-                Err(RuntimeError::DictKeyNotFound(key.to_string()))
+                pairs
+                    .borrow()
+                    .get(&key_val)
+                    .cloned()
+                    .ok_or_else(|| RuntimeError::DictKeyNotFound(key.to_string()))
             }
 
             (Value::Module { name, members }, prop) => {
@@ -641,7 +640,7 @@ impl Evaluator {
                     });
                 }
                 let key = self.eval_expr(&args[0])?;
-                let found = pairs.borrow().iter().any(|(k, _)| k == &key);
+                let found = pairs.borrow().contains_key(&key);
                 Ok(Value::Bool(found))
             }
             (Value::Dict(pairs), "equals") => {
@@ -1085,14 +1084,7 @@ impl Evaluator {
                     }
                     IteratorSource::DictKeys(pairs) => {
                         let idx = st.index;
-                        let key = {
-                            let pairs = pairs.borrow();
-                            if idx < pairs.len() {
-                                Some(pairs[idx].0.clone())
-                            } else {
-                                None
-                            }
-                        };
+                        let key = pairs.borrow().get_index(idx).map(|(k, _)| k.clone());
                         if key.is_some() {
                             st.index += 1;
                         }

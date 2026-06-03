@@ -6,6 +6,8 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::rc::{Rc, Weak};
 
+use indexmap::IndexMap;
+
 use super::environment::{RuntimeError, StackFrame};
 use super::tcp::{TcpConnectionState, TcpServerState};
 use super::udp::UdpSocketState;
@@ -49,7 +51,7 @@ pub enum Value {
         members: Rc<HashMap<String, Value>>,
     },
     /// Dictionary (ordered by insertion, key must be string/int/bool)
-    Dict(Rc<RefCell<Vec<(Value, Value)>>>),
+    Dict(Rc<RefCell<IndexMap<Value, Value>>>),
     /// Set (unique, unordered collection - only hashable types allowed)
     Set(Rc<HashSet<Value>>),
     /// Struct type definition (blueprint)
@@ -121,7 +123,7 @@ pub enum WeakTarget {
         methods: MethodMap,
     },
     Array(Weak<RefCell<Vec<Value>>>),
-    Dict(Weak<RefCell<Vec<(Value, Value)>>>),
+    Dict(Weak<RefCell<IndexMap<Value, Value>>>),
 }
 
 /// State of a Promise value
@@ -150,7 +152,7 @@ pub enum IteratorSource {
     /// Array iterator
     Array(Rc<RefCell<Vec<Value>>>),
     /// Dict iterator (over keys)
-    DictKeys(Rc<RefCell<Vec<(Value, Value)>>>),
+    DictKeys(Rc<RefCell<IndexMap<Value, Value>>>),
     /// Set iterator
     Set(Vec<Value>), // Convert HashSet to Vec for iteration
 }
@@ -223,9 +225,9 @@ impl Value {
         Value::Array(Rc::new(RefCell::new(vec)))
     }
 
-    /// Helper: Create a dict value (for convenience)
+    /// Helper: Create a dict value from a Vec of key-value pairs (preserves insertion order).
     pub fn dict(pairs: Vec<(Value, Value)>) -> Self {
-        Value::Dict(Rc::new(RefCell::new(pairs)))
+        Value::Dict(Rc::new(RefCell::new(pairs.into_iter().collect())))
     }
 
     /// Helper: Create a set value (for convenience)

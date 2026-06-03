@@ -495,17 +495,7 @@ impl Evaluator {
                         Ok(())
                     }
                     (Value::Dict(pairs), key) => {
-                        let mut found = false;
-                        for (k, v) in pairs.borrow_mut().iter_mut() {
-                            if k == &key {
-                                *v = value.clone();
-                                found = true;
-                                break;
-                            }
-                        }
-                        if !found {
-                            pairs.borrow_mut().push((key, value));
-                        }
+                        pairs.borrow_mut().insert(key, value);
                         Ok(())
                     }
                     _ => Err(RuntimeError::TypeError {

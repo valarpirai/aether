@@ -1,0 +1,72 @@
+// 1brc_generate.ae — Generate a measurements file for the 1BRC benchmark
+// Usage: aether 1brc_generate.ae [rows] [output_file]
+//   rows:        number of rows to generate (default: 1000000)
+//   output_file: destination path          (default: measurements.txt)
+
+fn fmt_temp(t) {
+    let sign = ""
+    let a = t
+    if (t < 0) {
+        sign = "-"
+        a = -t
+    }
+    return sign + str(a / 10) + "." + str(a % 10)
+}
+
+fn main() {
+    let rows = 1000000
+    if (len(args) > 0) {
+        rows = int(args[0], 10)
+    }
+
+    let filename = "measurements.txt"
+    if (len(args) > 1) {
+        filename = args[1]
+    }
+
+    let stations = [
+        "Hamburg", "Bulawayo", "Palembang", "Cairo", "Nairobi",
+        "Reykjavik", "Sydney", "Tokyo", "Mumbai", "London",
+        "Paris", "Berlin", "Madrid", "Rome", "Moscow",
+        "Beijing", "Seoul", "Bangkok", "Jakarta", "Lagos",
+        "Kinshasa", "Lima", "Bogota", "Santiago", "Montreal",
+        "Toronto", "Vancouver", "Oslo", "Stockholm", "St. John's"
+    ]
+    let n = len(stations)
+
+    // LCG constants from Numerical Recipes
+    let state = int(clock() * 1000000) % 4294967296
+
+    write_file(filename, "")
+
+    let chunk_size = 10000
+    let chunk = []
+    let t0 = clock()
+    let i = 0
+
+    while (i < rows) {
+        state = (state * 1664525 + 1013904223) % 4294967296
+        let si = state % n
+
+        state = (state * 1664525 + 1013904223) % 4294967296
+        let temp = state % 1000 - 500
+
+        chunk.push(stations[si] + ";" + fmt_temp(temp))
+
+        if (len(chunk) >= chunk_size) {
+            append_file(filename, join(chunk, "\n") + "\n")
+            chunk = []
+        }
+
+        i = i + 1
+    }
+
+    if (len(chunk) > 0) {
+        append_file(filename, join(chunk, "\n") + "\n")
+    }
+
+    let elapsed = clock() - t0
+    println("Generated " + str(rows) + " rows  →  " + filename)
+    println("Time:       " + str(elapsed) + "s")
+    println("Throughput: " + str(int(float(rows) / elapsed)) + " rows/s")
+}

@@ -18,6 +18,7 @@ serde_json = "1"
 base64 = "0.22"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 mio = { version = "1", features = ["net", "os-poll"] }
+indexmap = "2"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

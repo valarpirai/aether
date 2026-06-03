@@ -161,17 +161,9 @@ impl Evaluator {
                     Ok(Value::string(chars[idx as usize].to_string()))
                 }
             }
-            (Value::Dict(pairs), key) => {
-                for (k, v) in pairs.borrow().iter() {
-                    if k == &key {
-                        return Ok(v.clone());
-                    }
-                }
-                Err(RuntimeError::InvalidOperation(format!(
-                    "Key {} not found in dict",
-                    key
-                )))
-            }
+            (Value::Dict(pairs), key) => pairs.borrow().get(&key).cloned().ok_or_else(|| {
+                RuntimeError::InvalidOperation(format!("Key {} not found in dict", key))
+            }),
             (collection, index) => Err(RuntimeError::TypeError {
                 expected: "array or string with integer index".to_string(),
                 got: format!("{} and {}", collection.type_name(), index.type_name()),

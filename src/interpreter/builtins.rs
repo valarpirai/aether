@@ -886,7 +886,7 @@ pub fn builtin_clock(args: &[Value]) -> Result<Value, RuntimeError> {
 /// Parse an optional config dict into `HttpOptions`.
 /// Accepted keys: `timeout` (int seconds), `user_agent` (string).
 pub fn parse_http_opts(val: &Value) -> Result<HttpOptions, RuntimeError> {
-    let pairs = match val {
+    let dict = match val {
         Value::Dict(p) => p.borrow().clone(),
         other => {
             return Err(RuntimeError::TypeError {
@@ -896,14 +896,7 @@ pub fn parse_http_opts(val: &Value) -> Result<HttpOptions, RuntimeError> {
         }
     };
 
-    fn get<'a>(pairs: &'a [(Value, Value)], key: &str) -> Option<&'a Value> {
-        pairs.iter().find_map(|(k, v)| match k {
-            Value::String(s) if s.as_ref() == key => Some(v),
-            _ => None,
-        })
-    }
-
-    let timeout_secs = match get(&pairs, "timeout") {
+    let timeout_secs = match dict.get(&Value::string("timeout")) {
         Some(Value::Int(n)) => Some(*n as u64),
         Some(Value::Float(f)) => Some(*f as u64),
         Some(other) => {
@@ -914,7 +907,7 @@ pub fn parse_http_opts(val: &Value) -> Result<HttpOptions, RuntimeError> {
         }
         None => None,
     };
-    let user_agent = match get(&pairs, "user_agent") {
+    let user_agent = match dict.get(&Value::string("user_agent")) {
         Some(Value::String(s)) => Some(s.as_ref().clone()),
         Some(other) => {
             return Err(RuntimeError::TypeError {
@@ -1339,7 +1332,7 @@ pub fn builtin_id(args: &[Value]) -> Result<Value, RuntimeError> {
 fn shallow_copy(v: &Value) -> Value {
     match v {
         Value::Array(rc) => Value::array(rc.borrow().clone()),
-        Value::Dict(rc) => Value::dict(rc.borrow().clone()),
+        Value::Dict(rc) => Value::Dict(Rc::new(RefCell::new(rc.borrow().clone()))),
         Value::Instance {
             type_name,
             fields,
@@ -1389,20 +1382,10 @@ pub fn builtin_tcp_listen(args: &[Value]) -> Result<Value, RuntimeError> {
 
     let delimiter = if args.len() == 2 {
         match &args[1] {
-            Value::Dict(pairs) => {
-                let pairs = pairs.borrow();
-                pairs.iter().find_map(|(k, v)| {
-                    if matches!(k, Value::String(s) if s.as_str() == "delimiter") {
-                        if let Value::String(d) = v {
-                            Some(d.as_str().to_string())
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                })
-            }
+            Value::Dict(pairs) => match pairs.borrow().get(&Value::string("delimiter")) {
+                Some(Value::String(d)) => Some(d.as_str().to_string()),
+                _ => None,
+            },
             _ => {
                 return Err(RuntimeError::TypeError {
                     expected: "dict".to_string(),

@@ -351,14 +351,7 @@ impl Evaluator {
                         }
                         IteratorSource::DictKeys(pairs) => {
                             let idx = st.index;
-                            let v = {
-                                let pairs = pairs.borrow();
-                                if idx < pairs.len() {
-                                    Some(pairs[idx].0.clone())
-                                } else {
-                                    None
-                                }
-                            };
+                            let v = pairs.borrow().get_index(idx).map(|(k, _)| k.clone());
                             if v.is_some() {
                                 st.index += 1;
                             }
@@ -451,7 +444,7 @@ impl Evaluator {
                 }
             }
             DestructurePattern::Dict(entries) => {
-                let pairs = match &val {
+                let dict = match &val {
                     Value::Dict(rc) => rc.borrow().clone(),
                     _ => {
                         return Err(RuntimeError::TypeError {
@@ -461,10 +454,9 @@ impl Evaluator {
                     }
                 };
                 for entry in entries {
-                    let v = pairs
-                        .iter()
-                        .find(|(k, _)| matches!(k, Value::String(s) if s.as_ref() == entry.key.as_str()))
-                        .map(|(_, v)| v.clone())
+                    let v = dict
+                        .get(&Value::string(entry.key.clone()))
+                        .cloned()
                         .unwrap_or(Value::Null);
                     let v = if matches!(v, Value::Null) {
                         if let Some(def) = &entry.default {

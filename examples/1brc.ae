@@ -1,0 +1,66 @@
+// 1brc.ae — 1 Billion Row Challenge solver
+// Usage: aether 1brc.ae [input_file]
+//   input_file: path to measurements file (default: measurements.txt)
+//
+// Computes min/mean/max temperature per station, prints sorted alphabetically.
+
+fn fmt1(x) {
+    let r = round(x * 10)
+    let sign = ""
+    let a = r
+    if (r < 0) {
+        sign = "-"
+        a = -r
+    }
+    return sign + str(a / 10) + "." + str(a % 10)
+}
+
+fn main() {
+    let filename = "measurements.txt"
+    if (len(args) > 0) {
+        filename = args[0]
+    }
+
+    let stations = {}
+    let t0 = clock()
+    let count = 0
+
+    for line in lines_iter(filename) {
+        if (line == "") { continue }
+
+        let parts = line.split(";")
+        let name = parts[0]
+        let temp = float(parts[1])
+
+        if (!stations.contains(name)) {
+            stations[name] = {"min": temp, "max": temp, "sum": temp, "count": 1}
+        } else {
+            let s = stations[name]
+            if (temp < s["min"]) { s["min"] = temp }
+            if (temp > s["max"]) { s["max"] = temp }
+            s["sum"] = s["sum"] + temp
+            s["count"] = s["count"] + 1
+        }
+
+        count = count + 1
+    }
+
+    let elapsed = clock() - t0
+
+    let names = stations.keys()
+    names.sort()
+
+    let out = []
+    for name in names {
+        let s = stations[name]
+        let mean = s["sum"] / float(s["count"])
+        out.push(name + "=" + fmt1(s["min"]) + "/" + fmt1(mean) + "/" + fmt1(s["max"]))
+    }
+
+    println("{" + join(out, ", ") + "}")
+    println("")
+    println("Rows:       " + str(count))
+    println("Stations:   " + str(len(names)))
+    println("Time:       " + str(elapsed) + "s")
+    println("Throughput: " + str(int(float(count) / elapsed)) + " rows/s")
+}
