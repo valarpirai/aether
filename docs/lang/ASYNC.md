@@ -230,4 +230,4 @@ fn main() {
 - [Configuration](CONFIGURATION.html) — `set_workers`, `AETHER_IO_WORKERS`
 
 ---
-[← Time](TIME.html) &nbsp;&nbsp; [Configuration →](CONFIGURATION.html)
+[← Random](RANDOM.html) &nbsp;&nbsp; [Configuration →](CONFIGURATION.html)

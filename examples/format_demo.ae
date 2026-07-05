@@ -1,0 +1,37 @@
+fn main() {
+    // --- positional placeholders ---
+    println("=== positional ===")
+    println(format("Hello, {}!", "Alice"))
+    println(format("{} + {} = {}", 1, 2, 3))
+
+    // --- float precision ---
+    println("")
+    println("=== float precision ===")
+    println(format("{:.2f}", 3.14159))
+    println(format("{:.0f}", 9.7))
+
+    // --- width and alignment ---
+    println("")
+    println("=== width and alignment ===")
+    println(format("[{:>10}]", "hi"))
+    println(format("[{:<10}]", "hi"))
+    println(format("[{:^10}]", "hi"))
+
+    // --- fill character ---
+    println("")
+    println("=== fill character ===")
+    println(format("{:0>5d}", 42))
+    println(format("{:->8}", "x"))
+
+    // --- integer bases ---
+    println("")
+    println("=== integer bases ===")
+    println(format("{:x}", 255))
+    println(format("{:o}", 8))
+    println(format("{:b}", 5))
+
+    // --- escaped braces ---
+    println("")
+    println("=== escaped braces ===")
+    println(format("{{not a placeholder}}"))
+}

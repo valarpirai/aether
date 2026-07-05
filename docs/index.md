@@ -145,6 +145,7 @@ Start here if you want to use the language — build scripts, automate tasks, or
 |-------|---------------|
 | [REPL](lang/REPL.html) | Interactive shell and running `.ae` files |
 | [Strings](lang/STRINGS.html) | Literals, indexing, slicing, interpolation, methods |
+| [Format](lang/FORMAT.html) | format() — `{}` placeholders, width, alignment, precision |
 | [Error Handling](lang/ERROR_HANDLING.html) | try/catch/finally/throw with stack traces |
 | [Structs](lang/STRUCT.html) | User-defined types with fields and methods |
 | [Modules](lang/MODULE_SYSTEM.html) | import, from…import, stdlib modules |
@@ -154,6 +155,7 @@ Start here if you want to use the language — build scripts, automate tasks, or
 | [CSV](lang/CSV.html) | csv_parse(), csv_stringify() |
 | [HTTP](lang/HTTP.html) | http_get(), http_post() |
 | [Time](lang/TIME.html) | clock(), sleep() |
+| [Random](lang/RANDOM.html) | random(), rand_int(n) |
 | [Async/Await](lang/ASYNC.html) | async fn, await, .then(), Promise.all/race/allSettled, I/O pool |
 | [TCP](lang/TCP.html) | tcp_listen(), tcp_connect(), server/client lifecycle events, UDP |
 | [Configuration](lang/CONFIGURATION.html) | Env vars and runtime configuration |

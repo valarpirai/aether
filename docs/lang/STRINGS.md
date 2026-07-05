@@ -131,4 +131,4 @@ println(last_first("Alice Johnson"))  // Johnson, Alice
 - No regex support built-in
 
 ---
-[← REPL](REPL.html) &nbsp;&nbsp; [Error Handling →](ERROR_HANDLING.html)
+[← REPL](REPL.html) &nbsp;&nbsp; [Format →](FORMAT.html)

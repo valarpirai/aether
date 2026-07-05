@@ -16,6 +16,8 @@ Items without a milestone are unscheduled.
 
 | Feature | Date |
 |---------|------|
+| `format()` / string format specifiers | 2026-07-05 |
+| `random()` / `rand_int(n)` — random number generation | 2026-07-05 |
 | Dict O(1) lookup — `IndexMap` replaces `Vec` linear scan | 2026-06-03 |
 | `finally` block | 2026-04-29 |
 | `??` null coalescing | 2026-04-29 |
@@ -36,15 +38,8 @@ Items without a milestone are unscheduled.
 
 ## Tier 1 — High value, low complexity
 
-### `format()` / string format specifiers
-Formatted output beyond `"${}"` interpolation.
-
-```aether
-format("{:.2f}", 3.14159)       // "3.14"
-format("{:>10}", "hi")          // "        hi"
-format("{:0>5d}", 42)           // "00042"
-format("Hello, {}!", name)      // positional
-```
+### ~~`format()` / string format specifiers~~ ✅ DONE
+Formatted output beyond `"${}"` interpolation. Implemented in `builtin_format` (`src/interpreter/builtins.rs`): positional `{}`, `{:.Nf}` precision, `{:>N}`/`{:<N}`/`{:^N}` alignment, fill chars, and `{:x}`/`{:o}`/`{:b}` bases. See `docs/lang/FORMAT.md`.
 
 ---
 
@@ -62,27 +57,13 @@ sum(1, 2, 3, 4)   // 10
 
 ---
 
-### `random()` / `rand_int(n)` — random number generation
-No built-in random today; programs must hand-roll an LCG.
-
-```aether
-random()        // float in [0, 1)
-rand_int(6)     // int in [0, 6)  — e.g. dice roll
-```
-
-**Implementation:** `random()` wraps `rand::random::<f64>()` (add `rand` crate); `rand_int(n)` returns `(random() * n) as int`. Both are pure builtins — no state needed.
+### ~~`random()` / `rand_int(n)` — random number generation~~ ✅ DONE
+`random()` returns a float in `[0, 1)`; `rand_int(n)` returns an int in `[0, n)`. Implemented via the `rand` crate in `builtin_random`/`builtin_rand_int` (`src/interpreter/builtins.rs`). See `docs/lang/RANDOM.md`.
 
 ---
 
-### `int(str)` implicit base 10
-`int("42", 10)` works today but the base argument is mandatory. Most callers want decimal.
-
-```aether
-int("42")       // 42   — currently errors (requires base)
-int("ff", 16)   // 255  — still works
-```
-
-**Implementation:** In `builtin_int`, when one argument is a string and no base is given, default to base 10.
+### ~~`int(str)` implicit base 10~~ ✅ DONE
+`int("42")` already defaults to base 10 in `builtin_int` (`src/interpreter/builtins.rs`); no base argument is required. Covered by `tests/number_conversion_test.rs`.
 
 ---
 
@@ -469,6 +450,10 @@ Every `Value::string()` allocates a new `Rc<String>`. Common dict keys (`"min"`,
 | Bytecode compiler | Replace tree-walking interpreter; 5–20× speedup |
 | LSP server | Language Server Protocol — autocomplete, go-to-def, inline errors in VS Code / Neovim |
 | `aether watch` | Re-run file on save: `aether watch script.ae` |
+
+### Known bug: `aether fmt` corrupts `&&` / `||` and drops comments
+
+`aether fmt` prints `BinaryOp::And`/`BinaryOp::Or` as the bareword `and`/`or` (`src/formatter.rs`), but the lexer only accepts `&&`/`||` — running `fmt` on a file with logical operators produces a file that no longer parses. `fmt` also silently drops `//` comments from statement bodies. Found 2026-07-05 while writing `examples/random_demo.ae`. No existing example used `&&`/`||`, so this was previously undiscovered.
 
 ---
 

@@ -653,6 +653,34 @@ impl Evaluator {
             },
         );
 
+        // Random number functions
+        self.environment.define(
+            "random".to_string(),
+            Value::BuiltinFn {
+                name: "random".to_string(),
+                arity: 0,
+                func: builtins::builtin_random,
+            },
+        );
+
+        self.environment.define(
+            "rand_int".to_string(),
+            Value::BuiltinFn {
+                name: "rand_int".to_string(),
+                arity: 1,
+                func: builtins::builtin_rand_int,
+            },
+        );
+
+        self.environment.define(
+            "format".to_string(),
+            Value::BuiltinFn {
+                name: "format".to_string(),
+                arity: usize::MAX,
+                func: builtins::builtin_format,
+            },
+        );
+
         // Collection functions
         self.environment.define(
             "set".to_string(),

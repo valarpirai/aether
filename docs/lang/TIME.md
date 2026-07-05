@@ -98,4 +98,4 @@ fn retry(func, max_attempts) {
 - [Async/Await](ASYNC.html) — `await sleep(n)` when workers are active; `.then()` for non-blocking callbacks
 
 ---
-[← HTTP](HTTP.html) &nbsp;&nbsp; [Async →](ASYNC.html)
+[← HTTP](HTTP.html) &nbsp;&nbsp; [Random →](RANDOM.html)

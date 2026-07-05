@@ -10,6 +10,7 @@ use super::{
     RuntimeError, Value,
 };
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use rand::Rng;
 use serde_json::Value as JsonValue;
 
 /// Built-in function: print(...values)
@@ -145,6 +146,221 @@ pub fn builtin_int(args: &[Value]) -> Result<Value, RuntimeError> {
         Value::Bool(b) => Ok(Value::Int(if *b { 1 } else { 0 })),
         other => Err(RuntimeError::TypeError {
             expected: "number, string, or bool".to_string(),
+            got: other.type_name().to_string(),
+        }),
+    }
+}
+
+/// Built-in function: format(fmt, ...args)
+/// Renders a format string with `{}` / `{:spec}` placeholders.
+pub fn builtin_format(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.is_empty() {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: 0,
+        });
+    }
+    let fmt = match &args[0] {
+        Value::String(s) => s.as_str(),
+        other => {
+            return Err(RuntimeError::TypeError {
+                expected: "string".to_string(),
+                got: other.type_name().to_string(),
+            })
+        }
+    };
+    let values = &args[1..];
+    let chars: Vec<char> = fmt.chars().collect();
+    let mut result = String::new();
+    let mut arg_index = 0;
+    let mut i = 0;
+    while i < chars.len() {
+        match chars[i] {
+            '{' if chars.get(i + 1) == Some(&'{') => {
+                result.push('{');
+                i += 2;
+            }
+            '}' if chars.get(i + 1) == Some(&'}') => {
+                result.push('}');
+                i += 2;
+            }
+            '{' => {
+                let start = i + 1;
+                let end = chars[start..]
+                    .iter()
+                    .position(|&c| c == '}')
+                    .map(|p| start + p)
+                    .ok_or_else(|| {
+                        RuntimeError::InvalidOperation(
+                            "format() unclosed '{' in format string".to_string(),
+                        )
+                    })?;
+                let spec: String = chars[start..end].iter().collect();
+                let value = values.get(arg_index).ok_or_else(|| {
+                    RuntimeError::InvalidOperation(format!(
+                        "format() not enough arguments: placeholder {} needs an argument, only {} given",
+                        arg_index + 1,
+                        values.len()
+                    ))
+                })?;
+                arg_index += 1;
+                result.push_str(&format_placeholder(value, &spec)?);
+                i = end + 1;
+            }
+            '}' => {
+                return Err(RuntimeError::InvalidOperation(
+                    "format() unmatched '}' in format string".to_string(),
+                ))
+            }
+            c => {
+                result.push(c);
+                i += 1;
+            }
+        }
+    }
+    Ok(Value::string(result))
+}
+
+/// Renders one `{...}` placeholder body (without the braces) for `format()`.
+fn format_placeholder(value: &Value, spec: &str) -> Result<String, RuntimeError> {
+    if spec.is_empty() {
+        return Ok(format!("{}", value));
+    }
+    let rest = spec.strip_prefix(':').ok_or_else(|| {
+        RuntimeError::InvalidOperation(format!(
+            "format() invalid placeholder '{{{}}}': expected '{{}}' or '{{:spec}}'",
+            spec
+        ))
+    })?;
+    let chars: Vec<char> = rest.chars().collect();
+    let mut idx = 0;
+
+    let mut fill = ' ';
+    let mut align: Option<char> = None;
+    if chars.len() >= 2 && matches!(chars[1], '<' | '>' | '^') {
+        fill = chars[0];
+        align = Some(chars[1]);
+        idx = 2;
+    } else if !chars.is_empty() && matches!(chars[0], '<' | '>' | '^') {
+        align = Some(chars[0]);
+        idx = 1;
+    }
+
+    let width_start = idx;
+    while idx < chars.len() && chars[idx].is_ascii_digit() {
+        idx += 1;
+    }
+    let width: usize = if idx > width_start {
+        chars[width_start..idx]
+            .iter()
+            .collect::<String>()
+            .parse()
+            .unwrap_or(0)
+    } else {
+        0
+    };
+
+    let mut precision: Option<usize> = None;
+    if chars.get(idx) == Some(&'.') {
+        idx += 1;
+        let prec_start = idx;
+        while idx < chars.len() && chars[idx].is_ascii_digit() {
+            idx += 1;
+        }
+        if idx == prec_start {
+            return Err(RuntimeError::InvalidOperation(format!(
+                "format() invalid precision in spec ':{}'",
+                rest
+            )));
+        }
+        precision = Some(
+            chars[prec_start..idx]
+                .iter()
+                .collect::<String>()
+                .parse()
+                .unwrap_or(0),
+        );
+    }
+
+    let type_char = chars.get(idx).copied();
+    if type_char.is_some() {
+        idx += 1;
+    }
+    if idx != chars.len() {
+        return Err(RuntimeError::InvalidOperation(format!(
+            "format() trailing characters in spec ':{}'",
+            rest
+        )));
+    }
+
+    let (body, is_numeric) = match type_char {
+        Some('f') => (
+            format!("{:.*}", precision.unwrap_or(6), as_f64(value)?),
+            true,
+        ),
+        Some('d') => (as_i64(value)?.to_string(), true),
+        Some('x') => (format!("{:x}", as_i64(value)?), true),
+        Some('o') => (format!("{:o}", as_i64(value)?), true),
+        Some('b') => (format!("{:b}", as_i64(value)?), true),
+        Some('s') => (format!("{}", value), false),
+        Some(other) => {
+            return Err(RuntimeError::InvalidOperation(format!(
+                "format() unknown type specifier '{}'",
+                other
+            )))
+        }
+        None => match value {
+            Value::Float(_) if precision.is_some() => {
+                (format!("{:.*}", precision.unwrap(), as_f64(value)?), true)
+            }
+            Value::Int(_) | Value::Float(_) => (format!("{}", value), true),
+            _ => (format!("{}", value), false),
+        },
+    };
+
+    let align = align.unwrap_or(if is_numeric { '>' } else { '<' });
+    Ok(pad_to_width(&body, width, fill, align))
+}
+
+fn pad_to_width(s: &str, width: usize, fill: char, align: char) -> String {
+    let len = s.chars().count();
+    if len >= width {
+        return s.to_string();
+    }
+    let total_pad = width - len;
+    match align {
+        '<' => format!("{}{}", s, fill.to_string().repeat(total_pad)),
+        '^' => {
+            let left = total_pad / 2;
+            let right = total_pad - left;
+            format!(
+                "{}{}{}",
+                fill.to_string().repeat(left),
+                s,
+                fill.to_string().repeat(right)
+            )
+        }
+        _ => format!("{}{}", fill.to_string().repeat(total_pad), s),
+    }
+}
+
+fn as_f64(value: &Value) -> Result<f64, RuntimeError> {
+    match value {
+        Value::Int(n) => Ok(*n as f64),
+        Value::Float(f) => Ok(*f),
+        other => Err(RuntimeError::TypeError {
+            expected: "int or float".to_string(),
+            got: other.type_name().to_string(),
+        }),
+    }
+}
+
+fn as_i64(value: &Value) -> Result<i64, RuntimeError> {
+    match value {
+        Value::Int(n) => Ok(*n),
+        Value::Float(f) => Ok(*f as i64),
+        other => Err(RuntimeError::TypeError {
+            expected: "int".to_string(),
             got: other.type_name().to_string(),
         }),
     }
@@ -881,6 +1097,45 @@ pub fn builtin_clock(args: &[Value]) -> Result<Value, RuntimeError> {
         .unwrap_or(Duration::ZERO)
         .as_secs_f64();
     Ok(Value::Float(secs))
+}
+
+/// Built-in function: random()
+/// Returns a random float in [0, 1)
+pub fn builtin_random(args: &[Value]) -> Result<Value, RuntimeError> {
+    if !args.is_empty() {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 0,
+            got: args.len(),
+        });
+    }
+    Ok(Value::Float(rand::thread_rng().gen::<f64>()))
+}
+
+/// Built-in function: rand_int(n)
+/// Returns a random int in [0, n)
+pub fn builtin_rand_int(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+    let n = match &args[0] {
+        Value::Int(n) => *n,
+        other => {
+            return Err(RuntimeError::TypeError {
+                expected: "int".to_string(),
+                got: other.type_name().to_string(),
+            })
+        }
+    };
+    if n <= 0 {
+        return Err(RuntimeError::InvalidOperation(format!(
+            "rand_int() argument must be positive, got {}",
+            n
+        )));
+    }
+    Ok(Value::Int(rand::thread_rng().gen_range(0..n)))
 }
 
 /// Parse an optional config dict into `HttpOptions`.

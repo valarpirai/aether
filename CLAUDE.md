@@ -36,6 +36,7 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 | Document | Description |
 |----------|-------------|
 | [STRINGS.md](docs/lang/STRINGS.md) | Literals, indexing, slicing, interpolation, methods |
+| [FORMAT.md](docs/lang/FORMAT.md) | format() — `{}` placeholders, width, alignment, precision |
 | [DESTRUCTURING.md](docs/lang/DESTRUCTURING.md) | Array and dict destructuring, rest, rename, defaults |
 | [STRUCT.md](docs/lang/STRUCT.md) | User-defined types with fields and methods |
 | [ERROR_HANDLING.md](docs/lang/ERROR_HANDLING.md) | try/catch/finally/throw with stack traces |
@@ -47,6 +48,7 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 | [JSON.md](docs/lang/JSON.md) | json_parse(), json_stringify() |
 | [CSV.md](docs/lang/CSV.md) | csv_parse(), csv_stringify() |
 | [TIME.md](docs/lang/TIME.md) | clock(), sleep() |
+| [RANDOM.md](docs/lang/RANDOM.md) | random(), rand_int(n) |
 | [REPL.md](docs/lang/REPL.md) | Interactive REPL and file execution |
 | [CONFIGURATION.md](docs/lang/CONFIGURATION.md) | Env vars and runtime configuration builtins |
 | [TCP.md](docs/lang/TCP.md) | tcp_listen(), tcp_connect(), server/client lifecycle events |
@@ -200,10 +202,12 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | **CSV** | `csv_parse(str[, delim])`, `csv_stringify(rows[, delim])`; parse CSV/TSV text to array of arrays and back |
 | **HTTP** | `http_get(url)`, `http_post(url, body)` via reqwest (blocking or async) |
 | **Time** | `clock()` (Unix epoch float), `sleep(secs)` |
+| **Random** | `random()` (float in `[0, 1)`), `rand_int(n)` (int in `[0, n)`) via the `rand` crate |
 | **TCP** | `tcp_listen(addr[, opts])`, `tcp_connect(addr)`; server events: `on_listen/connect/message/disconnect/error/timeout`, `accept()`, `close()`; client events: `on_connect/message/disconnect/error/timeout`, `start()`, `close()`, `write(data)`; event-driven via mio (single I/O thread, ~8–260 KB per connection); use array/dict for mutable closure state |
 | **UDP** | `udp_bind(addr)`; `on_message(fn(data, addr) { })`, `send_to(data, addr)`, `listen()`, `close()`; connectionless datagram socket; same mio I/O thread architecture as TCP |
 | **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, sign, join, repeat, reverse, starts_with, ends_with, first, last, chunk, partition, zip_longest, uniq_by, contains, index_of, replace, count, pad_left, pad_right, strip_prefix, strip_suffix, is_alpha, is_digit, is_space, pi, e, tau, factorial, trunc, degrees, radians, hypot, exp, sin, cos, tan |
 | **Number/string conversions** | `hex(n)`, `oct(n)`, `bin(n)`, `int(s, base)`, `base64_encode(s)`, `base64_decode(s)` |
+| **String formatting** | `format(fmt, ...args)` — `{}` positional placeholders, `{:.2f}` precision, `{:>10}` / `{:<10}` / `{:^10}` width+alignment, `{:0>5d}` fill char, `{:x}`/`{:o}`/`{:b}` integer bases |
 | **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
 | **REPL** | rustyline with history (`~/.aether_history`), tab-completion, `_help`/`_env`/`_exit`, multi-line input (`>>` / `..`) |
 | **Configuration** | `AETHER_IO_WORKERS`, `AETHER_CALL_DEPTH`, `HOME` (see [CONFIGURATION.md](docs/lang/CONFIGURATION.md)) |
@@ -224,9 +228,9 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | Phase 5 Sprint 5: Null safety + Event loop | ~693 |
 | Phase 5 Sprint 6: Tooling (fmt, test, check, REPL multi-line) | ~1112 |
 
-### Test Coverage (2026-05-27)
+### Test Coverage (2026-07-05)
 
-- **Total**: ~1140 tests passing (134 unit + ~1017 integration)
+- **Total**: ~1184 tests passing (134 unit + ~1050 integration)
 - **Ignored/skipped**: ~9 http tests (require network), 2 known recursion stack-overflow
 - **Code quality**: cargo clippy clean (5 acceptable `mutable_key_type` warnings for HashSet)
 
@@ -240,7 +244,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | Built-ins | 15 |
 | Other unit | 35 |
 
-**Integration tests (~1017):**
+**Integration tests (~1050):**
 
 | Suite | Count |
 |-------|-------|
@@ -267,6 +271,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | `null_coalesce_test` | 23 |
 | `iterator_test` | 22 |
 | `array_methods_test` | 22 |
+| `format_test` | 22 |
 | `enum_test` | 20 |
 | `destructure_test` | 20 |
 | `csv_test` | 20 |
@@ -281,6 +286,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | `gc_test` | 13 |
 | `function_expr_test` | 13 |
 | `error_context_test` | 11 |
+| `random_test` | 11 |
 | `time_test` | 10 |
 | `test_runner_test` | 10 |
 | `multiline_string_test` | 10 |
@@ -303,7 +309,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 
 See **[docs/dev/BACKLOG.md](docs/dev/BACKLOG.md)** for the full prioritised backlog (~30 features across 6 tiers).
 
-Top-of-backlog highlights: `format()`, variadic args, enums/tuples, named/default params.
+Top-of-backlog highlights: variadic args, enums/tuples, named/default params.
 
 ## Development Resources
 

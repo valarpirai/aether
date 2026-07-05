@@ -151,4 +151,4 @@ fn load_data(sources) {
 - No custom exception classes or type hierarchy
 
 ---
-[← Strings](STRINGS.html) &nbsp;&nbsp; [Structs →](STRUCT.html)
+[← Format](FORMAT.html) &nbsp;&nbsp; [Structs →](STRUCT.html)
