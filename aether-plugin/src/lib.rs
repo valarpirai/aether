@@ -28,6 +28,10 @@ pub use aether_plugin_macro::aether_export;
 #[doc(hidden)]
 pub use paste;
 
+// Re-export conversion traits and types
+pub mod convert;
+pub use convert::{AetherValuePtr, FromAether, ToAether};
+
 use std::ffi::c_char;
 use std::ffi::c_int;
 

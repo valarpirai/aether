@@ -4,6 +4,7 @@ pub mod builtins;
 pub mod environment;
 pub mod evaluator;
 pub mod event_loop;
+pub mod ffi_helpers;
 pub mod io_pool;
 pub mod plugin;
 pub mod stdlib;

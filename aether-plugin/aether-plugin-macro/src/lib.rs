@@ -1,10 +1,11 @@
 //! Procedural macro for #[aether_export]
 //!
 //! This macro generates FFI wrapper code for Aether plugin functions.
+//! Supports both V1 protocol (i64 only) and V2 protocol (String, Vec, HashMap).
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, FnArg, ItemFn, Pat, ReturnType, Type};
+use syn::{parse_macro_input, FnArg, ItemFn, Pat, ReturnType, Type, TypePath};
 
 /// Marks a function for export to Aether
 ///
@@ -17,13 +18,12 @@ use syn::{parse_macro_input, FnArg, ItemFn, Pat, ReturnType, Type};
 /// fn add(a: i64, b: i64) -> i64 {
 ///     a + b
 /// }
-/// ```
 ///
-/// This generates:
-/// - An FFI wrapper function
-/// - Type conversion boilerplate
-/// - Error handling
-/// - Registration metadata
+/// #[aether_export]
+/// fn greet(name: String) -> String {
+///     format!("Hello, {}!", name)
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn aether_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input_fn = parse_macro_input!(item as ItemFn);
@@ -51,29 +51,27 @@ pub fn aether_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let param_count = params.len();
 
-    // Generate parameter extraction
-    let param_extractions = params.iter().enumerate().map(|(i, (name, ty))| {
-        quote! {
-            let #name: #ty = unsafe { *args.offset(#i as isize) };
-        }
-    });
+    // Check if this is a V1 (i64-only) or V2 (complex types) function
+    let uses_v1_protocol = params.iter().all(|(_, ty)| is_i64_type(ty))
+        && matches!(&input_fn.sig.output, ReturnType::Type(_, ty) if is_i64_type(ty));
 
-    // Generate function call
-    let param_names: Vec<_> = params.iter().map(|(name, _)| name).collect();
     let original_fn = &input_fn;
 
-    // Check return type
-    let returns_i64 = matches!(
-        &input_fn.sig.output,
-        ReturnType::Type(_, ty) if matches!(&**ty, Type::Path(p) if p.path.is_ident("i64"))
-    );
+    if uses_v1_protocol {
+        // Generate V1 protocol wrapper (backward compatible)
+        let param_extractions = params.iter().enumerate().map(|(i, (name, ty))| {
+            quote! {
+                let #name: #ty = unsafe { *args.offset(#i as isize) };
+            }
+        });
 
-    let expanded = if returns_i64 {
-        quote! {
+        let param_names: Vec<_> = params.iter().map(|(name, _)| name).collect();
+
+        let expanded = quote! {
             #original_fn
 
             #[doc(hidden)]
-            unsafe extern "C" fn #ffi_fn_name(args: *const i64, argc: ::std::ffi::c_int) -> i64 {
+            pub unsafe extern "C" fn #ffi_fn_name(args: *const i64, argc: ::std::ffi::c_int) -> i64 {
                 if argc != #param_count as ::std::ffi::c_int {
                     return i64::MIN; // Signal error
                 }
@@ -82,16 +80,57 @@ pub fn aether_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
                 #fn_name(#(#param_names),*)
             }
-        }
-    } else {
-        // For now, only support i64 return
-        return syn::Error::new_spanned(
-            &input_fn.sig.output,
-            "Only i64 return type is supported in MVP",
-        )
-        .to_compile_error()
-        .into();
-    };
+        };
 
-    TokenStream::from(expanded)
+        TokenStream::from(expanded)
+    } else {
+        // Generate V2 protocol wrapper (complex types)
+        let param_conversions = params.iter().enumerate().map(|(i, (name, ty))| {
+            quote! {
+                let #name: #ty = match aether_plugin::FromAether::from_aether(*args.offset(#i as isize)) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        let err_msg = ::std::ffi::CString::new(e).unwrap();
+                        *out_error = aether_plugin::convert::aether_value_new_string(err_msg.as_ptr());
+                        return ::std::ptr::null();
+                    }
+                };
+            }
+        });
+
+        let param_names: Vec<_> = params.iter().map(|(name, _)| name).collect();
+
+        let expanded = quote! {
+            #original_fn
+
+            #[doc(hidden)]
+            pub unsafe extern "C" fn #ffi_fn_name(
+                args: *const aether_plugin::AetherValuePtr,
+                argc: ::std::ffi::c_int,
+                out_error: *mut aether_plugin::AetherValuePtr
+            ) -> aether_plugin::AetherValuePtr {
+                if argc != #param_count as ::std::ffi::c_int {
+                    let err_msg = ::std::ffi::CString::new(format!("Expected {} arguments, got {}", #param_count, argc)).unwrap();
+                    *out_error = aether_plugin::convert::aether_value_new_string(err_msg.as_ptr());
+                    return ::std::ptr::null();
+                }
+
+                #(#param_conversions)*
+
+                let result = #fn_name(#(#param_names),*);
+                aether_plugin::ToAether::to_aether(result)
+            }
+        };
+
+        TokenStream::from(expanded)
+    }
+}
+
+/// Check if a type is i64
+fn is_i64_type(ty: &Type) -> bool {
+    if let Type::Path(TypePath { path, .. }) = ty {
+        path.is_ident("i64")
+    } else {
+        false
+    }
 }
