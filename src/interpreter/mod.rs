@@ -5,6 +5,7 @@ pub mod environment;
 pub mod evaluator;
 pub mod event_loop;
 pub mod io_pool;
+pub mod plugin;
 pub mod stdlib;
 pub mod tcp;
 pub mod udp;

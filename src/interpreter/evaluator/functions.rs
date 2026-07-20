@@ -75,6 +75,7 @@ impl Evaluator {
                 }
                 func(&arg_values)
             }
+            Value::PluginFn { plugin, func_name } => plugin.call(&func_name, &arg_values),
             Value::EnumConstructor {
                 enum_name,
                 variant_name,

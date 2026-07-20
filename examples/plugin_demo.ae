@@ -1,0 +1,72 @@
+// Demonstration of Aether's FFI plugin system
+//
+// This example loads a compiled Rust shared library and calls its functions.
+// The plugin provides math functions: add, multiply, power, is_even
+
+fn main() {
+    println("=== Aether Plugin System Demo ===\n")
+
+    // Load the example plugin
+    println("Loading plugin...")
+    let math = load_plugin("examples/plugins/libexample_plugin.dylib")
+    println("Plugin loaded:", math)
+    println("Type:", type(math))
+    println()
+
+    // Call plugin functions
+    println("--- Basic arithmetic ---")
+    let sum = math.add(40, 2)
+    println("math.add(40, 2) =", sum)
+
+    let product = math.multiply(6, 7)
+    println("math.multiply(6, 7) =", product)
+    println()
+
+    // Power function (returns float)
+    println("--- Power function ---")
+    let squared = math.power(5, 2)
+    println("math.power(5, 2) =", squared)
+
+    let cubed = math.power(3, 3)
+    println("math.power(3, 3) =", cubed)
+
+    let big = math.power(2, 10)
+    println("math.power(2, 10) =", big)
+    println()
+
+    // Boolean checks (returned as 0/1 for now)
+    println("--- Even/odd checks ---")
+    let even_4 = math.is_even(4)
+    println("math.is_even(4) =", even_4, even_4 == 1 ? "(even)" : "(odd)")
+
+    let even_7 = math.is_even(7)
+    println("math.is_even(7) =", even_7, even_7 == 1 ? "(even)" : "(odd)")
+
+    let even_100 = math.is_even(100)
+    println("math.is_even(100) =", even_100, even_100 == 1 ? "(even)" : "(odd)")
+    println()
+
+    // Use in expressions
+    println("--- Using plugin functions in expressions ---")
+    let result = math.add(math.multiply(3, 4), math.power(2, 3))
+    println("add(multiply(3, 4), power(2, 3)) = 3*4 + 2^3 =", result)
+    println()
+
+    // Error handling
+    println("--- Error handling ---")
+    try {
+        // Wrong argument count
+        math.add(1, 2, 3)
+    } catch (e) {
+        println("Error (too many args):", e.message)
+    }
+
+    try {
+        // Wrong type (if we had strings - for now just demonstrate)
+        println("(Type errors would be caught here)")
+    } catch (e) {
+        println("Error:", e.message)
+    }
+
+    println("\n=== Demo complete ===")
+}

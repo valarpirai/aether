@@ -1771,3 +1771,27 @@ pub fn builtin_udp_bind(args: &[Value]) -> Result<Value, RuntimeError> {
     };
     Ok(Value::udp_socket(state))
 }
+
+/// Built-in function: load_plugin(path)
+/// Loads a compiled Rust shared library (.so/.dylib/.dll) and returns a plugin object
+pub fn builtin_load_plugin(args: &[Value]) -> Result<Value, RuntimeError> {
+    if args.len() != 1 {
+        return Err(RuntimeError::ArityMismatch {
+            expected: 1,
+            got: args.len(),
+        });
+    }
+
+    let path = match &args[0] {
+        Value::String(s) => s.as_str(),
+        other => {
+            return Err(RuntimeError::TypeError {
+                expected: "string".to_string(),
+                got: other.type_name().to_string(),
+            });
+        }
+    };
+
+    let plugin = super::plugin::Plugin::load(path)?;
+    Ok(Value::Plugin(Rc::new(plugin)))
+}

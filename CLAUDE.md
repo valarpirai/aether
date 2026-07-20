@@ -49,6 +49,7 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 | [CSV.md](docs/lang/CSV.md) | csv_parse(), csv_stringify() |
 | [TIME.md](docs/lang/TIME.md) | clock(), sleep() |
 | [RANDOM.md](docs/lang/RANDOM.md) | random(), rand_int(n) |
+| [PLUGINS.md](docs/lang/PLUGINS.md) | load_plugin() — FFI for Rust shared libraries |
 | [REPL.md](docs/lang/REPL.md) | Interactive REPL and file execution |
 | [CONFIGURATION.md](docs/lang/CONFIGURATION.md) | Env vars and runtime configuration builtins |
 | [TCP.md](docs/lang/TCP.md) | tcp_listen(), tcp_connect(), server/client lifecycle events |
@@ -205,6 +206,7 @@ Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT
 | **Random** | `random()` (float in `[0, 1)`), `rand_int(n)` (int in `[0, n)`) via the `rand` crate |
 | **TCP** | `tcp_listen(addr[, opts])`, `tcp_connect(addr)`; server events: `on_listen/connect/message/disconnect/error/timeout`, `accept()`, `close()`; client events: `on_connect/message/disconnect/error/timeout`, `start()`, `close()`, `write(data)`; event-driven via mio (single I/O thread, ~8–260 KB per connection); use array/dict for mutable closure state |
 | **UDP** | `udp_bind(addr)`; `on_message(fn(data, addr) { })`, `send_to(data, addr)`, `listen()`, `close()`; connectionless datagram socket; same mio I/O thread architecture as TCP |
+| **FFI / Plugins** | `load_plugin(path)` — load Rust shared libraries (`.so`/`.dylib`/`.dll`); call functions as methods; int-only args/returns (MVP); enables access to entire Rust ecosystem (databases, image processing, crypto, ML, etc.) |
 | **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, sign, join, repeat, reverse, starts_with, ends_with, first, last, chunk, partition, zip_longest, uniq_by, contains, index_of, replace, count, pad_left, pad_right, strip_prefix, strip_suffix, is_alpha, is_digit, is_space, pi, e, tau, factorial, trunc, degrees, radians, hypot, exp, sin, cos, tan |
 | **Number/string conversions** | `hex(n)`, `oct(n)`, `bin(n)`, `int(s, base)`, `base64_encode(s)`, `base64_decode(s)` |
 | **String formatting** | `format(fmt, ...args)` — `{}` positional placeholders, `{:.2f}` precision, `{:>10}` / `{:<10}` / `{:^10}` width+alignment, `{:0>5d}` fill char, `{:x}`/`{:o}`/`{:b}` integer bases |

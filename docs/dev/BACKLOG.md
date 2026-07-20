@@ -304,7 +304,36 @@ Note: `try/finally` already covers the same use case.
 
 ---
 
-## Tier 5 — Type system
+## Tier 5 — FFI and extensibility
+
+### FFI / Plugin system
+Load compiled Rust shared libraries (`.so`/`.dylib`/`.dll`) from Aether programs, enabling access to the entire Rust ecosystem without rewriting libraries as built-ins.
+
+```aether
+let db = load_plugin("libaether_postgres.so")
+let conn = db.pg_connect("postgresql://localhost/mydb")
+let rows = db.pg_query(conn, "SELECT * FROM users")
+```
+
+**Provides access to:**
+- Database drivers (postgres, redis, sqlite)
+- Image processing (image, imageproc)
+- Cryptography (ring, openssl)
+- ML libraries (onnxruntime, candle)
+- Any Rust crate
+
+**Architecture:**
+- Dynamic library loading via `libloading`
+- Type conversion: `Value` ↔ Rust primitives/String/Vec/HashMap
+- Plugin registration protocol with `#[aether_export]` macro
+- No shared `Rc` — copy semantics at FFI boundary
+- Synchronous only (Phase 1)
+
+See **[FFI_PLUGIN_SYSTEM.md](FFI_PLUGIN_SYSTEM.md)** for full design.
+
+---
+
+## Tier 6 — Type system
 
 ### Type annotations (gradual)
 Optional static types that the interpreter checks at call boundaries.
@@ -330,7 +359,7 @@ struct Dog extends Animal implements Printable {
 
 ---
 
-## Tier 6 — I/O and stdlib
+## Tier 7 — I/O and stdlib
 
 ### Missing math functions
 `sqrt`, `log2`, `log10` are absent; workarounds exist but are unreadable.
@@ -417,7 +446,7 @@ Current `replace` only replaces the first match. Add a `replace_all` arm in `mem
 
 ---
 
-## Tier 7 — Performance (interpreter internals)
+## Tier 8 — Performance (interpreter internals)
 
 ### String interning
 Every `Value::string()` allocates a new `Rc<String>`. Common dict keys (`"min"`, `"max"`, `"status"`, `"message"`) are heap-allocated fresh on every call.
@@ -437,7 +466,7 @@ Every `Value::string()` allocates a new `Rc<String>`. Common dict keys (`"min"`,
 
 ---
 
-## Tier 8 — Tooling (longer horizon)
+## Tier 9 — Tooling (longer horizon)
 
 | Tool | Description |
 |------|-------------|

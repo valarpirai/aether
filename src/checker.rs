@@ -422,6 +422,7 @@ const BUILTINS: &[&str] = &[
     "set_workers",
     "args",
     "Promise",
+    "load_plugin",
     // Stdlib (auto-loaded at runtime from stdlib/*.ae)
     "range",
     "enumerate",

@@ -1,0 +1,101 @@
+- generic [active] [ref=e1]:
+  - link "Skip to the content." [ref=e2] [cursor=pointer]:
+    - /url: "#content"
+  - banner [ref=e3]:
+    - heading "Aether — CSV" [level=1] [ref=e4]
+    - heading "A general-purpose, dynamically typed programming language with automatic memory management" [level=2] [ref=e5]
+    - link "View on GitHub" [ref=e6] [cursor=pointer]:
+      - /url: https://github.com/valarpirai/aether
+  - main [ref=e7]:
+    - paragraph [ref=e8]:
+      - link "Home" [ref=e9] [cursor=pointer]:
+        - /url: ../index.html
+      - text: › Language Reference › CSV
+    - heading "CSV" [level=1] [ref=e10]
+    - paragraph [ref=e11]:
+      - text: "Aether has two built-in functions for working with CSV (comma-separated values):"
+      - code [ref=e12]: csv_parse()
+      - text: converts a CSV string into an array of arrays, and
+      - code [ref=e13]: csv_stringify()
+      - text: converts an array of arrays back into a CSV string.
+    - paragraph [ref=e14]: Both functions accept an optional delimiter so they work with TSV, semicolon-delimited files, and other formats.
+    - heading "csv_parse(text) / csv_parse(text, delimiter)" [level=2] [ref=e15]
+    - paragraph [ref=e16]: Parses a CSV string and returns an array of rows, where each row is an array of string fields.
+    - code [ref=e18]: let text = "name,age,city\nAlice,30,New York\nBob,25,London" let rows = csv_parse(text) println(rows[0]) // ["name", "age", "city"] println(rows[1][0]) // Alice println(rows[1][2]) // New York
+    - paragraph [ref=e19]:
+      - strong [ref=e20]: Quoted fields
+      - text: "containing commas or newlines are handled automatically:"
+    - code [ref=e22]: let text = "\"Smith, John\",42,\"New York, NY\"" let row = csv_parse(text)[0] println(row[0]) // Smith, John println(row[2]) // New York, NY
+    - paragraph [ref=e23]:
+      - strong [ref=e24]: Custom delimiter
+      - text: "— pass a second argument to parse TSV or other formats:"
+    - code [ref=e26]: let tsv = "a\tb\tc\n1\t2\t3" let rows = csv_parse(tsv, "\t") println(rows[0]) // ["a", "b", "c"] println(rows[1]) // ["1", "2", "3"]
+    - heading "csv_stringify(rows) / csv_stringify(rows, delimiter)" [level=2] [ref=e27]
+    - paragraph [ref=e28]: Converts an array of row arrays into a CSV string. Fields containing the delimiter, double-quotes, or newlines are automatically quoted and escaped.
+    - code [ref=e30]: let data = [ ["product", "price", "note"], ["Apple", "1.50", "fresh"], ["Banana", "0.75", "large, ripe"] ] println(csv_stringify(data))
+    - paragraph [ref=e31]: "Output:"
+    - code [ref=e35]: product,price,note Apple,1.50,fresh Banana,0.75,"large, ripe"
+    - paragraph [ref=e36]:
+      - strong [ref=e37]: "Custom delimiter:"
+    - code [ref=e39]: let ssv = csv_stringify(data, ";") println(ssv) // product;price;note // Apple;1.50;fresh // Banana;0.75;large, ripe
+    - heading "Roundtrip" [level=2] [ref=e40]
+    - paragraph [ref=e41]:
+      - code [ref=e42]: csv_stringify
+      - text: followed by
+      - code [ref=e43]: csv_parse
+      - text: "with the same delimiter reproduces the original data:"
+    - code [ref=e45]: "fn main() { let original = [ [\"city\", \"note\"], [\"New York\", \"big, busy\"], [\"say \\\"hi\\\"\", \"quoted value\"] ] let encoded = csv_stringify(original) let decoded = csv_parse(encoded) println(decoded.equals(original)) // true }"
+    - heading "Type notes" [level=2] [ref=e46]
+    - list [ref=e47]:
+      - listitem [ref=e48]:
+        - text: All fields are returned as
+        - strong [ref=e49]: strings
+        - text: by
+        - code [ref=e50]: csv_parse
+        - text: . Convert with
+        - code [ref=e51]: int()
+        - text: or
+        - code [ref=e52]: float()
+        - text: as needed.
+      - listitem [ref=e53]:
+        - code [ref=e54]: csv_stringify
+        - text: calls
+        - code [ref=e55]: str()
+        - text: on each field before encoding, so non-string values (int, float, bool) are accepted.
+      - listitem [ref=e56]:
+        - text: Empty fields produce empty strings
+        - code [ref=e57]: "\"\""
+        - text: .
+    - heading "Related" [level=2] [ref=e58]
+    - list [ref=e59]:
+      - listitem [ref=e60]:
+        - link "JSON" [ref=e61] [cursor=pointer]:
+          - /url: JSON.html
+        - text: — structured data with types via
+        - code [ref=e62]: json_parse
+        - text: /
+        - code [ref=e63]: json_stringify
+      - listitem [ref=e64]:
+        - link "File I/O" [ref=e65] [cursor=pointer]:
+          - /url: STDLIB.html#file-io
+        - text: — read CSV files with
+        - code [ref=e66]: read_file
+    - separator [ref=e67]
+    - paragraph [ref=e68]:
+      - link "← JSON" [ref=e69] [cursor=pointer]:
+        - /url: JSON.html
+      - link "HTTP →" [ref=e70] [cursor=pointer]:
+        - /url: HTTP.html
+    - generic [ref=e71]:
+      - generic [ref=e72]:
+        - link "aether" [ref=e73] [cursor=pointer]:
+          - /url: https://github.com/valarpirai/aether
+        - text: is maintained by
+        - link "valarpirai" [ref=e74] [cursor=pointer]:
+          - /url: https://github.com/valarpirai
+        - text: .
+      - generic [ref=e75]:
+        - text: This page was generated by
+        - link "GitHub Pages" [ref=e76] [cursor=pointer]:
+          - /url: https://pages.github.com
+        - text: .

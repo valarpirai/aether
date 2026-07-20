@@ -1,0 +1,15 @@
+[package]
+name = "aether-plugin"
+version = "0.1.0"
+edition = "2021"
+authors = ["Aether Contributors"]
+description = "Proc macro and runtime support for writing Aether FFI plugins"
+license = "MIT"
+
+[dependencies]
+aether-plugin-macro = { path = "aether-plugin-macro" }
+paste = "1.0"
+
+# Re-export the macro
+[lib]
+proc-macro = false

@@ -105,6 +105,19 @@ impl Evaluator {
 
             (Value::FileLines(state), "has_next") => Ok(Value::Bool(state.borrow().has_next())),
 
+            (Value::Plugin(plugin), func_name) => {
+                if !plugin.functions().contains(&func_name.to_string()) {
+                    return Err(RuntimeError::PropertyNotFound {
+                        type_name: "plugin".to_string(),
+                        property: func_name.to_string(),
+                    });
+                }
+                Ok(Value::PluginFn {
+                    plugin: Rc::clone(plugin),
+                    func_name: func_name.to_string(),
+                })
+            }
+
             (Value::EnumDef { name, variants }, variant_name) => {
                 let found = variants.iter().find(|(v, _)| v == variant_name);
                 match found {
@@ -1361,6 +1374,15 @@ impl Evaluator {
                 }
                 let callback = self.eval_expr(&args[0])?;
                 self.register_on_ready(obj_val.clone(), callback)
+            }
+
+            // Plugin method call
+            (Value::Plugin(plugin), func_name) => {
+                let arg_values: Vec<Value> = args
+                    .iter()
+                    .map(|a| self.eval_expr(a))
+                    .collect::<Result<_, _>>()?;
+                plugin.call(func_name, &arg_values)
             }
 
             // Undefined method

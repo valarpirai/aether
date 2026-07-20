@@ -111,6 +111,13 @@ pub enum Value {
     TcpConnection(Rc<RefCell<TcpConnectionState>>),
     /// UDP socket (bound datagram socket + lifecycle callbacks).
     UdpSocket(Rc<RefCell<UdpSocketState>>),
+    /// Loaded plugin (FFI shared library with callable functions).
+    Plugin(Rc<super::plugin::Plugin>),
+    /// Plugin function wrapper (callable from Aether).
+    PluginFn {
+        plugin: Rc<super::plugin::Plugin>,
+        func_name: String,
+    },
 }
 
 /// Non-owning pointer variant. Stores enough metadata to reconstruct the
@@ -339,6 +346,8 @@ impl Value {
             Value::TcpServer(_) => "tcp_server",
             Value::TcpConnection(_) => "tcp_connection",
             Value::UdpSocket(_) => "udp_socket",
+            Value::Plugin(_) => "plugin",
+            Value::PluginFn { .. } => "plugin_function",
         }
     }
 }
@@ -573,6 +582,13 @@ impl fmt::Display for Value {
                 } else {
                     write!(f, "<udp_socket:listening>")
                 }
+            }
+            Value::Plugin(plugin) => {
+                let funcs = plugin.functions();
+                write!(f, "<plugin:{} functions>", funcs.len())
+            }
+            Value::PluginFn { func_name, .. } => {
+                write!(f, "<plugin fn {}>", func_name)
             }
             Value::Weak(w) => match w {
                 WeakTarget::Instance {

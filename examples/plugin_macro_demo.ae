@@ -1,0 +1,66 @@
+// Demonstration of plugins built with the #[aether_export] macro
+//
+// This example shows how simple it is to create plugins with the macro.
+// Compare example_plugin (60+ lines) vs example_plugin_macro (20 lines)!
+
+fn main() {
+    println("=== Aether Plugin Macro Demo ===\n")
+
+    // Load the macro-generated plugin
+    println("Loading plugin built with #[aether_export]...")
+    let math = load_plugin("examples/plugins/libexample_plugin_macro.dylib")
+    println("Plugin loaded:", math)
+    println()
+
+    // Test all functions
+    println("--- Basic Operations ---")
+    println("add(15, 27) =", math.add(15, 27))
+    println("multiply(12, 12) =", math.multiply(12, 12))
+    println("power(3, 4) =", math.power(3, 4))
+    println()
+
+    println("--- Boolean Checks ---")
+    println("is_even(42) =", math.is_even(42))
+    println("is_even(17) =", math.is_even(17))
+    println()
+
+    println("--- Advanced Math ---")
+    println("factorial(5) =", math.factorial(5))
+    println("factorial(10) =", math.factorial(10))
+    println("factorial(20) =", math.factorial(20))
+    println()
+
+    println("gcd(48, 18) =", math.gcd(48, 18))
+    println("gcd(100, 35) =", math.gcd(100, 35))
+    println("gcd(17, 19) =", math.gcd(17, 19), "(coprime)")
+    println()
+
+    // Combine operations
+    println("--- Complex Expressions ---")
+    let result = math.multiply(
+        math.factorial(5),
+        math.power(2, 3)
+    )
+    println("factorial(5) * power(2, 3) = 5! * 2^3 =", result)
+
+    let gcf = math.gcd(
+        math.multiply(12, 15),
+        math.multiply(12, 20)
+    )
+    println("gcd(12*15, 12*20) =", gcf)
+    println()
+
+    // Performance test
+    println("--- Performance Test ---")
+    let start = clock()
+    let sum = 0
+    for i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] {
+        sum = math.add(sum, math.factorial(i))
+    }
+    let elapsed = clock() - start
+    println("Sum of factorials 1-10:", sum)
+    println("Time:", elapsed, "seconds")
+    println()
+
+    println("=== Plugin macro makes FFI effortless! ===")
+}

@@ -1,0 +1,128 @@
+# FFI / Plugin System
+
+Load compiled Rust shared libraries (`.so`/`.dylib`/`.dll`) from Aether programs to access the Rust ecosystem.
+
+## Loading a Plugin
+
+```aether
+let plugin = load_plugin("path/to/libexample.dylib")
+```
+
+## Calling Plugin Functions
+
+Plugin functions are called like methods:
+
+```aether
+let result = plugin.function_name(arg1, arg2)
+```
+
+## Example
+
+```aether
+// Load a math plugin
+let math = load_plugin("examples/plugins/libexample_plugin.dylib")
+
+// Call plugin functions
+let sum = math.add(40, 2)              // 42
+let product = math.multiply(6, 7)       // 42
+let powered = math.power(2, 10)         // 1024
+let check = math.is_even(100)           // 1 (true)
+
+// Use in expressions
+let result = math.add(
+    math.multiply(3, 4),
+    math.power(2, 3)
+)  // 20
+```
+
+## Current Limitations (MVP)
+
+- **Integer arguments only**: Plugins currently accept and return `int` values only
+- **Synchronous**: Plugin functions are blocking
+- **Manual authoring**: Plugins must be handwritten using the C FFI (no macro yet)
+
+## Creating a Plugin (Easy Way - With Macro)
+
+### 1. Setup
+
+```toml
+# Cargo.toml
+[dependencies]
+aether-plugin = { path = "path/to/aether-plugin" }
+
+[lib]
+crate-type = ["cdylib"]
+```
+
+### 2. Write Functions
+
+```rust
+// src/lib.rs
+use aether_plugin::*;
+
+#[aether_export]
+fn add(a: i64, b: i64) -> i64 {
+    a + b
+}
+
+#[aether_export]
+fn factorial(n: i64) -> i64 {
+    if n <= 1 { 1 } else { n * factorial(n - 1) }
+}
+
+// Register all exported functions
+aether_plugin_init!(add, factorial);
+```
+
+### 3. Build
+
+```bash
+cargo build --release
+# Produces target/release/libmyplugin.dylib (or .so/.dll)
+```
+
+That's it! **No manual FFI, no unsafe code, zero boilerplate.**
+
+## Creating a Plugin (Hard Way - Manual FFI)
+
+For advanced use cases or understanding how it works under the hood, see the manual FFI approach in [FFI_PLUGIN_SYSTEM.md](../dev/FFI_PLUGIN_SYSTEM.md) and `example_plugin/`.
+
+## Error Handling
+
+Plugin functions that fail return an error:
+
+```aether
+try {
+    plugin.function_with_wrong_args(1, 2, 3)
+} catch (e) {
+    println("Plugin error:", e.message)
+}
+```
+
+Common errors:
+- **Wrong arity**: Function called with incorrect number of arguments
+- **Type error**: Non-integer argument passed (MVP limitation)
+- **Function not found**: Plugin doesn't export the requested function
+
+## Use Cases
+
+Plugins enable Aether to leverage the entire Rust ecosystem:
+
+- **Database drivers**: PostgreSQL, MySQL, Redis, SQLite
+- **Image processing**: Resize, filter, format conversion
+- **Cryptography**: Hashing, encryption, signing
+- **Machine learning**: ONNX runtime, model inference
+- **System integration**: Any Rust crate you need
+
+## Completed Phases
+
+**Phase 1** ✅: Core FFI (manual)  
+**Phase 2** ✅: `aether-plugin` crate with `#[aether_export]` proc macro
+
+## Future Phases
+
+**Phase 3**: String, array, and dict support
+
+**Phase 4**: Async plugin functions
+
+See the [full design document](../dev/FFI_PLUGIN_SYSTEM.md) for details.

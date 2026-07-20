@@ -815,6 +815,16 @@ impl Evaluator {
             },
         );
 
+        // Plugin system — FFI for loading Rust shared libraries
+        self.environment.define(
+            "load_plugin".to_string(),
+            Value::BuiltinFn {
+                name: "load_plugin".to_string(),
+                arity: 1,
+                func: builtins::builtin_load_plugin,
+            },
+        );
+
         // set_workers(n) — registered as placeholder; handled by name in eval_call
         self.environment.define(
             "set_workers".to_string(),

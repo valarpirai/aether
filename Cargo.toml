@@ -1,3 +1,6 @@
+[workspace]
+members = [".", "aether-plugin", "aether-plugin/aether-plugin-macro", "example_plugin_macro"]
+
 [package]
 name = "aether-lang"
 version = "0.2.1"
@@ -20,6 +23,7 @@ reqwest = { version = "0.12", features = ["blocking", "json"] }
 mio = { version = "1", features = ["net", "os-poll"] }
 indexmap = "2"
 rand = "0.8"
+libloading = "0.8"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
