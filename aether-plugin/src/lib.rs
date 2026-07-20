@@ -35,7 +35,7 @@ pub use convert::{AetherValuePtr, FromAether, ToAether};
 use std::ffi::c_char;
 use std::ffi::c_int;
 
-/// FFI-compatible function pointer type
+/// V1 protocol function pointer (backward compat)
 pub type PluginFnPtr = unsafe extern "C" fn(*const i64, c_int) -> i64;
 
 /// Plugin metadata structure
@@ -44,10 +44,12 @@ pub struct PluginMetadata {
     pub version: c_int,
     pub function_count: c_int,
     pub function_names: *const *const c_char,
-    pub function_ptrs: *const PluginFnPtr,
+    pub function_ptrs: *const *const std::ffi::c_void, // Generic pointers
 }
 
 /// Macro to generate plugin initialization function
+///
+/// Automatically detects protocol (V1 for i64-only, V2 for complex types)
 ///
 /// # Example
 ///
@@ -58,9 +60,9 @@ pub struct PluginMetadata {
 /// fn add(a: i64, b: i64) -> i64 { a + b }
 ///
 /// #[aether_export]
-/// fn sub(a: i64, b: i64) -> i64 { a - b }
+/// fn greet(name: String) -> String { format!("Hello, {}!", name) }
 ///
-/// aether_plugin_init!(add, sub);
+/// aether_plugin_init!(add, greet);  // Auto-detects mixed protocols
 /// ```
 #[macro_export]
 macro_rules! aether_plugin_init {
@@ -69,22 +71,22 @@ macro_rules! aether_plugin_init {
             $(concat!(stringify!($fn_name), "\0").as_bytes()),+
         ];
 
-        static FUNC_PTRS: &[$crate::PluginFnPtr] = &[
-            $($crate::paste::paste! { [<$fn_name _ffi>] }),+
+        static FUNC_PTRS: &[*const ::std::ffi::c_void] = &[
+            $($crate::paste::paste! { [<$fn_name _ffi>] } as *const ::std::ffi::c_void),+
         ];
 
         #[no_mangle]
         pub extern "C" fn aether_plugin_init() -> *const $crate::PluginMetadata {
-            let name_ptrs: Vec<*const std::ffi::c_char> = FUNC_NAMES_STORAGE
+            let name_ptrs: Vec<*const ::std::ffi::c_char> = FUNC_NAMES_STORAGE
                 .iter()
-                .map(|s| s.as_ptr() as *const std::ffi::c_char)
+                .map(|s| s.as_ptr() as *const ::std::ffi::c_char)
                 .collect();
 
             let names_box = Box::leak(name_ptrs.into_boxed_slice());
 
             Box::into_raw(Box::new($crate::PluginMetadata {
-                version: 1,
-                function_count: FUNC_NAMES_STORAGE.len() as std::ffi::c_int,
+                version: 1,  // Protocol version (will be auto-detected per-function)
+                function_count: FUNC_NAMES_STORAGE.len() as ::std::ffi::c_int,
                 function_names: names_box.as_ptr(),
                 function_ptrs: FUNC_PTRS.as_ptr(),
             }))

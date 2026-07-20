@@ -1,7 +1,7 @@
 //! FFI plugin system for loading compiled Rust shared libraries
 
 use std::collections::HashMap;
-use std::ffi::{c_char, c_int, CStr};
+use std::ffi::{c_char, c_int, c_void, CStr};
 use std::rc::Rc;
 
 use libloading::{Library, Symbol};
@@ -9,16 +9,51 @@ use libloading::{Library, Symbol};
 use super::environment::RuntimeError;
 use super::value::Value;
 
-/// FFI-compatible function pointer type
-/// Simple version for MVP: takes i64 args, returns i64 result
-type PluginFnPtr = unsafe extern "C" fn(*const i64, c_int) -> i64;
+/// FFI-compatible function pointer type (V1 protocol - i64 only)
+type PluginFnPtrV1 = unsafe extern "C" fn(*const i64, c_int) -> i64;
+
+/// FFI-compatible function pointer type (V2 protocol - complex types)
+type PluginFnPtrV2 =
+    unsafe extern "C" fn(*const *const c_void, c_int, *mut *const c_void) -> *const c_void;
+
+/// Function protocol version
+#[derive(Debug, Clone, Copy)]
+enum FunctionProtocol {
+    V1, // Integer-only
+    V2, // Complex types
+}
+
+/// Function entry with protocol information
+#[derive(Clone)]
+struct FunctionEntry {
+    protocol: FunctionProtocol,
+    v1_ptr: Option<PluginFnPtrV1>,
+    v2_ptr: Option<PluginFnPtrV2>,
+}
+
+impl std::fmt::Debug for FunctionEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FunctionEntry")
+            .field("protocol", &self.protocol)
+            .field("v1_ptr", &self.v1_ptr.map(|_| "Some(fn)"))
+            .field("v2_ptr", &self.v2_ptr.map(|_| "Some(fn)"))
+            .finish()
+    }
+}
 
 /// Loaded plugin with its library handle and function registry
-#[derive(Debug)]
 pub struct Plugin {
     #[allow(dead_code)]
     library: Library,
-    functions: HashMap<String, PluginFnPtr>,
+    functions: HashMap<String, FunctionEntry>,
+}
+
+impl std::fmt::Debug for Plugin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Plugin")
+            .field("functions", &self.functions.keys())
+            .finish()
+    }
 }
 
 impl Plugin {
@@ -47,28 +82,43 @@ impl Plugin {
             }
 
             let metadata = &*metadata_ptr;
-            if metadata.version != 1 {
+            if metadata.version != 1 && metadata.version != 2 {
                 return Err(RuntimeError::InvalidOperation(format!(
-                    "Plugin '{}' version {} incompatible (expected 1)",
+                    "Plugin '{}' version {} incompatible (expected 1 or 2)",
                     path, metadata.version
                 )));
             }
 
             let functions = parse_function_descriptors(metadata);
 
-            Ok(Plugin { library, functions })
+            Ok(Plugin {
+                library,
+                functions,
+            })
         }
     }
 
-    /// Call a plugin function by name (MVP: int-only args/return)
+    /// Call a plugin function by name
     pub fn call(&self, name: &str, args: &[Value]) -> Result<Value, RuntimeError> {
-        let func = self
+        let entry = self
             .functions
             .get(name)
             .ok_or_else(|| RuntimeError::MethodNotFound {
                 type_name: "plugin".to_string(),
                 method: name.to_string(),
             })?;
+
+        match entry.protocol {
+            FunctionProtocol::V1 => self.call_v1(entry, args),
+            FunctionProtocol::V2 => self.call_v2(entry, args),
+        }
+    }
+
+    /// Call a V1 (integer-only) function
+    fn call_v1(&self, entry: &FunctionEntry, args: &[Value]) -> Result<Value, RuntimeError> {
+        let func = entry
+            .v1_ptr
+            .ok_or_else(|| RuntimeError::InvalidOperation("V1 function missing".to_string()))?;
 
         // Convert args to i64 array
         let int_args: Result<Vec<i64>, RuntimeError> = args
@@ -88,13 +138,52 @@ impl Plugin {
 
             // i64::MIN signals error
             if result == i64::MIN {
-                return Err(RuntimeError::InvalidOperation(format!(
-                    "Plugin function '{}' failed (check arity/types)",
-                    name
-                )));
+                return Err(RuntimeError::InvalidOperation(
+                    "Plugin function failed (check arity/types)".to_string(),
+                ));
             }
 
             Ok(Value::Int(result))
+        }
+    }
+
+    /// Call a V2 (complex types) function
+    fn call_v2(&self, entry: &FunctionEntry, args: &[Value]) -> Result<Value, RuntimeError> {
+        let func = entry
+            .v2_ptr
+            .ok_or_else(|| RuntimeError::InvalidOperation("V2 function missing".to_string()))?;
+
+        unsafe {
+            // Convert args to AetherValuePtr array (raw pointers to Value)
+            let value_ptrs: Vec<*const c_void> =
+                args.iter().map(|v| v as *const Value as *const c_void).collect();
+
+            let mut error_ptr: *const c_void = std::ptr::null();
+
+            let result_ptr = func(
+                value_ptrs.as_ptr(),
+                value_ptrs.len() as c_int,
+                &mut error_ptr as *mut *const c_void,
+            );
+
+            // Check for error
+            if !error_ptr.is_null() {
+                let error_value = Box::from_raw(error_ptr as *mut Value);
+                let error_msg = format!("Plugin error: {}", error_value);
+                drop(error_value);
+                return Err(RuntimeError::InvalidOperation(error_msg));
+            }
+
+            // Check for null result
+            if result_ptr.is_null() {
+                return Err(RuntimeError::InvalidOperation(
+                    "Plugin returned null without error".to_string(),
+                ));
+            }
+
+            // Take ownership of the returned Value
+            let result_value = Box::from_raw(result_ptr as *mut Value);
+            Ok(*result_value)
         }
     }
 
@@ -110,10 +199,10 @@ pub struct PluginMetadata {
     pub version: c_int,
     pub function_count: c_int,
     pub function_names: *const *const c_char,
-    pub function_ptrs: *const PluginFnPtr,
+    pub function_ptrs: *const *const c_void, // Generic pointer, cast based on protocol
 }
 
-fn parse_function_descriptors(metadata: &PluginMetadata) -> HashMap<String, PluginFnPtr> {
+fn parse_function_descriptors(metadata: &PluginMetadata) -> HashMap<String, FunctionEntry> {
     let mut functions = HashMap::new();
 
     unsafe {
@@ -123,7 +212,14 @@ fn parse_function_descriptors(metadata: &PluginMetadata) -> HashMap<String, Plug
 
             if !name_ptr.is_null() {
                 if let Ok(name) = CStr::from_ptr(name_ptr).to_str() {
-                    functions.insert(name.to_string(), func_ptr);
+                    // For now, assume V1 protocol (backward compatible)
+                    // V2 plugins will need to provide protocol info in metadata
+                    let entry = FunctionEntry {
+                        protocol: FunctionProtocol::V1,
+                        v1_ptr: Some(std::mem::transmute(func_ptr)),
+                        v2_ptr: None,
+                    };
+                    functions.insert(name.to_string(), entry);
                 }
             }
         }
