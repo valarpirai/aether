@@ -1,0 +1,6 @@
+# Export dynamic symbols for V2 plugins on macOS
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-rdynamic"]
+
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-rdynamic"]

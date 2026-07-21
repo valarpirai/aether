@@ -1,0 +1,34 @@
+// V2 Plugin Demo - String and Array support
+
+fn main() {
+    let plugin = load_plugin("./target/release/libexample_plugin_v2.dylib")
+
+    println("=== V2 Plugin Demo: Strings and Arrays ===")
+
+    // String functions
+    let name = "Alice"
+    let greeting = plugin.greet(name)
+    println("greet('Alice') =", greeting)
+
+    let text = "hello"
+    let upper = plugin.to_upper(text)
+    println("to_upper('hello') =", upper)
+
+    let repeated = plugin.repeat_string("ha", 3)
+    println("repeat_string('ha', 3) =", repeated)
+
+    // Array functions
+    let nums = [5, 2, 8, 1, 9]
+    println("\nOriginal array:", nums)
+
+    let sorted = plugin.sort_array(nums)
+    println("sort_array() =", sorted)
+
+    let total = plugin.sum_array(nums)
+    println("sum_array() =", total)
+
+    let reversed = plugin.reverse_array(nums)
+    println("reverse_array() =", reversed)
+
+    println("\n=== V2 protocol makes plugins powerful! ===")
+}

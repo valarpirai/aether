@@ -98,7 +98,7 @@ fn test_plugin_wrong_arity() {
     "#;
     let result = eval_code(code);
     assert!(result.is_err());
-    assert!(result.unwrap_err().contains("Plugin function 'add' failed"));
+    assert!(result.unwrap_err().contains("Plugin function failed"));
 }
 
 #[test]

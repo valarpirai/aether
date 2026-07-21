@@ -65,15 +65,26 @@ impl Plugin {
                 detail: e.to_string(),
             })?;
 
-            let init_fn: Symbol<unsafe extern "C" fn() -> *const PluginMetadata> =
-                library.get(b"aether_plugin_init").map_err(|e| {
-                    RuntimeError::InvalidOperation(format!(
-                        "Plugin '{}' missing aether_plugin_init: {}",
-                        path, e
-                    ))
-                })?;
+            // Try V2 init first, then fall back to V1
+            let (metadata_ptr, protocol_version) = if let Ok(init_fn_v2) =
+                library.get::<Symbol<unsafe extern "C" fn() -> *const PluginMetadata>>(
+                    b"aether_plugin_init_v2",
+                ) {
+                let ptr = init_fn_v2();
+                (ptr, FunctionProtocol::V2)
+            } else if let Ok(init_fn_v1) = library.get::<Symbol<
+                unsafe extern "C" fn() -> *const PluginMetadata,
+            >>(b"aether_plugin_init")
+            {
+                let ptr = init_fn_v1();
+                (ptr, FunctionProtocol::V1)
+            } else {
+                return Err(RuntimeError::InvalidOperation(format!(
+                    "Plugin '{}' missing aether_plugin_init or aether_plugin_init_v2",
+                    path
+                )));
+            };
 
-            let metadata_ptr = init_fn();
             if metadata_ptr.is_null() {
                 return Err(RuntimeError::InvalidOperation(format!(
                     "Plugin '{}' returned null metadata",
@@ -89,12 +100,9 @@ impl Plugin {
                 )));
             }
 
-            let functions = parse_function_descriptors(metadata);
+            let functions = parse_function_descriptors(metadata, protocol_version);
 
-            Ok(Plugin {
-                library,
-                functions,
-            })
+            Ok(Plugin { library, functions })
         }
     }
 
@@ -155,8 +163,10 @@ impl Plugin {
 
         unsafe {
             // Convert args to AetherValuePtr array (raw pointers to Value)
-            let value_ptrs: Vec<*const c_void> =
-                args.iter().map(|v| v as *const Value as *const c_void).collect();
+            let value_ptrs: Vec<*const c_void> = args
+                .iter()
+                .map(|v| v as *const Value as *const c_void)
+                .collect();
 
             let mut error_ptr: *const c_void = std::ptr::null();
 
@@ -202,7 +212,10 @@ pub struct PluginMetadata {
     pub function_ptrs: *const *const c_void, // Generic pointer, cast based on protocol
 }
 
-fn parse_function_descriptors(metadata: &PluginMetadata) -> HashMap<String, FunctionEntry> {
+fn parse_function_descriptors(
+    metadata: &PluginMetadata,
+    protocol: FunctionProtocol,
+) -> HashMap<String, FunctionEntry> {
     let mut functions = HashMap::new();
 
     unsafe {
@@ -212,12 +225,21 @@ fn parse_function_descriptors(metadata: &PluginMetadata) -> HashMap<String, Func
 
             if !name_ptr.is_null() {
                 if let Ok(name) = CStr::from_ptr(name_ptr).to_str() {
-                    // For now, assume V1 protocol (backward compatible)
-                    // V2 plugins will need to provide protocol info in metadata
-                    let entry = FunctionEntry {
-                        protocol: FunctionProtocol::V1,
-                        v1_ptr: Some(std::mem::transmute(func_ptr)),
-                        v2_ptr: None,
+                    let entry = match protocol {
+                        FunctionProtocol::V1 => FunctionEntry {
+                            protocol: FunctionProtocol::V1,
+                            v1_ptr: Some(std::mem::transmute::<*const c_void, PluginFnPtrV1>(
+                                func_ptr,
+                            )),
+                            v2_ptr: None,
+                        },
+                        FunctionProtocol::V2 => FunctionEntry {
+                            protocol: FunctionProtocol::V2,
+                            v1_ptr: None,
+                            v2_ptr: Some(std::mem::transmute::<*const c_void, PluginFnPtrV2>(
+                                func_ptr,
+                            )),
+                        },
                     };
                     functions.insert(name.to_string(), entry);
                 }

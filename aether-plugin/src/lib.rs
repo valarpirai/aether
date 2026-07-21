@@ -47,9 +47,9 @@ pub struct PluginMetadata {
     pub function_ptrs: *const *const std::ffi::c_void, // Generic pointers
 }
 
-/// Macro to generate plugin initialization function
+/// Macro to generate V1 plugin initialization function (integer-only)
 ///
-/// Automatically detects protocol (V1 for i64-only, V2 for complex types)
+/// Use this for plugins with only i64 parameters and returns.
 ///
 /// # Example
 ///
@@ -59,10 +59,7 @@ pub struct PluginMetadata {
 /// #[aether_export]
 /// fn add(a: i64, b: i64) -> i64 { a + b }
 ///
-/// #[aether_export]
-/// fn greet(name: String) -> String { format!("Hello, {}!", name) }
-///
-/// aether_plugin_init!(add, greet);  // Auto-detects mixed protocols
+/// aether_plugin_init!(add);
 /// ```
 #[macro_export]
 macro_rules! aether_plugin_init {
@@ -85,11 +82,66 @@ macro_rules! aether_plugin_init {
             let names_box = Box::leak(name_ptrs.into_boxed_slice());
 
             Box::into_raw(Box::new($crate::PluginMetadata {
-                version: 1,  // Protocol version (will be auto-detected per-function)
+                version: 1,  // V1 protocol
                 function_count: FUNC_NAMES_STORAGE.len() as ::std::ffi::c_int,
                 function_names: names_box.as_ptr(),
                 function_ptrs: FUNC_PTRS.as_ptr(),
             }))
         }
     };
+}
+
+/// Macro to generate V2 plugin initialization function (complex types)
+///
+/// Use this for plugins with String, Vec, or HashMap parameters/returns.
+///
+/// # Example
+///
+/// ```rust
+/// use aether_plugin::*;
+///
+/// #[aether_export]
+/// fn greet(name: String) -> String { format!("Hello, {}!", name) }
+///
+/// aether_plugin_init_v2!(greet);
+/// ```
+#[macro_export]
+macro_rules! aether_plugin_init_v2 {
+    ($($fn_name:ident),+ $(,)?) => {
+        // Function pointers are safe to share across threads
+        unsafe impl Sync for FuncPtrsV2Wrapper {}
+        struct FuncPtrsV2Wrapper([*const ::std::ffi::c_void; count_tokens!($($fn_name)*)]);
+
+        static FUNC_NAMES_STORAGE_V2: &[&[u8]] = &[
+            $(concat!(stringify!($fn_name), "\0").as_bytes()),+
+        ];
+
+        static FUNC_PTRS_V2: FuncPtrsV2Wrapper = FuncPtrsV2Wrapper([
+            $($crate::paste::paste! { [<$fn_name _ffi>] } as *const ::std::ffi::c_void),+
+        ]);
+
+        #[no_mangle]
+        pub extern "C" fn aether_plugin_init_v2() -> *const $crate::PluginMetadata {
+            let name_ptrs: Vec<*const ::std::ffi::c_char> = FUNC_NAMES_STORAGE_V2
+                .iter()
+                .map(|s| s.as_ptr() as *const ::std::ffi::c_char)
+                .collect();
+
+            let names_box = Box::leak(name_ptrs.into_boxed_slice());
+
+            Box::into_raw(Box::new($crate::PluginMetadata {
+                version: 2,  // V2 protocol
+                function_count: FUNC_NAMES_STORAGE_V2.len() as ::std::ffi::c_int,
+                function_names: names_box.as_ptr(),
+                function_ptrs: FUNC_PTRS_V2.0.as_ptr(),
+            }))
+        }
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! count_tokens {
+    () => { 0 };
+    ($head:ident $($tail:ident)*) => { 1 + count_tokens!($($tail)*) };
 }

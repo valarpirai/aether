@@ -40,9 +40,8 @@ fn reverse_array(mut nums: Vec<i64>) -> Vec<i64> {
     nums
 }
 
-// Register all functions
-// Note: V2 functions use different signature internally but same registration
-aether_plugin_init!(
+// Register all V2 functions (complex types: String, Vec)
+aether_plugin_init_v2!(
     greet,
     to_upper,
     repeat_string,

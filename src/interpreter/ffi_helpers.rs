@@ -2,12 +2,18 @@
 //!
 //! These functions are exported with C ABI so plugins can convert
 //! between Aether Values and Rust types.
+//!
+//! # Safety
+//!
+//! All functions in this module are `unsafe` because they operate on raw pointers.
+//! Callers must ensure:
+//! - Pointers are valid and point to initialized Aether Values
+//! - Pointers are not null (unless documented otherwise)
+//! - Returned pointers are freed appropriately (via aether_value_free/aether_string_free)
 
-use std::collections::HashMap;
+#![allow(clippy::missing_safety_doc)]
+
 use std::ffi::{c_char, c_int, c_void, CString};
-use std::rc::Rc;
-
-use indexmap::IndexMap;
 
 use super::value::Value;
 
