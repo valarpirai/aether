@@ -25,6 +25,7 @@ A general-purpose, dynamically typed programming language implemented in Rust �
 - **File I/O** — Read/write files, directory listing, path utilities
 - **Multi-line Strings** — Triple-quoted `"""..."""` strings with raw content
 - **TCP/UDP** — `tcp_listen()`, `tcp_connect()`, `udp_bind()`; event-driven via mio, single I/O thread
+- **FFI / Plugins** — `load_plugin()` loads Rust shared libraries; call functions as methods
 - **CSV** — `csv_parse()` and `csv_stringify()` built-in
 - **Number Conversions** — `hex()`, `oct()`, `bin()`, `int(s, base)`, `base64_encode()`, `base64_decode()`
 - **Rich Standard Library** — 50+ functions written in Aether itself
@@ -158,6 +159,8 @@ Start here if you want to use the language — build scripts, automate tasks, or
 | [Random](lang/RANDOM.html) | random(), rand_int(n) |
 | [Async/Await](lang/ASYNC.html) | async fn, await, .then(), Promise.all/race/allSettled, I/O pool |
 | [TCP](lang/TCP.html) | tcp_listen(), tcp_connect(), server/client lifecycle events, UDP |
+| [Plugins](lang/PLUGINS.html) | load_plugin() — call Rust shared libraries from Aether |
+| [Plugin Guide](lang/PLUGIN_GUIDE.html) | Step-by-step: write a plugin and wrap a Rust crate |
 | [Configuration](lang/CONFIGURATION.html) | Env vars and runtime configuration |
 
 ### Hacking on Aether's interpreter
@@ -206,6 +209,7 @@ Start here if you want to extend the language, fix a bug, or understand how the 
 | **UDP** | `udp_bind(addr)`; `on_message(fn(data, addr))`, `send_to(data, addr)`, `listen()`, `close()`; connectionless datagrams |
 | **Number conversions** | `hex(n)`, `oct(n)`, `bin(n)`, `int(s, base)`, `base64_encode(s)`, `base64_decode(s)` |
 | **CSV** | `csv_parse(str)`, `csv_stringify(rows)` |
+| **FFI / Plugins** | `load_plugin(path)` — load Rust shared libraries and call functions as methods; int/string/array/dict args and returns |
 | **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, join, repeat, reverse, starts_with, ends_with, chunk, partition, zip_longest, uniq_by, pad_left, pad_right, factorial, sin, cos, tan, and more |
 | **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
 | **REPL** | rustyline with history, tab-completion, `_help`/`_env`/`_exit`, multi-line input (`>>` / `..`), `--version`/`--help` flags |
@@ -236,7 +240,7 @@ MIT License — see [LICENSE](https://github.com/valarpirai/aether/blob/main/LIC
 
 ---
 
-**Last Updated**: 2026-05-27  
+**Last Updated**: 2026-07-24  
 **Version**: 0.2.1  
 **Status**: Active Development
 
