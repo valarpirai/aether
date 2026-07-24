@@ -30,5 +30,15 @@ fn main() {
     let reversed = plugin.reverse_array(nums)
     println("reverse_array() =", reversed)
 
+    // Dict functions
+    let scores = {"alice": 10, "bob": 20, "carol": 30}
+    println("\nScores:", scores)
+
+    let total_score = plugin.sum_values(scores)
+    println("sum_values() =", total_score)
+
+    let bumped = plugin.increment_values(scores)
+    println("increment_values() =", bumped)
+
     println("\n=== V2 protocol makes plugins powerful! ===")
 }

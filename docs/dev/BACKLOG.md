@@ -306,8 +306,8 @@ Note: `try/finally` already covers the same use case.
 
 ## Tier 5 — FFI and extensibility
 
-### FFI / Plugin system
-Load compiled Rust shared libraries (`.so`/`.dylib`/`.dll`) from Aether programs, enabling access to the entire Rust ecosystem without rewriting libraries as built-ins.
+### ~~FFI / Plugin system~~ ✅ DONE (Phase 3, 2026-07-24)
+Load compiled Rust shared libraries (`.so`/`.dylib`/`.dll`) from Aether programs, enabling access to the entire Rust ecosystem without rewriting libraries as built-ins. V1 protocol handles `int`-only functions; V2 protocol handles `String`, `Vec<i64>`, and `HashMap<String,i64>`. Remaining: async plugin functions (Phase 4). See `docs/lang/PLUGINS.md`.
 
 ```aether
 let db = load_plugin("libaether_postgres.so")

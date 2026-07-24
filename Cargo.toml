@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "aether-plugin", "aether-plugin/aether-plugin-macro", "example_plugin_macro", "example_plugin_v2"]
+members = [".", "aether-plugin", "aether-plugin/aether-plugin-macro", "plugins/example_plugin_macro", "plugins/example_plugin_v2", "plugins/redis_plugin"]
 
 [package]
 name = "aether-lang"

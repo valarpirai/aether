@@ -25,6 +25,7 @@ extern "C" {
     pub fn aether_value_array_len(ptr: AetherValuePtr) -> c_int;
     pub fn aether_value_array_get(ptr: AetherValuePtr, index: c_int) -> AetherValuePtr;
     pub fn aether_value_dict_len(ptr: AetherValuePtr) -> c_int;
+    pub fn aether_value_dict_key_at(ptr: AetherValuePtr, index: c_int) -> *mut c_char;
     pub fn aether_value_dict_get(ptr: AetherValuePtr, key: *const c_char) -> AetherValuePtr;
 
     pub fn aether_value_new_int(n: i64) -> AetherValuePtr;
@@ -142,10 +143,74 @@ impl ToAether for Vec<i64> {
     }
 }
 
+impl FromAether for Vec<String> {
+    unsafe fn from_aether(ptr: AetherValuePtr) -> Result<Self, String> {
+        if !aether_value_is_array(ptr) {
+            return Err("Expected array".to_string());
+        }
+
+        let len = aether_value_array_len(ptr) as usize;
+        let mut result = Vec::with_capacity(len);
+
+        for i in 0..len {
+            let elem_ptr = aether_value_array_get(ptr, i as c_int);
+            if elem_ptr.is_null() {
+                return Err(format!("Array element {} is null", i));
+            }
+            let elem = String::from_aether(elem_ptr)?;
+            result.push(elem);
+        }
+
+        Ok(result)
+    }
+}
+
+impl ToAether for Vec<String> {
+    unsafe fn to_aether(self) -> AetherValuePtr {
+        let array_ptr = aether_value_new_array();
+        for elem in self {
+            let elem_ptr = elem.to_aether();
+            if !aether_value_array_push(array_ptr, elem_ptr) {
+                aether_value_free(array_ptr);
+                return aether_value_new_null();
+            }
+        }
+        array_ptr
+    }
+}
+
 impl FromAether for HashMap<String, i64> {
-    unsafe fn from_aether(_ptr: AetherValuePtr) -> Result<Self, String> {
-        // TODO: Implement dict iteration in FFI helpers
-        Err("Dict iteration not yet implemented".to_string())
+    unsafe fn from_aether(ptr: AetherValuePtr) -> Result<Self, String> {
+        if !aether_value_is_dict(ptr) {
+            return Err("Expected dict".to_string());
+        }
+
+        let len = aether_value_dict_len(ptr) as usize;
+        let mut result = HashMap::with_capacity(len);
+
+        for i in 0..len {
+            let key_c = aether_value_dict_key_at(ptr, i as c_int);
+            if key_c.is_null() {
+                return Err(format!("Dict key {} is not a string", i));
+            }
+            let key = match CStr::from_ptr(key_c).to_str() {
+                Ok(s) => s.to_string(),
+                Err(_) => {
+                    aether_string_free(key_c);
+                    return Err(format!("Dict key {} is invalid UTF-8", i));
+                }
+            };
+
+            let value_ptr = aether_value_dict_get(ptr, key_c);
+            aether_string_free(key_c);
+            if value_ptr.is_null() {
+                return Err(format!("Dict value for key '{}' is null", key));
+            }
+            let value = i64::from_aether(value_ptr)?;
+            result.insert(key, value);
+        }
+
+        Ok(result)
     }
 }
 

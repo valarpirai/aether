@@ -100,6 +100,28 @@ pub fn aether_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
         let param_names: Vec<_> = params.iter().map(|(name, _)| name).collect();
 
+        // Functions returning Result<T, E> route Err through out_error so the
+        // failure surfaces to Aether as a catchable plugin error rather than a
+        // silent null. Other return types convert directly.
+        let call_and_return = if returns_result(&input_fn.sig.output) {
+            quote! {
+                match #fn_name(#(#param_names),*) {
+                    Ok(v) => aether_plugin::ToAether::to_aether(v),
+                    Err(e) => {
+                        let err_msg = ::std::ffi::CString::new(e.to_string())
+                            .unwrap_or_else(|_| ::std::ffi::CString::new("plugin error").unwrap());
+                        *out_error = aether_plugin::convert::aether_value_new_string(err_msg.as_ptr());
+                        ::std::ptr::null()
+                    }
+                }
+            }
+        } else {
+            quote! {
+                let result = #fn_name(#(#param_names),*);
+                aether_plugin::ToAether::to_aether(result)
+            }
+        };
+
         let expanded = quote! {
             #original_fn
 
@@ -117,13 +139,24 @@ pub fn aether_export(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
                 #(#param_conversions)*
 
-                let result = #fn_name(#(#param_names),*);
-                aether_plugin::ToAether::to_aether(result)
+                #call_and_return
             }
         };
 
         TokenStream::from(expanded)
     }
+}
+
+/// Check if a return type is `Result<...>` (by outermost path segment).
+fn returns_result(output: &ReturnType) -> bool {
+    if let ReturnType::Type(_, ty) = output {
+        if let Type::Path(TypePath { path, .. }) = &**ty {
+            if let Some(seg) = path.segments.last() {
+                return seg.ident == "Result";
+            }
+        }
+    }
+    false
 }
 
 /// Check if a type is i64
