@@ -53,6 +53,17 @@ fn increment_values(scores: HashMap<String, i64>) -> HashMap<String, i64> {
     scores.into_iter().map(|(k, v)| (k, v + 1)).collect()
 }
 
+/// Divide two integers. Returns Err on divide-by-zero so the failure reaches
+/// Aether as a catchable error rather than a silent null.
+#[aether_export]
+fn checked_div(a: i64, b: i64) -> Result<i64, String> {
+    if b == 0 {
+        Err("division by zero".to_string())
+    } else {
+        Ok(a / b)
+    }
+}
+
 // Register all V2 functions (complex types: String, Vec, HashMap)
 aether_plugin_init_v2!(
     greet,
@@ -62,5 +73,6 @@ aether_plugin_init_v2!(
     sum_array,
     reverse_array,
     sum_values,
-    increment_values
+    increment_values,
+    checked_div
 );

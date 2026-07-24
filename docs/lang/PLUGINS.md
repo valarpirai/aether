@@ -2,6 +2,8 @@
 
 Load compiled Rust shared libraries (`.so`/`.dylib`/`.dll`) from Aether programs to access the Rust ecosystem.
 
+For a step-by-step tutorial on writing a plugin and wrapping an existing crate, see [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md).
+
 ## Loading a Plugin
 
 ```aether

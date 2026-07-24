@@ -4,47 +4,67 @@
 //   docker compose -f redis-compose.yml up -d      # start Redis on :6379
 //   (cd plugins/redis_plugin && cargo build --release)
 //
-// Note: this is a prototype. There is no persistent connection handle yet —
-// each command opens a short-lived connection to the URL set by connect().
+// Connections persist: conn_open() returns an integer handle and each command
+// reuses the same live connection. The RedisConn struct wraps that handle so
+// callers write conn.get(key) instead of threading the id by hand.
+
+struct RedisConn {
+    plugin
+    id
+
+    fn ping(self)             { return self.plugin.conn_ping(self.id) }
+    fn set(self, key, value)  { return self.plugin.conn_set(self.id, key, value) }
+    fn get(self, key)         { return self.plugin.conn_get(self.id, key) }
+    fn del(self, key)         { return self.plugin.conn_del(self.id, key) }
+    fn exists(self, key)      { return self.plugin.conn_exists(self.id, key) }
+    fn incr(self, key)        { return self.plugin.conn_incr(self.id, key) }
+    fn incr_by(self, k, n)    { return self.plugin.conn_incr_by(self.id, k, n) }
+    fn keys(self, pattern)    { return self.plugin.conn_keys(self.id, pattern) }
+    fn close(self)            { return self.plugin.conn_close(self.id) }
+}
+
+fn redis_connect(url) {
+    let plugin = load_plugin("./target/release/libredis_plugin.dylib")
+    return RedisConn { plugin: plugin, id: plugin.conn_open(url) }
+}
 
 fn main() {
-    let redis = load_plugin("./target/release/libredis_plugin.dylib")
+    println("=== Redis Plugin Demo (persistent connection) ===")
 
-    println("=== Redis Plugin Demo ===")
+    let conn = redis_connect("redis://127.0.0.1/")
+    println("ping:", conn.ping())
 
-    // Point the plugin at the server (defaults to redis://127.0.0.1/ anyway).
-    println("connect:", redis.connect("redis://127.0.0.1/"))
-    println("ping:", redis.ping())
-
-    // String set/get
-    redis.set("greeting", "hello from aether")
+    // String set/get — reuses the same connection
+    conn.set("greeting", "hello from aether")
     println("\nset greeting -> hello from aether")
-    println("get greeting =", redis.get("greeting"))
+    println("get greeting =", conn.get("greeting"))
 
     // Missing key returns empty string
-    println("get missing_key =", "'" + redis.get("missing_key") + "'")
+    println("get missing_key =", "'" + conn.get("missing_key") + "'")
 
     // Counters
-    redis.del("counter")
-    println("\nincr counter =", redis.incr("counter"))
-    println("incr counter =", redis.incr("counter"))
-    println("incr_by counter 10 =", redis.incr_by("counter", 10))
+    conn.del("counter")
+    println("\nincr counter =", conn.incr("counter"))
+    println("incr counter =", conn.incr("counter"))
+    println("incr_by counter 10 =", conn.incr_by("counter", 10))
 
     // exists / del
-    println("\nexists greeting =", redis.exists("greeting"))
-    println("del greeting =", redis.del("greeting"))
-    println("exists greeting =", redis.exists("greeting"))
+    println("\nexists greeting =", conn.exists("greeting"))
+    println("del greeting =", conn.del("greeting"))
+    println("exists greeting =", conn.exists("greeting"))
 
     // KEYS (returns an array of strings)
-    redis.set("user:1", "alice")
-    redis.set("user:2", "bob")
-    let user_keys = redis.keys("user:*")
-    println("\nkeys user:* =", user_keys)
+    conn.set("user:1", "alice")
+    conn.set("user:2", "bob")
+    println("\nkeys user:* =", conn.keys("user:*"))
 
     // Cleanup
-    redis.del("user:1")
-    redis.del("user:2")
-    redis.del("counter")
+    conn.del("user:1")
+    conn.del("user:2")
+    conn.del("counter")
+
+    // Close the connection when done
+    println("\nclose =", conn.close())
 
     println("\n=== Redis crate works from Aether! ===")
 }

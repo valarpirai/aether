@@ -253,3 +253,33 @@ fn test_v2_nonexistent_function() {
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("does not exist"));
 }
+
+// ============================================================================
+// Result return type — Ok returns the value, Err raises a catchable error
+// ============================================================================
+
+#[test]
+fn test_v2_result_ok_returns_value() {
+    let code = format!(
+        r#"
+        let p = {PLUGIN}
+        p.checked_div(10, 2)
+    "#
+    );
+    assert_eq!(eval_code(&code).unwrap(), "5");
+}
+
+#[test]
+fn test_v2_result_err_raises() {
+    let code = format!(
+        r#"
+        let p = {PLUGIN}
+        p.checked_div(10, 0)
+    "#
+    );
+    let result = eval_code(&code);
+    assert!(result.is_err());
+    let msg = result.unwrap_err();
+    assert!(msg.contains("Plugin error"), "got: {msg}");
+    assert!(msg.contains("division by zero"), "got: {msg}");
+}

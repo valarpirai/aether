@@ -50,6 +50,7 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 | [TIME.md](docs/lang/TIME.md) | clock(), sleep() |
 | [RANDOM.md](docs/lang/RANDOM.md) | random(), rand_int(n) |
 | [PLUGINS.md](docs/lang/PLUGINS.md) | load_plugin() — FFI for Rust shared libraries |
+| [PLUGIN_GUIDE.md](docs/lang/PLUGIN_GUIDE.md) | Step-by-step guide to writing a plugin and wrapping a Rust crate |
 | [REPL.md](docs/lang/REPL.md) | Interactive REPL and file execution |
 | [CONFIGURATION.md](docs/lang/CONFIGURATION.md) | Env vars and runtime configuration builtins |
 | [TCP.md](docs/lang/TCP.md) | tcp_listen(), tcp_connect(), server/client lifecycle events |
