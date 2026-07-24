@@ -1,0 +1,50 @@
+// Redis plugin demo — uses the Rust `redis` crate via the FFI plugin system.
+//
+// Prerequisites:
+//   docker compose -f redis-compose.yml up -d      # start Redis on :6379
+//   (cd plugins/redis_plugin && cargo build --release)
+//
+// Note: this is a prototype. There is no persistent connection handle yet —
+// each command opens a short-lived connection to the URL set by connect().
+
+fn main() {
+    let redis = load_plugin("./target/release/libredis_plugin.dylib")
+
+    println("=== Redis Plugin Demo ===")
+
+    // Point the plugin at the server (defaults to redis://127.0.0.1/ anyway).
+    println("connect:", redis.connect("redis://127.0.0.1/"))
+    println("ping:", redis.ping())
+
+    // String set/get
+    redis.set("greeting", "hello from aether")
+    println("\nset greeting -> hello from aether")
+    println("get greeting =", redis.get("greeting"))
+
+    // Missing key returns empty string
+    println("get missing_key =", "'" + redis.get("missing_key") + "'")
+
+    // Counters
+    redis.del("counter")
+    println("\nincr counter =", redis.incr("counter"))
+    println("incr counter =", redis.incr("counter"))
+    println("incr_by counter 10 =", redis.incr_by("counter", 10))
+
+    // exists / del
+    println("\nexists greeting =", redis.exists("greeting"))
+    println("del greeting =", redis.del("greeting"))
+    println("exists greeting =", redis.exists("greeting"))
+
+    // KEYS (returns an array of strings)
+    redis.set("user:1", "alice")
+    redis.set("user:2", "bob")
+    let user_keys = redis.keys("user:*")
+    println("\nkeys user:* =", user_keys)
+
+    // Cleanup
+    redis.del("user:1")
+    redis.del("user:2")
+    redis.del("counter")
+
+    println("\n=== Redis crate works from Aether! ===")
+}

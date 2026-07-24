@@ -160,6 +160,33 @@ pub unsafe extern "C" fn aether_value_dict_len(ptr: AetherValuePtr) -> c_int {
     }
 }
 
+/// Get dict key at index (returns owned CString that must be freed).
+///
+/// Dicts are backed by an insertion-ordered `IndexMap`, so index access is
+/// stable and lets plugins iterate every key: pair `aether_value_dict_len`
+/// with this function, then look each key up via `aether_value_dict_get`.
+/// Returns null if the value is not a dict, the index is out of range, or the
+/// key is not a string.
+#[no_mangle]
+pub unsafe extern "C" fn aether_value_dict_key_at(
+    ptr: AetherValuePtr,
+    index: c_int,
+) -> *mut c_char {
+    if ptr.is_null() || index < 0 {
+        return std::ptr::null_mut();
+    }
+    let value = &*(ptr as *const Value);
+    if let Value::Dict(dict) = value {
+        let borrowed = dict.borrow();
+        if let Some((Value::String(s), _)) = borrowed.get_index(index as usize) {
+            if let Ok(cs) = CString::new(s.as_ref().as_str()) {
+                return cs.into_raw();
+            }
+        }
+    }
+    std::ptr::null_mut()
+}
+
 /// Get dict value by string key
 #[no_mangle]
 pub unsafe extern "C" fn aether_value_dict_get(

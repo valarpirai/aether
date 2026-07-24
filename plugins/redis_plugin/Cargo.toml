@@ -1,0 +1,11 @@
+[package]
+name = "redis_plugin"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+aether-plugin = { path = "../../aether-plugin" }
+redis = "0.27"

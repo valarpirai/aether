@@ -35,11 +35,26 @@ let result = math.add(
 )  // 20
 ```
 
-## Current Limitations (MVP)
+## Supported Types
 
-- **Integer arguments only**: Plugins currently accept and return `int` values only
-- **Synchronous**: Plugin functions are blocking
-- **Manual authoring**: Plugins must be handwritten using the C FFI (no macro yet)
+Plugin functions map Aether values to Rust types through two protocols. The
+protocol is chosen automatically by the registration macro and detected at load
+time — you do not select it manually.
+
+| Aether type | Rust type |
+|-------------|-----------|
+| `int` | `i64` |
+| `string` | `String` |
+| `array` of ints | `Vec<i64>` |
+| `dict` of string→int | `HashMap<String, i64>` |
+
+`int`-only functions use the V1 protocol; any function that uses `String`,
+`Vec`, or `HashMap` uses the V2 protocol. Both can coexist in one plugin.
+
+## Current Limitations
+
+- **Element types are scalar**: arrays hold `int`, dicts map `string` to `int`; nested collections are not yet supported.
+- **Synchronous**: plugin functions are blocking.
 
 ## Creating a Plugin (Easy Way - With Macro)
 
@@ -83,6 +98,43 @@ cargo build --release
 
 That's it! **No manual FFI, no unsafe code, zero boilerplate.**
 
+### String, Array, and Dict Functions (V2)
+
+Functions that take or return `String`, `Vec<i64>`, or `HashMap<String, i64>`
+register with `aether_plugin_init_v2!` instead of `aether_plugin_init!`.
+
+```rust
+use aether_plugin::*;
+use std::collections::HashMap;
+
+#[aether_export]
+fn to_upper(s: String) -> String {
+    s.to_uppercase()
+}
+
+#[aether_export]
+fn sort_array(mut nums: Vec<i64>) -> Vec<i64> {
+    nums.sort();
+    nums
+}
+
+#[aether_export]
+fn sum_values(scores: HashMap<String, i64>) -> i64 {
+    scores.values().sum()
+}
+
+aether_plugin_init_v2!(to_upper, sort_array, sum_values);
+```
+
+Call them from Aether like any other plugin method:
+
+```aether
+let p = load_plugin("target/release/libmyplugin.dylib")
+p.to_upper("hello")                          // "HELLO"
+p.sort_array([5, 2, 8, 1])                   // [1, 2, 5, 8]
+p.sum_values({"a": 10, "b": 20})             // 30
+```
+
 ## Creating a Plugin (Hard Way - Manual FFI)
 
 For advanced use cases or understanding how it works under the hood, see the manual FFI approach in [FFI_PLUGIN_SYSTEM.md](../dev/FFI_PLUGIN_SYSTEM.md) and `example_plugin/`.
@@ -101,7 +153,7 @@ try {
 
 Common errors:
 - **Wrong arity**: Function called with incorrect number of arguments
-- **Type error**: Non-integer argument passed (MVP limitation)
+- **Type error**: Argument type does not match the function signature
 - **Function not found**: Plugin doesn't export the requested function
 
 ## Use Cases
@@ -117,11 +169,10 @@ Plugins enable Aether to leverage the entire Rust ecosystem:
 ## Completed Phases
 
 **Phase 1** ✅: Core FFI (manual)  
-**Phase 2** ✅: `aether-plugin` crate with `#[aether_export]` proc macro
+**Phase 2** ✅: `aether-plugin` crate with `#[aether_export]` proc macro  
+**Phase 3** ✅: String, array, and dict support (V2 protocol)
 
 ## Future Phases
-
-**Phase 3**: String, array, and dict support
 
 **Phase 4**: Async plugin functions
 
