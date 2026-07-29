@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Structs"
 ---
 
-[Home](../index.html) › Language Reference › Structs
+[Home](../index.md) › Language Reference › Structs
 
 # Structs
 
@@ -165,4 +165,4 @@ fn new_point(x, y) {
 ```
 
 ---
-[← Error Handling](ERROR_HANDLING.html) &nbsp;&nbsp; [Destructuring →](DESTRUCTURING.html)
+[← Error Handling](ERROR_HANDLING.md) &nbsp;&nbsp; [Destructuring →](DESTRUCTURING.md)

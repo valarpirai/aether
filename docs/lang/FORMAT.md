@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Format"
 ---
 
-[Home](../index.html) › Language Reference › Format
+[Home](../index.md) › Language Reference › Format
 
 # Format
 
@@ -87,7 +87,7 @@ format("{{not a placeholder}}")   // "{not a placeholder}"
 
 ## Related
 
-- [Strings](STRINGS.html) — interpolation with `"${expr}"`, indexing, slicing
+- [Strings](STRINGS.md) — interpolation with `"${expr}"`, indexing, slicing
 
 ---
-[← Strings](STRINGS.html) &nbsp;&nbsp; [Error Handling →](ERROR_HANDLING.html)
+[← Strings](STRINGS.md) &nbsp;&nbsp; [Error Handling →](ERROR_HANDLING.md)

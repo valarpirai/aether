@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Destructuring"
 ---
 
-[Home](../index.html) › Language Reference › Destructuring
+[Home](../index.md) › Language Reference › Destructuring
 
 # Destructuring
 
@@ -125,4 +125,4 @@ fn swap(pair) {
 ```
 
 ---
-[← Structs](STRUCT.html) &nbsp;&nbsp; [Modules →](MODULE_SYSTEM.html)
+[← Structs](STRUCT.md) &nbsp;&nbsp; [Modules →](MODULE_SYSTEM.md)

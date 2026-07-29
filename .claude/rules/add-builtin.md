@@ -11,7 +11,10 @@ If you can write it in Aether, stop. Use `add-stdlib.md` instead.
 1. Add the function to `src/interpreter/builtins.rs`.
 2. Add its name to the `BUILTINS` slice in `src/checker.rs`.
 3. Add a test in `tests/integration_test.rs`.
-4. Add the function name to the feature table in `CLAUDE.md`.
+4. Add the signature to the quick-reference table in `docs/lang/BUILTINS.md`, plus
+   a detail entry in the matching section.
+5. Add the function name to the feature table in
+   `docs/dev/ARCHITECTURE.md` (Feature Summary).
 
 ## Check your work
 

@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Debugger"
 ---
 
-[Home](../index.html) › Developer Docs › Debugger
+[Home](../index.md) › Developer Docs › Debugger
 
 # Debugger
 
@@ -126,4 +126,4 @@ Reads source context, prints it, then loops reading commands from stdin until th
 | `examples/debugger_demo.ae` | Demo program |
 
 ---
-[← Home](../index.html)
+[← Home](../index.md)

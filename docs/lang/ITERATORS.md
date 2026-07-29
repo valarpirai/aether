@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Iterators"
 ---
 
-[Home](../index.html) › Language Reference › Iterators
+[Home](../index.md) › Language Reference › Iterators
 
 # Iterators
 
@@ -139,4 +139,4 @@ fn main() {
 - Iterator state is mutable — advancing one reference advances all references to the same iterator
 
 ---
-[← Standard Library](STDLIB.html) &nbsp;&nbsp; [JSON →](JSON.html)
+[← Standard Library](STDLIB.md) &nbsp;&nbsp; [JSON →](JSON.md)

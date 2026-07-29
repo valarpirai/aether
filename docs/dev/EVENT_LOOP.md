@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Event Loop Internals"
 ---
 
-[Home](../index.html) › Developer Docs › Event Loop Internals
+[Home](../index.md) › Developer Docs › Event Loop Internals
 
 # Event Loop
 
@@ -132,10 +132,10 @@ Using `await` inside a TCP handler blocks the dispatch loop for the duration of 
 
 ## Queue controls
 
-These are operational knobs, not part of normal programs. See [Configuration](../lang/CONFIGURATION.html) for details.
+These are operational knobs, not part of normal programs. See [Configuration](../lang/CONFIGURATION.md) for details.
 
 - `set_queue_limit(n)` — cap the number of pending callbacks (backpressure)
 - `set_task_timeout(secs)` / `set_task_timeout(null)` — per-callback deadline
 
 ---
-[← Architecture](ARCHITECTURE.html) &nbsp;&nbsp; [Async I/O Architecture →](ASYNC_IO.html)
+[← Architecture](ARCHITECTURE.md) &nbsp;&nbsp; [Async I/O Architecture →](ASYNC_IO.md)

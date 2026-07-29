@@ -11,6 +11,9 @@ url: "https://valarpirai.github.io"
 remote_theme: pages-themes/cayman@v0.2.0
 plugins:
   - jekyll-remote-theme
+  # Rewrites relative .md links to their built .html paths. Docs link to each
+  # other with .md so the files stay navigable when read from the repo.
+  - jekyll-relative-links
 
 # Build settings
 markdown: kramdown

@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Parser"
 ---
 
-[Home](../index.html) › Developer Docs › Parser
+[Home](../index.md) › Developer Docs › Parser
 
 # Aether Parser Documentation
 
@@ -343,4 +343,4 @@ let program = parser.parse()?;
 **Status**: 53 unit tests passing
 
 ---
-[← Lexer](LEXER.html) &nbsp;&nbsp; [Interpreter →](INTERPRETER.html)
+[← Lexer](LEXER.md) &nbsp;&nbsp; [Interpreter →](INTERPRETER.md)

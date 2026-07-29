@@ -144,24 +144,25 @@ Start here if you want to use the language — build scripts, automate tasks, or
 
 | Guide | What it covers |
 |-------|---------------|
-| [REPL](lang/REPL.html) | Interactive shell and running `.ae` files |
-| [Strings](lang/STRINGS.html) | Literals, indexing, slicing, interpolation, methods |
-| [Format](lang/FORMAT.html) | format() — `{}` placeholders, width, alignment, precision |
-| [Error Handling](lang/ERROR_HANDLING.html) | try/catch/finally/throw with stack traces |
-| [Structs](lang/STRUCT.html) | User-defined types with fields and methods |
-| [Modules](lang/MODULE_SYSTEM.html) | import, from…import, stdlib modules |
-| [Standard Library](lang/STDLIB.html) | range, map, filter, reduce, math, string, testing |
-| [Iterators](lang/ITERATORS.html) | has_next() / next() protocol, custom iterators |
-| [JSON](lang/JSON.html) | json_parse(), json_stringify() |
-| [CSV](lang/CSV.html) | csv_parse(), csv_stringify() |
-| [HTTP](lang/HTTP.html) | http_get(), http_post() |
-| [Time](lang/TIME.html) | clock(), sleep() |
-| [Random](lang/RANDOM.html) | random(), rand_int(n) |
-| [Async/Await](lang/ASYNC.html) | async fn, await, .then(), Promise.all/race/allSettled, I/O pool |
-| [TCP](lang/TCP.html) | tcp_listen(), tcp_connect(), server/client lifecycle events, UDP |
-| [Plugins](lang/PLUGINS.html) | load_plugin() — call Rust shared libraries from Aether |
-| [Plugin Guide](lang/PLUGIN_GUIDE.html) | Step-by-step: write a plugin and wrap a Rust crate |
-| [Configuration](lang/CONFIGURATION.html) | Env vars and runtime configuration |
+| [REPL](lang/REPL.md) | Interactive shell and running `.ae` files |
+| [Strings](lang/STRINGS.md) | Literals, indexing, slicing, interpolation, methods |
+| [Format](lang/FORMAT.md) | format() — `{}` placeholders, width, alignment, precision |
+| [Error Handling](lang/ERROR_HANDLING.md) | try/catch/finally/throw with stack traces |
+| [Structs](lang/STRUCT.md) | User-defined types with fields and methods |
+| [Modules](lang/MODULE_SYSTEM.md) | import, from…import, stdlib modules |
+| [Built-in Functions](lang/BUILTINS.md) | print, len, type, file I/O, sockets, conversions |
+| [Standard Library](lang/STDLIB.md) | range, map, filter, reduce, math, string, testing |
+| [Iterators](lang/ITERATORS.md) | has_next() / next() protocol, custom iterators |
+| [JSON](lang/JSON.md) | json_parse(), json_stringify() |
+| [CSV](lang/CSV.md) | csv_parse(), csv_stringify() |
+| [HTTP](lang/HTTP.md) | http_get(), http_post() |
+| [Time](lang/TIME.md) | clock(), sleep() |
+| [Random](lang/RANDOM.md) | random(), rand_int(n) |
+| [Async/Await](lang/ASYNC.md) | async fn, await, .then(), Promise.all/race/allSettled, I/O pool |
+| [TCP](lang/TCP.md) | tcp_listen(), tcp_connect(), server/client lifecycle events, UDP |
+| [Plugins](lang/PLUGINS.md) | load_plugin() — call Rust shared libraries from Aether |
+| [Plugin Guide](lang/PLUGIN_GUIDE.md) | Step-by-step: write a plugin and wrap a Rust crate |
+| [Configuration](lang/CONFIGURATION.md) | Env vars and runtime configuration |
 
 ### Hacking on Aether's interpreter
 
@@ -169,18 +170,18 @@ Start here if you want to extend the language, fix a bug, or understand how the 
 
 | Guide | What it covers |
 |-------|---------------|
-| [Development Guide](dev/DEVELOPMENT.html) | Post-feature checklist, TDD workflow, code organisation |
-| [Architecture](dev/ARCHITECTURE.html) | System design, module layout, and roadmap |
-| [Testing Guide](dev/TESTING.html) | Running tests, writing integration tests, debugging failures |
-| [Language Design](dev/DESIGN.html) | Complete language specification and design decisions |
-| [Lexer](dev/LEXER.html) | Tokenisation — `src/lexer/` |
-| [Parser](dev/PARSER.html) | Recursive descent parsing — `src/parser/` |
-| [Interpreter](dev/INTERPRETER.html) | Tree-walking evaluator — `src/interpreter/evaluator/` |
-| [Memory Management](dev/MEMORY_MANAGEMENT.html) | Rc-based memory management and cycle avoidance |
-| [Event Loop Internals](dev/EVENT_LOOP.html) | on_ready, event_loop, queue controls |
-| [Async I/O Architecture](dev/ASYNC_IO.html) | IoPool, EventLoopQueue, TCP dispatch loop, await vs .then() |
-| [TCP/UDP Internals](dev/TCP_UDP.html) | mio I/O loop, state types, channels, SIGINT, UDP design |
-| [Backlog](dev/BACKLOG.html) | Planned features and open design questions |
+| [Development Guide](dev/DEVELOPMENT.md) | Post-feature checklist, TDD workflow, code organisation |
+| [Architecture](dev/ARCHITECTURE.md) | System design, module layout, and roadmap |
+| [Testing Guide](dev/TESTING.md) | Running tests, writing integration tests, debugging failures |
+| [Language Design](dev/DESIGN.md) | Complete language specification and design decisions |
+| [Lexer](dev/LEXER.md) | Tokenisation — `src/lexer/` |
+| [Parser](dev/PARSER.md) | Recursive descent parsing — `src/parser/` |
+| [Interpreter](dev/INTERPRETER.md) | Tree-walking evaluator — `src/interpreter/evaluator/` |
+| [Memory Management](dev/MEMORY_MANAGEMENT.md) | Rc-based memory management and cycle avoidance |
+| [Event Loop Internals](dev/EVENT_LOOP.md) | on_ready, event_loop, queue controls |
+| [Async I/O Architecture](dev/ASYNC_IO.md) | IoPool, EventLoopQueue, TCP dispatch loop, await vs .then() |
+| [TCP/UDP Internals](dev/TCP_UDP.md) | mio I/O loop, state types, channels, SIGINT, UDP design |
+| [Backlog](dev/BACKLOG.md) | Planned features and open design questions |
 
 ## What's Working
 
@@ -217,22 +218,22 @@ Start here if you want to extend the language, fix a bug, or understand how the 
 
 ## Examples
 
-Browse the [examples directory](lang/EXAMPLES.html) or jump straight to a topic:
+Browse the [examples directory](lang/EXAMPLES.md) or jump straight to a topic:
 
 | Example | What it shows |
 |---------|--------------|
-| [Hello World](lang/EXAMPLES.html#hello) | First program, interpolation |
-| [Null Safety](lang/EXAMPLES.html#null-safety) | `??` and `?.` operators |
-| [Multi-line Strings](lang/EXAMPLES.html#multiline-strings) | Triple-quoted strings |
-| [Error Handling](lang/EXAMPLES.html#error-handling) | try/catch/finally, stack traces |
-| [File Utilities](lang/EXAMPLES.html#file-utilities) | list_dir, path_join, rename, rm |
-| [Shapes (Structs)](lang/EXAMPLES.html#shapes) | User-defined types with methods |
-| [Async / Concurrent I/O](lang/EXAMPLES.html#async) | Promise.all, thread pool |
-| [Event Loop](lang/EXAMPLES.html#event-loop) | on_ready, chained callbacks |
-| [TCP Server](lang/TCP.html#server) | tcp_listen, lifecycle events, echo server |
-| [CSV Processing](lang/CSV.html) | csv_parse, csv_stringify, roundtrip |
-| [Data Processing](lang/EXAMPLES.html#data-processing) | Functional pipeline |
-| [Collections](lang/EXAMPLES.html#collections) | Arrays, dicts, sets |
+| [Hello World](lang/EXAMPLES.md#hello) | First program, interpolation |
+| [Null Safety](lang/EXAMPLES.md#null-safety) | `??` and `?.` operators |
+| [Multi-line Strings](lang/EXAMPLES.md#multiline-strings) | Triple-quoted strings |
+| [Error Handling](lang/EXAMPLES.md#error-handling) | try/catch/finally, stack traces |
+| [File Utilities](lang/EXAMPLES.md#file-utilities) | list_dir, path_join, rename, rm |
+| [Shapes (Structs)](lang/EXAMPLES.md#shapes) | User-defined types with methods |
+| [Async / Concurrent I/O](lang/EXAMPLES.md#async) | Promise.all, thread pool |
+| [Event Loop](lang/EXAMPLES.md#event-loop) | on_ready, chained callbacks |
+| [TCP Server](lang/TCP.md#server) | tcp_listen, lifecycle events, echo server |
+| [CSV Processing](lang/CSV.md) | csv_parse, csv_stringify, roundtrip |
+| [Data Processing](lang/EXAMPLES.md#data-processing) | Functional pipeline |
+| [Collections](lang/EXAMPLES.md#collections) | Arrays, dicts, sets |
 
 ## License
 

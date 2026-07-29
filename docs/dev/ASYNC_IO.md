@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Async I/O Architecture"
 ---
 
-[Home](../index.html) › Developer Docs › Async I/O Architecture
+[Home](../index.md) › Developer Docs › Async I/O Architecture
 
 # Async I/O Architecture
 
@@ -268,7 +268,7 @@ A callback registered inside another callback (`sleep(0.1).then(fn { sleep(0.1).
 | Requires `event_loop()` | No | Yes | No (`tick_async_callbacks`) |
 | Auto-drains at `main()` exit | No | Yes | N/A (TCP server never reaches exit) |
 
-For usage examples and the user-facing API see [EVENT_LOOP.md](EVENT_LOOP.html).
+For usage examples and the user-facing API see [EVENT_LOOP.md](EVENT_LOOP.md).
 
 ---
 
@@ -319,9 +319,9 @@ TCP I/O thread (mio)
 
 ## See also
 
-- [EVENT_LOOP.md](EVENT_LOOP.html) — `on_ready`, `event_loop`, queue controls, backpressure
-- [TCP_UDP.md](TCP_UDP.html) — TCP/UDP mio loop, SIGINT handling, graceful shutdown
-- [INTERPRETER.md](INTERPRETER.html) — evaluator sub-module layout
+- [EVENT_LOOP.md](EVENT_LOOP.md) — `on_ready`, `event_loop`, queue controls, backpressure
+- [TCP_UDP.md](TCP_UDP.md) — TCP/UDP mio loop, SIGINT handling, graceful shutdown
+- [INTERPRETER.md](INTERPRETER.md) — evaluator sub-module layout
 - `src/interpreter/io_pool.rs` — IoPool and IoTask definitions
 - `src/interpreter/event_loop.rs` — EventLoopQueue implementation
 - `src/interpreter/tcp.rs` — TCP I/O thread
@@ -329,4 +329,4 @@ TCP I/O thread (mio)
 - `src/interpreter/evaluator/functions.rs` — dispatch loops, `await_value`, `register_on_ready`
 
 ---
-[← Event Loop Internals](EVENT_LOOP.html) &nbsp;&nbsp; [TCP/UDP Internals →](TCP_UDP.html)
+[← Event Loop Internals](EVENT_LOOP.md) &nbsp;&nbsp; [TCP/UDP Internals →](TCP_UDP.md)

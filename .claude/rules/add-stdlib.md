@@ -10,8 +10,10 @@ You are adding a function that can be written in Aether using existing primitive
 2. Write the function in Aether. Handle `null` for optional args — Aether passes `null` for omitted parameters.
 3. Add its name to the `BUILTINS` slice in `src/checker.rs`.
 4. Add a test in `tests/stdlib_<module>_test.rs`.
-5. Add the function name to the stdlib table in `docs/lang/STDLIB.md`.
-6. Add the function name to the feature table in `CLAUDE.md`.
+5. Add the function name and signature to the quick-reference table in
+   `docs/lang/STDLIB.md`, plus a detail entry under the module's section.
+6. Add the function name to the feature table in `docs/dev/ARCHITECTURE.md`
+   (Feature Summary).
 
 ## Check your work
 

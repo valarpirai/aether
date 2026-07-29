@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Modules"
 ---
 
-[Home](../index.html) › Language Reference › Modules
+[Home](../index.md) › Language Reference › Modules
 
 # Modules
 
@@ -92,4 +92,4 @@ from math import no_such_fn  // Error: Cannot import 'no_such_fn' from module 'm
 - No dynamic imports (module name must be a literal string)
 
 ---
-[← Destructuring](DESTRUCTURING.html) &nbsp;&nbsp; [Standard Library →](STDLIB.html)
+[← Destructuring](DESTRUCTURING.md) &nbsp;&nbsp; [Standard Library →](STDLIB.md)

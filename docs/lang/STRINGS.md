@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Strings"
 ---
 
-[Home](../index.html) › Language Reference › Strings
+[Home](../index.md) › Language Reference › Strings
 
 # Strings
 
@@ -131,4 +131,4 @@ println(last_first("Alice Johnson"))  // Johnson, Alice
 - No regex support built-in
 
 ---
-[← REPL](REPL.html) &nbsp;&nbsp; [Format →](FORMAT.html)
+[← REPL](REPL.md) &nbsp;&nbsp; [Format →](FORMAT.md)

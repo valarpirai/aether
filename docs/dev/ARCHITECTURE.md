@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Architecture"
 ---
 
-[Home](../index.html) › Developer Docs › Architecture
+[Home](../index.md) › Developer Docs › Architecture
 
 # Aether Architecture & Roadmap
 
@@ -21,8 +21,8 @@ This document provides a high-level overview of Aether's architecture, current s
 > **📖 For Practical Development**: This document focuses on high-level architecture and long-term roadmap.
 >
 > For day-to-day development guidance, see:
-> - **[CLAUDE.md](../CLAUDE.html)** - Quick reference, project status, where to add features
-> - **[DEVELOPMENT.md](DEVELOPMENT.html)** - TDD workflow, testing strategy, code style, common pitfalls
+> - **`CLAUDE.md`** (repo root) - Quick reference, project status, where to add features
+> - **[DEVELOPMENT.md](DEVELOPMENT.md)** - TDD workflow, testing strategy, code style, common pitfalls
 
 ---
 
@@ -46,14 +46,14 @@ Source Code (.ae)
 
 | Component | Status | Purpose | Details |
 |-----------|--------|---------|---------|
-| **Lexer** | ✅ Complete | Tokenization | See [LEXER.md](LEXER.html) |
-| **Parser** | ✅ Complete | Syntax analysis | See [PARSER.md](PARSER.html) |
-| **Interpreter** | ✅ Complete | AST execution | See [INTERPRETER.md](INTERPRETER.html) |
-| **I/O Thread Pool** | ✅ Complete | Concurrent I/O | See [ASYNC.md](ASYNC.html) |
-| **Event Loop** | ✅ Complete | Callback-based async | See [EVENT_LOOP.md](EVENT_LOOP.html) |
-| **REPL** | ✅ Complete | Interactive mode | See [REPL.md](REPL.html) |
-| **Standard Library** | ✅ Complete | Core functions | See [STDLIB.md](STDLIB.html) |
-| **Memory Management** | ✅ Complete | Memory management | See [MEMORY_MANAGEMENT.md](MEMORY_MANAGEMENT.html) |
+| **Lexer** | ✅ Complete | Tokenization | See [LEXER.md](LEXER.md) |
+| **Parser** | ✅ Complete | Syntax analysis | See [PARSER.md](PARSER.md) |
+| **Interpreter** | ✅ Complete | AST execution | See [INTERPRETER.md](INTERPRETER.md) |
+| **I/O Thread Pool** | ✅ Complete | Concurrent I/O | See [ASYNC.md](../lang/ASYNC.md) |
+| **Event Loop** | ✅ Complete | Callback-based async | See [EVENT_LOOP.md](EVENT_LOOP.md) |
+| **REPL** | ✅ Complete | Interactive mode | See [REPL.md](../lang/REPL.md) |
+| **Standard Library** | ✅ Complete | Core functions | See [STDLIB.md](../lang/STDLIB.md) |
+| **Memory Management** | ✅ Complete | Memory management | See [MEMORY_MANAGEMENT.md](MEMORY_MANAGEMENT.md) |
 
 ### Project Structure
 
@@ -62,11 +62,14 @@ aether/
 ├── docs/              # Comprehensive documentation
 ├── stdlib/            # Standard library (written in Aether)
 ├── examples/          # Example programs
-├── tests/             # Integration tests (~559 tests)
+├── aether-plugin/     # Plugin SDK crate (FFI helpers, type conversion)
+├── plugins/           # Example and real plugins (redis, v1/v2 protocol demos)
+├── benches/           # Criterion benchmarks
+├── tests/             # Integration tests, one file per feature
 └── src/
-    ├── lexer/         # Tokenization (14 unit tests)
-    ├── parser/        # Parsing (53 unit tests)
-    ├── interpreter/   # Execution (17 unit tests)
+    ├── lexer/         # Tokenization
+    ├── parser/        # Parsing
+    ├── interpreter/   # Execution
     │   ├── evaluator/
     │   │   ├── mod.rs          — Evaluator struct, constructors, call_main
     │   │   ├── expressions.rs  — eval_expr, eval_index, await_value
@@ -79,130 +82,72 @@ aether/
     │   ├── environment.rs      — Scope chain
     │   ├── event_loop.rs       — on_ready / event_loop
     │   ├── io_pool.rs          — I/O thread pool
-    │   └── value.rs            — Value enum (16 variants)
-    └── repl/          # Interactive mode
+    │   └── value.rs            — Value enum (27 variants)
+    ├── repl.rs        # Interactive mode
+    ├── checker.rs     # aether check — undefined-variable linter
+    ├── formatter.rs   # aether fmt
+    └── test_runner.rs # aether test — discovers *_test.ae files
 ```
 
 ## Current Status
 
-### Phase 5 Complete ✅
+**Phase**: 5 complete — the language is fully functional with async I/O and a rich stdlib.
 
-**Test Coverage**: ~693 tests passing (134 unit + ~559 integration)
-**Code Quality**: cargo clippy clean (5 acceptable `mutable_key_type` warnings for HashSet)
+**Tests**: 1225 passing (134 unit + 1091 integration), 0 failed, 0 ignored — measured 2026-07-29. Run `cargo test -- --test-threads=1` for current counts.
 
-### What's Implemented
+**Code quality**: `cargo clippy` clean (5 acceptable `mutable_key_type` warnings for HashSet).
 
-**Core Language** ✅
-- Dynamic typing with runtime type checking
-- First-class functions with closures and function expressions
-- Primitives: int, float, string (UTF-8), bool, null
-- Collections: array, dict (ordered insertion), set (unique, unordered)
-- Automatic memory management (Rc-based GC)
-- C-like syntax (curly braces, no semicolons)
-- String interpolation: `"Hello ${name}"`
-- String indexing: `str[0]`, slicing: `str[1:3]`
-- Multi-line strings: `"""..."""`
+### Feature Summary
 
-**Control Flow** ✅
-- if/else conditionals
-- while loops
-- for-in loops (array, dict, set, string, iterator)
-- Labeled `break`/`continue` for nested loops
-- return statements
-
-**Error Handling** ✅
-- `try { ... } catch(e) { ... } finally { ... }`
-- `throw value` — throw any value as an error
-- `e.message`, `e.stack_trace` — error object properties
-- Stack traces include filename and line numbers
-
-**Null Safety** ✅
-- `??` null coalescing (short-circuits if left side is non-null)
-- `?.` optional member access — returns null instead of throwing
-- `?.` optional method call — returns null instead of throwing
-
-**Structs** ✅
-- User-defined types with fields and methods
-- `self` binding in methods
-- Mutable fields via `RefCell`
-
-**Async / Await** ✅
-- `async fn` — returns a Promise
-- `await expr` — resolves a Promise (polls until ready)
-- `Promise.all([p1, p2, ...])` — concurrent resolution
-- Promise result caching
-
-**I/O Thread Pool** ✅
-- `set_workers(n)` — configure pool size at runtime
-- `AETHER_IO_WORKERS` env var — set at startup
-- Async: `http_get`, `http_post`, `sleep`, `read_file`, `write_file`
-- Per-request HTTP options: `{timeout: N, user_agent: "..."}`
-- Env-var defaults: `AETHER_HTTP_TIMEOUT`, `AETHER_HTTP_USER_AGENT`
-
-**Event Loop** ✅
-- `on_ready(promise, callback)` — register callback
-- `event_loop([timeout_secs])` — run until all callbacks resolve
-- Chained callbacks (register from inside a callback)
-- `set_queue_limit(n)` — backpressure cap
-- `set_task_timeout(secs|null)` — per-callback deadline
-
-**Module System** ✅
-- `import module` — namespace import
-- `from module import fn1, fn2` — selective import
-- `import module as alias` — aliased import
-- User `.ae` modules from filesystem + embedded stdlib
-
-**Built-in Functions** ✅
-- I/O: `print`, `println`, `input`, `read_file`, `write_file`, `read_lines`, `append_file`, `lines_iter`, `read_bytes`, `write_bytes`
-- File system: `file_exists`, `is_file`, `is_dir`, `mkdir`, `list_dir`, `path_join`, `rename`, `rm`
-- HTTP: `http_get`, `http_post`
-- Time: `clock`, `sleep`
-- JSON: `json_parse`, `json_stringify`
-- Type: `type`, `len`, `int`, `float`, `str`, `bool`, `set`
-- Async: `set_workers`, `on_ready`, `event_loop`, `set_queue_limit`, `set_task_timeout`
-- Iterator: `has_next`, `next`
-
-**Standard Library** ✅ (40+ functions, written in Aether)
-- **Core**: `range()`, `enumerate()`
-- **Collections**: `map()`, `filter()`, `reduce()`, `find()`, `every()`, `some()`
-- **Math**: `abs()`, `min()`, `max()`, `sum()`, `clamp()`, `sign()`
-- **String**: `join()`, `repeat()`, `reverse()`, `starts_with()`, `ends_with()`
-- **Testing**: `assert_eq()`, `assert_true()`, `assert_false()`, `assert_null()`, `assert_not_null()`, `expect_error()`, `test()`, `test_summary()`
+| Area | Features |
+|------|---------|
+| **Core language** | int, float, string, bool, null, array, dict, set; all operators; let, if/else, while, for, break, continue, return |
+| **Operators** | arithmetic, comparison, logical, bitwise `& \| ^ ~ << >>`, power `**`, ternary `?:`, null coalesce `??`, optional chain `?.` |
+| **Pattern matching** | `match` statement — literals, wildcard `_`, binding, or-patterns `\|`, enum variant patterns |
+| **Destructuring** | `let [a, b, ...rest] = arr`, `let {host, port: p = 5432} = dict` — array/dict, rest, rename, defaults |
+| **Functions** | declarations, expressions, closures, optional params, recursion (default depth limit 100, override with `AETHER_CALL_DEPTH`) |
+| **Strings** | indexing, interpolation `${expr}`, slicing `str[1:3]`, spread `[...arr]`, upper/lower/trim/split |
+| **Collections** | array (push/pop/sort/concat/slice/spread), dict (keys/values/contains), set (union/intersection/difference/subset); reference semantics for array/dict/struct; `==` is identity; `.equals()` depth-1 structural; `copy()` depth-1 shallow clone; `id()` for object identity |
+| **Error handling** | try/catch/finally/throw; `e.message`, `e.stack_trace`; stack frames include filename and line number |
+| **Modules** | `import mod`, `from mod import fn`, `import mod as alias`; filesystem + embedded stdlib |
+| **Structs** | fields, methods, `self` binding, mutable fields via RefCell; `.equals()` for depth-1 structural comparison |
+| **Iterators** | `has_next()`, `next()`, for-in over array/dict/set/string/iterator |
+| **Async/await** | `async fn`, `await expr`, Promise caching; `Promise.all`, `Promise.race`, `Promise.allSettled` |
+| **I/O thread pool** | `set_workers(n)`, `AETHER_IO_WORKERS` env var; async `http_get`, `sleep`, `read_file`, `write_file`, `http_post` |
+| **Event loop** | `on_ready(promise, callback)`, `event_loop()`; callback-based async; chained callbacks |
+| **Null safety** | `??` null coalescing (short-circuit), `?.` optional member/method chaining |
+| **JSON** | `json_parse()`, `json_stringify()` via serde_json |
+| **CSV** | `csv_parse(str[, delim])`, `csv_stringify(rows[, delim])` |
+| **HTTP** | `http_get(url)`, `http_post(url, body)` via reqwest (blocking or async) |
+| **Time** | `clock()` (Unix epoch float), `sleep(secs)` |
+| **Random** | `random()` (float in `[0, 1)`), `rand_int(n)` (int in `[0, n)`) via the `rand` crate |
+| **TCP** | `tcp_listen(addr[, opts])`, `tcp_connect(addr)`; server events: `on_listen/connect/message/disconnect/error/timeout`, `accept()`, `close()`; client events: `on_connect/message/disconnect/error/timeout`, `start()`, `close()`, `write(data)`; event-driven via mio (single I/O thread, ~8–260 KB per connection) |
+| **UDP** | `udp_bind(addr)`; `on_message(fn(data, addr) { })`, `send_to(data, addr)`, `listen()`, `close()`; connectionless datagram socket |
+| **FFI / Plugins** | `load_plugin(path)` — load Rust shared libraries (`.so`/`.dylib`/`.dll`); call functions as methods; V1 protocol (int-only) and V2 protocol (`String`, `Vec<i64>`, `Vec<String>`, `HashMap<String,i64>`) auto-detected at load |
+| **Number/string conversions** | `hex(n)`, `oct(n)`, `bin(n)`, `int(s, base)`, `base64_encode(s)`, `base64_decode(s)` |
+| **String formatting** | `format(fmt, ...args)` — `{}` positional, `{:.2f}` precision, `{:>10}`/`{:<10}`/`{:^10}` width+alignment, `{:0>5d}` fill, `{:x}`/`{:o}`/`{:b}` bases |
+| **Standard library** | See [STDLIB.md](../lang/STDLIB.md) for the stdlib reference and [BUILTINS.md](../lang/BUILTINS.md) for built-ins |
+| **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
+| **REPL** | rustyline with history (`~/.aether_history`), tab-completion, `_help`/`_env`/`_exit`, multi-line input (`>>` / `..`) |
+| **Configuration** | `AETHER_IO_WORKERS`, `AETHER_CALL_DEPTH`, `HOME` (see [CONFIGURATION.md](../lang/CONFIGURATION.md)) |
+| **Tooling** | `aether ast` (AST printer), `aether fmt` (formatter), `aether test` (test runner), `aether check [file\|dir]` (undefined variable linter) |
 
 ### Test Coverage
 
-```
-Total: ~693 tests passing ✅ (2 permanently ignored — deep recursion stack overflow in debug builds)
+Per-suite counts are not tracked here — they go stale the moment a test is added.
+Get current numbers from the tool that knows them:
 
-Unit Tests (134):
-├── Lexer: 14 tests
-├── Parser: 53 tests
-├── Interpreter: 17 tests
-├── Built-ins: 15 tests
-└── Other unit: 35 tests
+```bash
+# Total, and the per-suite breakdown
+cargo test -- --test-threads=1
 
-Integration Tests (~559):
-├── Core features: 29 tests
-├── Async: 21 tests
-├── I/O pool: 14 tests
-├── Event loop: 15 tests
-├── Structs: 14 tests
-├── Iterators: 22 tests
-├── Sets: 24 tests
-├── Null safety: 23 tests
-├── JSON: 25 tests
-├── HTTP: 5 tests (0 ignored — all network-free)
-├── Error handling: 10 + 11 tests
-├── String features: 16 + 9 + 8 + 15 tests
-├── Array methods: 22 tests
-├── Dict: 27 tests
-├── Module system: 13 tests
-├── Stdlib (collections/math/string/core): 38+26+24+9 tests
-├── Stdlib testing framework: 19 tests
-├── Function expressions: 13 tests
-├── GC/leak: 6 + 4 tests
-└── ... (35 test files total)
+# Just the totals
+cargo test -- --test-threads=1 2>&1 | grep '^test result:'
 ```
+
+Unit tests live beside the code they cover (`src/**/*_tests.rs`, run as
+`unittests src/lib.rs`). Integration tests are one file per feature under
+`tests/`. See [TESTING.md](TESTING.md) for the layout and conventions.
 
 ## Roadmap
 
@@ -219,27 +164,15 @@ Integration Tests (~559):
 | Phase 5 Sprint 3 | Async/await + I/O pool | 476 |
 | Phase 5 Sprint 4 | Error context + stack traces | ~547 |
 | Phase 5 Sprint 5 | Null safety + Event loop | ~693 |
+| Phase 5 Sprint 6 | Tooling (fmt, test, check, REPL multi-line) | ~1112 |
 
-### Near-Term Backlog (Tier 1)
+### Near-Term Backlog
 
-See **[BACKLOG.md](BACKLOG.html)** for the full prioritised list. Top items:
+See **[BACKLOG.md](BACKLOG.md)** for the full prioritised list (~30 features
+across 6 tiers). Top items: variadic args, enums/tuples, named/default params.
 
-- `match` statement — pattern matching, replaces chained if/else
-- Destructuring — `let [a, b] = arr`, `let {x, y} = dict`
-- `format(fmt, args...)` — printf-style string formatting
-- Variadic functions — `fn sum(...args)`
-
-### Tier 2: Type System
-
-- Enums with associated data
-- Generics (lightweight)
-- Interface / trait system
-
-### Tier 3: Networking
-
-- TCP/UDP server support
-- WebSocket client
-- DNS resolution
+Delivered since the list above was written: `match`, destructuring, `format()`,
+TCP/UDP, and the FFI plugin system.
 
 ### Longer-Term
 
@@ -295,27 +228,27 @@ See **[BACKLOG.md](BACKLOG.html)** for the full prioritised list. Top items:
 ### Documentation
 
 **Core Implementation:**
-- **[DESIGN.md](DESIGN.html)** — Complete language specification
-- **[DEVELOPMENT.md](DEVELOPMENT.html)** — Development guidelines and best practices
-- **[LEXER.md](LEXER.html)** — Tokenization implementation
-- **[PARSER.md](PARSER.html)** — Syntax analysis implementation
-- **[INTERPRETER.md](INTERPRETER.html)** — Execution engine implementation
-- **[REPL.md](REPL.html)** — Interactive mode implementation
-- **[STDLIB.md](STDLIB.html)** — Standard library design
-- **[MEMORY_MANAGEMENT.md](MEMORY_MANAGEMENT.html)** — Garbage collection architecture
+- **[DESIGN.md](DESIGN.md)** — Complete language specification
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** — Development guidelines and best practices
+- **[LEXER.md](LEXER.md)** — Tokenization implementation
+- **[PARSER.md](PARSER.md)** — Syntax analysis implementation
+- **[INTERPRETER.md](INTERPRETER.md)** — Execution engine implementation
+- **[REPL.md](../lang/REPL.md)** — Interactive mode implementation
+- **[STDLIB.md](../lang/STDLIB.md)** — Standard library design
+- **[MEMORY_MANAGEMENT.md](MEMORY_MANAGEMENT.md)** — Garbage collection architecture
 
-**Language Features:**
-- **[STRUCT.md](STRUCT.html)** — User-defined types with fields and methods
-- **[ERROR_HANDLING.md](ERROR_HANDLING.html)** — try/catch/finally/throw
-- **[STRING_FEATURES.md](STRING_FEATURES.html)** — String indexing, interpolation, slicing
-- **[ASYNC.md](ASYNC.html)** — Async/await and I/O thread pool
-- **[EVENT_LOOP.md](EVENT_LOOP.html)** — Callback-based async
-- **[JSON.md](JSON.html)** — JSON parsing and serialization
-- **[TIME.md](TIME.html)** — Time functions (clock, sleep)
-- **[HTTP.md](HTTP.html)** — HTTP client functions
-- **[MODULE_SYSTEM.md](MODULE_SYSTEM.html)** — Import and module loading
-- **[ITERATOR_PROTOCOL.md](ITERATOR_PROTOCOL.html)** — Iterator protocol
-- **[BACKLOG.md](BACKLOG.html)** — Feature backlog (~30 items, 7 tiers)
+**Language Features** (all in `docs/lang/`):
+- **[STRUCT.md](../lang/STRUCT.md)** — User-defined types with fields and methods
+- **[ERROR_HANDLING.md](../lang/ERROR_HANDLING.md)** — try/catch/finally/throw
+- **[STRINGS.md](../lang/STRINGS.md)** — String indexing, interpolation, slicing
+- **[ASYNC.md](../lang/ASYNC.md)** — Async/await and I/O thread pool
+- **[EVENT_LOOP.md](EVENT_LOOP.md)** — Callback-based async
+- **[JSON.md](../lang/JSON.md)** — JSON parsing and serialization
+- **[TIME.md](../lang/TIME.md)** — Time functions (clock, sleep)
+- **[HTTP.md](../lang/HTTP.md)** — HTTP client functions
+- **[MODULE_SYSTEM.md](../lang/MODULE_SYSTEM.md)** — Import and module loading
+- **[ITERATORS.md](../lang/ITERATORS.md)** — Iterator protocol
+- **[BACKLOG.md](BACKLOG.md)** — Feature backlog
 
 ### External Resources
 - [Crafting Interpreters](https://craftinginterpreters.com/) by Robert Nystrom
@@ -323,16 +256,16 @@ See **[BACKLOG.md](BACKLOG.html)** for the full prioritised list. Top items:
 - [Rust Programming Language Book](https://doc.rust-lang.org/book/)
 
 ### Quick Links
-- **Main README**: [../README.md](../README.html)
-- **Project Guide**: [../CLAUDE.md](../CLAUDE.html)
-- **Examples**: [../examples/](../examples/)
-- **Standard Library**: [../stdlib/](../stdlib/)
+- **Main README**: `README.md` (repo root)
+- **Project Guide**: `CLAUDE.md` (repo root)
+- **Examples**: `examples/` (repo root)
+- **Standard Library**: `stdlib/` (repo root)
 
 ---
 
-**Last Updated**: April 29, 2026
+**Last Updated**: July 29, 2026
 **Current Phase**: Phase 5 Complete ✅
-**Test Count**: ~693 passing
+**Test Count**: see [Current Status](#current-status)
 
 ---
-[← Language Design](DESIGN.html) &nbsp;&nbsp; [Development Guide →](DEVELOPMENT.html)
+[← Language Design](DESIGN.md) &nbsp;&nbsp; [Development Guide →](DEVELOPMENT.md)

@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Development Guide"
 ---
 
-[Home](../index.html) › Developer Docs › Development Guide
+[Home](../index.md) › Developer Docs › Development Guide
 
 # Aether Development Guidelines
 
@@ -20,6 +20,7 @@ git config core.hooksPath .githooks
 The hook runs `cargo fmt --check`, `cargo clippy`, and `cargo test` before every commit. The hook file lives in `.githooks/pre-commit` (tracked in the repo) so every contributor gets the same checks.
 
 ## Table of Contents
+- [Where to Add New Features](#where-to-add-new-features)
 - [Post-Feature Checklist](#post-feature-checklist)
 - [Code Organization](#code-organization)
 - [Testing Strategy](#testing-strategy)
@@ -32,6 +33,26 @@ The hook runs `cargo fmt --check`, `cargo clippy`, and `cargo test` before every
 - [Debugging](#debugging)
 - [Documentation](#documentation)
 - [Dependencies](#dependencies)
+
+## Where to Add New Features
+
+| Task | Primary File | Test File |
+|------|-------------|-----------|
+| Add token type | `src/lexer/token.rs` | `src/lexer/lexer_tests.rs` |
+| Add syntax/AST node | `src/parser/ast.rs` | `src/parser/parser_tests.rs` |
+| Add built-in function | `src/interpreter/builtins.rs` | `tests/integration_test.rs` |
+| Add stdlib function | `stdlib/*.ae` | `tests/stdlib_test.rs` |
+| Add GC-managed value type | `src/interpreter/value.rs` (use Rc) | `tests/gc_test.rs` |
+| Add member property/method | `src/interpreter/evaluator/members.rs` | `tests/<type>_test.rs` |
+| Add statement execution | `src/interpreter/evaluator/statements.rs` | — |
+| Add expression evaluation | `src/interpreter/evaluator/expressions.rs` | — |
+| Add I/O async builtin | `src/interpreter/evaluator/functions.rs` (`try_submit_io_task`) | `tests/io_pool_test.rs` |
+| Extend static checker | `src/checker.rs` | `tests/checker_test.rs` |
+| Extend formatter | `src/formatter.rs` | `tests/fmt_test.rs` |
+
+Stdlib modules: `stdlib/core.ae` (range, enumerate), `stdlib/collections.ae`
+(map, filter, reduce, find, every, some), `stdlib/math.ae`, `stdlib/string.ae`,
+`stdlib/testing.ae`. Full function reference in [STDLIB.md](../lang/STDLIB.md).
 
 ## Post-Feature Checklist
 
@@ -54,10 +75,10 @@ Every feature — no matter how small — must pass this checklist before commit
 
 ### 3. Documentation
 
-- [ ] **Component doc updated** — the relevant doc in `docs/` (e.g. `INTERPRETER.md`, `STDLIB.md`) mentions the new function/syntax
-- [ ] **CLAUDE.md updated** — add the new function to the feature summary table and the relevant test count if it changed
-- [ ] **`docs/BACKLOG.md` updated** — mark the item done or add any new items discovered during implementation
-- [ ] If the feature introduces a new env var or config knob: **`docs/CONFIGURATION.md` updated**
+- [ ] **Component doc updated** — the relevant doc in `docs/dev/` or `docs/lang/` (e.g. [INTERPRETER.md](INTERPRETER.md), [STDLIB.md](../lang/STDLIB.md)) mentions the new function/syntax
+- [ ] **CLAUDE.md updated** — add the new function to the feature summary table in [ARCHITECTURE.md](ARCHITECTURE.md#feature-summary)
+- [ ] **[BACKLOG.md](BACKLOG.md) updated** — mark the item done or add any new items discovered during implementation
+- [ ] If the feature introduces a new env var or config knob: **[CONFIGURATION.md](../lang/CONFIGURATION.md) updated**
 
 ### 3a. Static Checker (`aether check`)
 
@@ -159,13 +180,16 @@ src/
 
 **Rule:** When any source file (`.rs`) grows beyond **1000 lines**, split it into a sub-module directory.
 
-**For source files** — convert `foo.rs` into `foo/mod.rs` and extract logical groups into sibling files:
+**For source files** — convert `foo.rs` into `foo/mod.rs` and extract logical groups into sibling files.
+
+This is the split that `evaluator.rs` already went through — it is the reference
+pattern, not a pending task:
 
 ```
-# Before (foo.rs exceeds 1000 lines)
+# Before (the historical evaluator.rs, no longer present)
 src/interpreter/evaluator.rs
 
-# After (split into module)
+# After (split into module — current layout)
 src/interpreter/evaluator/
 ├── mod.rs          # Struct definition, constructors, public API
 ├── expressions.rs  # eval_expr and sub-expression handlers
@@ -198,6 +222,19 @@ Integration tests in sub-directories require a wrapper file or use `#[path]` to 
 - Logical splits make it easier to find where to add new functionality
 - Smaller files have faster incremental compile times
 - Split boundaries become natural documentation of responsibility
+
+**Known exceptions.** These files are over the limit today. Do not split them as a
+side-effect of unrelated work — each split is its own change with its own review.
+
+| File | Lines |
+|------|-------|
+| `src/interpreter/builtins.rs` | 1797 |
+| `src/interpreter/evaluator/members.rs` | 1444 |
+| `src/parser/parse.rs` | 1390 |
+| `src/interpreter/evaluator/functions.rs` | 1115 |
+| `src/interpreter/evaluator/mod.rs` | 1011 |
+
+The limit still applies to new files and to files you are already restructuring.
 
 ### Module Responsibilities
 
@@ -512,7 +549,7 @@ See the [Post-Feature Checklist](#post-feature-checklist) for the full per-featu
 - [ ] All tests pass (`--test-threads=1`)
 - [ ] New code has tests AND an example program
 - [ ] GC / memory leak check done (see [Memory Leak Detection](#memory-leak-detection))
-- [ ] Relevant docs updated (CLAUDE.md, component doc, BACKLOG.html)
+- [ ] Relevant docs updated (CLAUDE.md, component doc, [BACKLOG.md](BACKLOG.md))
 - [ ] Error handling is robust
 - [ ] No clippy warnings
 - [ ] Code follows Rust idioms
@@ -800,4 +837,4 @@ if let Value::Array(arr) = &value {
 **Status**: Comprehensive development guidelines with TDD workflow and common pitfalls
 
 ---
-[← Architecture](ARCHITECTURE.html) &nbsp;&nbsp; [Testing Guide →](TESTING.html)
+[← Architecture](ARCHITECTURE.md) &nbsp;&nbsp; [Testing Guide →](TESTING.md)

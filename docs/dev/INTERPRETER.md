@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Interpreter"
 ---
 
-[Home](../index.html) › Developer Docs › Interpreter
+[Home](../index.md) › Developer Docs › Interpreter
 
 # Aether Interpreter Documentation
 
@@ -79,7 +79,27 @@ pub enum Value {
 - Mutable aggregate values (`Instance` fields, `Iterator` state, `Promise` state) use `Rc<RefCell<T>>`.
 - Helper constructors: `Value::string(s)`, `Value::array(v)`, `Value::dict(pairs)`, `Value::set(h)`, `Value::promise(func, args)`, `Value::promise_io(rx)`.
 
-See [MEMORY_MANAGEMENT.md](MEMORY_MANAGEMENT.html) for details.
+See [MEMORY_MANAGEMENT.md](MEMORY_MANAGEMENT.md) for details.
+
+## Value Construction Helpers
+
+Never construct `Value` variants directly — these helpers set up the `Rc`
+wrapping that the GC depends on.
+
+| Helper | Purpose |
+|--------|---------|
+| `Value::string(s)` | Rc-wrapped string |
+| `Value::array(vec)` | `Rc<RefCell>`-wrapped array (reference semantics) |
+| `Value::dict(vec)` | `Rc<RefCell>`-wrapped dict (reference semantics) |
+| `Value::set(hashset)` | Rc-wrapped set |
+| `Value::promise(func, args)` | pending Promise |
+| `Value::promise_io(rx)` | channel-backed I/O Promise |
+| `Value::error_val(msg, stack, line)` | error object for catch blocks |
+
+Predicates: `Value::is_truthy()` for boolean coercion in conditionals,
+`Value::is_hashable()` to check set/dict key eligibility.
+
+See [MEMORY_MANAGEMENT.md](MEMORY_MANAGEMENT.md) for the `Rc` cycle rules.
 
 ## Evaluator Struct
 
@@ -195,4 +215,4 @@ let mut eval = Evaluator::new_without_stdlib();
 **Status**: Complete
 
 ---
-[← Parser](PARSER.html) &nbsp;&nbsp; [Memory Management →](MEMORY_MANAGEMENT.html)
+[← Parser](PARSER.md) &nbsp;&nbsp; [Memory Management →](MEMORY_MANAGEMENT.md)

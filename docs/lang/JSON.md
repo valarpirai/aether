@@ -3,7 +3,7 @@ layout: default
 title: "Aether — JSON"
 ---
 
-[Home](../index.html) › Language Reference › JSON
+[Home](../index.md) › Language Reference › JSON
 
 # JSON
 
@@ -87,7 +87,7 @@ fn safe_parse(text) {
 
 ## Related
 
-- [HTTP](HTTP.html) — fetch JSON over the network with `http_get` / `http_post`
+- [HTTP](HTTP.md) — fetch JSON over the network with `http_get` / `http_post`
 
 ---
-[← Iterators](ITERATORS.html) &nbsp;&nbsp; [HTTP →](HTTP.html)
+[← Iterators](ITERATORS.md) &nbsp;&nbsp; [HTTP →](HTTP.md)

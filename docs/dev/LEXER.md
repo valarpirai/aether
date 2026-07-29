@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Lexer"
 ---
 
-[Home](../index.html) › Developer Docs › Lexer
+[Home](../index.md) › Developer Docs › Lexer
 
 # Aether Lexer Documentation
 
@@ -608,4 +608,4 @@ fn test_hex_literals() {
 **Status**: 14 unit tests passing — no changes since initial implementation
 
 ---
-[← Testing Guide](TESTING.html) &nbsp;&nbsp; [Parser →](PARSER.html)
+[← Testing Guide](TESTING.md) &nbsp;&nbsp; [Parser →](PARSER.md)

@@ -3,7 +3,7 @@ layout: default
 title: "Aether — REPL"
 ---
 
-[Home](../index.html) › Language Reference › REPL
+[Home](../index.md) › Language Reference › REPL
 
 # REPL
 
@@ -122,4 +122,4 @@ Triple-quoted strings also continue across lines:
 Command history is saved to `~/.aether_history` between sessions. If `HOME` is unset, history is not persisted.
 
 ---
-[← Home](../index.html) &nbsp;&nbsp; [Strings →](STRINGS.html)
+[← Home](../index.md) &nbsp;&nbsp; [Strings →](STRINGS.md)

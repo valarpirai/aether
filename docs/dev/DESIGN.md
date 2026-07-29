@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Language Design"
 ---
 
-[Home](../index.html) › Developer Docs › Language Design
+[Home](../index.md) › Developer Docs › Language Design
 
 # Aether Programming Language Design Document
 
@@ -740,4 +740,4 @@ id(a[0]) == id(b[0])  // true — inner arrays still shared
 **Status**: Language stable; backlog items in progress
 
 ---
-[← Home](../index.html) &nbsp;&nbsp; [Architecture →](ARCHITECTURE.html)
+[← Home](../index.md) &nbsp;&nbsp; [Architecture →](ARCHITECTURE.md)

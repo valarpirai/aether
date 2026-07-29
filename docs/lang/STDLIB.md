@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Standard Library"
 ---
 
-[Home](../index.html) › Language Reference › Standard Library
+[Home](../index.md) › Language Reference › Standard Library
 
 # Standard Library
 
@@ -41,6 +41,14 @@ Most standard library functions are available automatically — no import needed
 | `partition` | collections | `partition(array, fn)` → `[matches, rest]` |
 | `zip_longest` | collections | `zip_longest(arr1, arr2, fill)` → array |
 | `uniq_by` | collections | `uniq_by(array, fn)` → deduped array |
+| `uniq` | collections | `uniq(array)` → deduped array |
+| `concat` | collections | `concat(arr1, arr2)` → array |
+| `flat_map` | collections | `flat_map(array, fn)` → array — map then flatten one level |
+| `take` | collections | `take(array, n)` → first `n` elements |
+| `drop` | collections | `drop(array, n)` → all but the first `n` |
+| `group_by` | collections | `group_by(array, fn)` → dict of key → matching elements |
+| `count_by` | collections | `count_by(array, fn)` → dict of key → count |
+| `sum_by` | collections | `sum_by(array, fn)` → number |
 | `sqrt` | math | `sqrt(n)` → float |
 | `floor` / `ceil` / `round` | math | → int |
 | `trunc` | math | `trunc(n)` → int (toward zero) |
@@ -51,6 +59,7 @@ Most standard library functions are available automatically — no import needed
 | `exp` | math | `exp(x)` → float |
 | `sin` / `cos` / `tan` | math | trig in radians → float |
 | `degrees` / `radians` | math | angle conversion → float |
+| `pow` | math | `pow(base, exp)` → number |
 | `pi` / `e` / `tau` | math | constants |
 | `contains` | string | `contains(string, sub)` → bool |
 | `index_of` | string | `index_of(string, sub)` → int (-1 if absent) |
@@ -64,10 +73,18 @@ Most standard library functions are available automatically — no import needed
 | `is_digit` | string | `is_digit(string)` → bool |
 | `is_space` | string | `is_space(string)` → bool |
 | `assert_eq` | testing* | `assert_eq(actual, expected)` |
+| `assert_true` | testing* | `assert_true(value)` |
+| `assert_false` | testing* | `assert_false(value)` |
+| `assert_null` | testing* | `assert_null(value)` |
+| `assert_not_null` | testing* | `assert_not_null(value)` |
+| `expect_error` | testing* | `expect_error(fn)` — asserts `fn` throws |
 | `test` | testing* | `test(name, fn)` |
 | `test_summary` | testing* | `test_summary()` |
 
 *Requires explicit import: `from testing import assert_eq, test, test_summary`
+
+Built-in functions (`print`, `len`, `read_file`, `json_parse`, …) are implemented
+in Rust and documented separately in [BUILTINS.md](BUILTINS.md).
 
 ## Core (`core.ae`)
 
@@ -426,4 +443,4 @@ println(result)  // 60
 ```
 
 ---
-[← Modules](MODULE_SYSTEM.html) &nbsp;&nbsp; [Iterators →](ITERATORS.html)
+[← Modules](MODULE_SYSTEM.md) &nbsp;&nbsp; [Iterators →](ITERATORS.md)

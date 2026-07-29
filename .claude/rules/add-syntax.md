@@ -6,9 +6,9 @@ You are adding new syntax — a new token, a new AST node, a new statement, or a
 
 ## Steps
 
-1. **Lexer** — add the token to `src/lexer/token.rs`. Add the lexing rule in `src/lexer/lexer.rs`.
+1. **Lexer** — add the token to `src/lexer/token.rs`. Add the lexing rule in `src/lexer/scanner.rs`.
 2. **AST** — add the node to `src/parser/ast.rs`. Add it to the relevant `Stmt` or `Expr` enum.
-3. **Parser** — add the parse rule in `src/parser/parser.rs`. Write a parser test in `src/parser/parser_tests.rs`.
+3. **Parser** — add the parse rule in `src/parser/parse.rs`. Write a parser test in `src/parser/parser_tests.rs`.
 4. **Evaluator** — add the match arm in the right sub-module:
    - New statement → `src/interpreter/evaluator/statements.rs`
    - New expression → `src/interpreter/evaluator/expressions.rs`

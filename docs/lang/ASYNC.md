@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Async / Await"
 ---
 
-[Home](../index.html) › Language Reference › Async / Await
+[Home](../index.md) › Language Reference › Async / Await
 
 # Async / Await
 
@@ -224,10 +224,10 @@ fn main() {
 
 ## Related
 
-- [HTTP](HTTP.html) — `http_get` / `http_post` return Promises when workers are active
-- [Time](TIME.html) — `sleep` returns a Promise when workers are active
-- [JSON](JSON.html) — parse HTTP response bodies as structured data
-- [Configuration](CONFIGURATION.html) — `set_workers`, `AETHER_IO_WORKERS`
+- [HTTP](HTTP.md) — `http_get` / `http_post` return Promises when workers are active
+- [Time](TIME.md) — `sleep` returns a Promise when workers are active
+- [JSON](JSON.md) — parse HTTP response bodies as structured data
+- [Configuration](CONFIGURATION.md) — `set_workers`, `AETHER_IO_WORKERS`
 
 ---
-[← Random](RANDOM.html) &nbsp;&nbsp; [Configuration →](CONFIGURATION.html)
+[← Random](RANDOM.md) &nbsp;&nbsp; [Configuration →](CONFIGURATION.md)

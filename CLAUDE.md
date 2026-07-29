@@ -1,33 +1,104 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 ## Project Overview
 
-Aether is a general-purpose programming language implemented in Rust — a fully-working tree-walking interpreter with a rich standard library, async I/O, structs, and a module system.
+Aether is a general-purpose programming language implemented in Rust — a
+tree-walking interpreter with a rich standard library, async I/O, structs, and a
+module system.
 
-### Language Characteristics
-- **Execution**: Interpreted (tree-walking interpreter)
-- **Typing**: Dynamic with runtime type checking
-- **Memory**: Rc-based reference counting (GC)
-- **Syntax**: C-like with curly braces, no semicolons
-- **File Extension**: `.ae`
-- **Entry Point**: Required `main()` function
+- **Execution**: interpreted (tree-walking)
+- **Typing**: dynamic, with runtime type checking
+- **Memory**: Rc-based reference counting
+- **Syntax**: C-like, curly braces, no semicolons
+- **File extension**: `.ae`, entry point `main()`
 
-### Key Features
-- Primitive types: `int`, `float`, `string` (UTF-8), `bool`, `null`
-- Collections: `array`, `dict`, `set` (unique, unordered)
-- First-class functions with closures, optional parameters, function expressions
-- Block-scoped variables using `let` keyword
-- Range-based and for-each loops
-- String interpolation: `"Hello ${name}"`, string indexing: `str[0]`
-- Error handling: `try/catch/throw` with `e.message` and `e.stack_trace`
-- Module system: `import`, `from ... import`, aliases
-- Structs with fields, methods, and `self` binding
-- Async/await — `async fn`, `await`, `Promise.all`, `Promise.race`, `Promise.allSettled`, I/O thread pool
-- Event loop — `on_ready(promise, callback)`, `event_loop()` for callback-based async
-- Null safety — `??` null coalescing, `?.` optional chaining
-- REPL with history and tab-completion
+Current phase, feature inventory, and test counts:
+**[ARCHITECTURE.md — Current Status](docs/dev/ARCHITECTURE.md#current-status)**.
+
+## Rules
+
+Before starting any task, check `.claude/rules/index.md` for the matching rule
+file and follow it. Rules live in `.claude/rules/`; each file covers one action.
+Load the file for the task at hand.
+
+## Where to Add Features
+
+See **[DEVELOPMENT.md — Where to Add New Features](docs/dev/DEVELOPMENT.md#where-to-add-new-features)**
+for the task-to-file map.
+
+### Evaluator sub-module layout
+
+```
+src/interpreter/evaluator/
+  mod.rs          — Evaluator struct, constructors, public API, call_main
+  expressions.rs  — eval_expr, eval_index, eval_slice, await_value
+  statements.rs   — exec_stmt_internal (all Stmt variants)
+  functions.rs    — eval_call, call_value, exec_async_body, try_submit_io_task
+  members.rs      — eval_member, eval_method_call (collections + structs)
+  modules.rs      — load_module, import_from, resolve_module_path
+  operators.rs    — eval_unary, eval_binary, arithmetic, comparison
+```
+
+### Built-in vs stdlib
+
+**Built-in (Rust)** if it needs interpreter internals (`type()`, `len()`,
+`await`), is performance-critical (operators, indexing), or does native I/O
+(`print`, `read_file`, `http_get`, `sleep`).
+
+**Stdlib (Aether)** if it can be written in Aether on existing primitives, or is
+user-modifiable logic (`map`, `filter`, `range`).
+
+**Rule of thumb**: if you can write it in Aether, put it in stdlib. Full decision
+tree in [DEVELOPMENT.md](docs/dev/DEVELOPMENT.md#feature-implementation-decision-tree).
+
+### Value construction
+
+Never construct `Value` variants directly — use the helpers
+(`Value::string`, `Value::array`, `Value::dict`, `Value::promise_io`, …). Table in
+[INTERPRETER.md](docs/dev/INTERPRETER.md#value-construction-helpers).
+
+## Development Commands
+
+```bash
+# Build
+cargo build               # debug
+cargo build --release     # optimised
+
+# Test — always use --test-threads=1
+cargo test -- --test-threads=1
+cargo test -- --test-threads=1 --nocapture              # show output
+cargo test --test error_context_test -- --test-threads=1 # single file
+cargo test --test gc_test -- --test-threads=1            # memory / GC
+
+# macOS leak check (spot-check after adding new Value variants)
+leaks --atExit -- ./target/debug/aether examples/<feature>_demo.ae
+
+# Run
+cargo run -- examples/error_context.ae
+AETHER_IO_WORKERS=4 cargo run -- examples/concurrent_io.ae
+
+# Code quality
+cargo fmt && cargo clippy
+```
+
+Use `Evaluator::new_without_stdlib()` in tests that don't call stdlib functions —
+it is ~760× faster than `Evaluator::new()`.
+
+## Post-Feature Checklist
+
+1. **Tests** — `tests/<feature>_test.rs` with happy path, edge cases, error cases
+2. **Example** — `examples/<feature>_demo.ae` covering all new functions/syntax
+3. **Docs** — update the relevant component doc and BACKLOG.md
+4. **Static checker** — add new builtin/stdlib names to `BUILTINS` in
+   `src/checker.rs`; add match arms for new AST variants in
+   `check_stmt`/`check_expr`; verify with `cargo run -- check examples/<feature>_demo.ae`
+5. **Memory check** — `cargo test --test gc_test`; for new `Value` variants also
+   run `leaks --atExit`
+6. **Code quality** — `cargo fmt && cargo clippy && cargo test -- --test-threads=1`
+
+Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT.md#post-feature-checklist)**
 
 ## Documentation Index
 
@@ -40,295 +111,45 @@ Aether is a general-purpose programming language implemented in Rust — a fully
 | [DESTRUCTURING.md](docs/lang/DESTRUCTURING.md) | Array and dict destructuring, rest, rename, defaults |
 | [STRUCT.md](docs/lang/STRUCT.md) | User-defined types with fields and methods |
 | [ERROR_HANDLING.md](docs/lang/ERROR_HANDLING.md) | try/catch/finally/throw with stack traces |
-| [ASYNC.md](docs/lang/ASYNC.md) | async fn, await, .then(), Promise.all/race/allSettled, I/O pool |
+| [ASYNC.md](docs/lang/ASYNC.md) | async fn, await, .then(), Promise combinators, I/O pool |
 | [ITERATORS.md](docs/lang/ITERATORS.md) | Iterator protocol, built-in and custom iterators |
 | [MODULE_SYSTEM.md](docs/lang/MODULE_SYSTEM.md) | import, from…import, stdlib modules |
-| [STDLIB.md](docs/lang/STDLIB.md) | range, map, filter, reduce, math, string, testing |
+| [BUILTINS.md](docs/lang/BUILTINS.md) | Built-in (Rust) function reference — print, len, file I/O, sockets |
+| [STDLIB.md](docs/lang/STDLIB.md) | Stdlib (Aether) function reference — map, filter, math, string |
+| [EXAMPLES.md](docs/lang/EXAMPLES.md) | Worked examples by topic, mirrors `examples/` |
 | [HTTP.md](docs/lang/HTTP.md) | http_get(), http_post() |
 | [JSON.md](docs/lang/JSON.md) | json_parse(), json_stringify() |
 | [CSV.md](docs/lang/CSV.md) | csv_parse(), csv_stringify() |
 | [TIME.md](docs/lang/TIME.md) | clock(), sleep() |
 | [RANDOM.md](docs/lang/RANDOM.md) | random(), rand_int(n) |
 | [PLUGINS.md](docs/lang/PLUGINS.md) | load_plugin() — FFI for Rust shared libraries |
-| [PLUGIN_GUIDE.md](docs/lang/PLUGIN_GUIDE.md) | Step-by-step guide to writing a plugin and wrapping a Rust crate |
+| [PLUGIN_GUIDE.md](docs/lang/PLUGIN_GUIDE.md) | Step-by-step: write a plugin, wrap a Rust crate |
 | [REPL.md](docs/lang/REPL.md) | Interactive REPL and file execution |
 | [CONFIGURATION.md](docs/lang/CONFIGURATION.md) | Env vars and runtime configuration builtins |
-| [TCP.md](docs/lang/TCP.md) | tcp_listen(), tcp_connect(), server/client lifecycle events |
+| [TCP.md](docs/lang/TCP.md) | tcp_listen(), tcp_connect(), lifecycle events |
 
 ### Developer Docs (`docs/dev/`) — how Aether is built
 
 | Document | Description |
 |----------|-------------|
+| [ARCHITECTURE.md](docs/dev/ARCHITECTURE.md) | System architecture, current status, roadmap |
 | [DESIGN.md](docs/dev/DESIGN.md) | Complete language specification |
-| [ARCHITECTURE.md](docs/dev/ARCHITECTURE.md) | System architecture and roadmap |
-| [DEVELOPMENT.md](docs/dev/DEVELOPMENT.md) | Development guidelines and best practices |
+| [DEVELOPMENT.md](docs/dev/DEVELOPMENT.md) | Where to add features, checklist, guidelines |
 | [TESTING.md](docs/dev/TESTING.md) | TDD workflow, running tests, debugging |
 | [BACKLOG.md](docs/dev/BACKLOG.md) | Prioritised feature backlog |
 | [LEXER.md](docs/dev/LEXER.md) | Lexer implementation |
 | [PARSER.md](docs/dev/PARSER.md) | Parser implementation |
 | [INTERPRETER.md](docs/dev/INTERPRETER.md) | Interpreter / evaluator sub-modules |
-| [MEMORY_MANAGEMENT.md](docs/dev/MEMORY_MANAGEMENT.md) | Memory model, Rc-based GC, and design rationale |
-| [EVENT_LOOP.md](docs/dev/EVENT_LOOP.md) | Event loop internals: on_ready, event_loop, queue controls |
-| [ASYNC_IO.md](docs/dev/ASYNC_IO.md) | IoPool, EventLoopQueue, TCP dispatch loop, await vs .then() patterns |
-| [TCP_UDP.md](docs/dev/TCP_UDP.md) | TCP/UDP implementation: mio I/O loop, state types, channels, SIGINT, UDP design |
+| [MEMORY_MANAGEMENT.md](docs/dev/MEMORY_MANAGEMENT.md) | Memory model, Rc-based GC, rationale |
+| [EVENT_LOOP.md](docs/dev/EVENT_LOOP.md) | Event loop internals: on_ready, event_loop |
+| [ASYNC_IO.md](docs/dev/ASYNC_IO.md) | IoPool, EventLoopQueue, TCP dispatch loop |
+| [TCP_UDP.md](docs/dev/TCP_UDP.md) | TCP/UDP implementation: mio I/O loop, channels |
+| [FFI_PLUGIN_SYSTEM.md](docs/dev/FFI_PLUGIN_SYSTEM.md) | Plugin protocol, type mapping, status |
+| [DEBUGGER.md](docs/dev/DEBUGGER.md) | Debugger implementation |
+| [GITHUB_PAGES.md](docs/dev/GITHUB_PAGES.md) | Publishing the docs site |
 
-## Quick Reference for Claude Code
+## Documentation Maintenance
 
-### Where to Add New Features
-
-| Task | Primary File | Test File |
-|------|-------------|-----------|
-| Add token type | `src/lexer/token.rs` | `src/lexer/lexer_tests.rs` |
-| Add syntax/AST node | `src/parser/ast.rs` | `src/parser/parser_tests.rs` |
-| Add built-in function | `src/interpreter/builtins.rs` | `tests/integration_test.rs` |
-| Add stdlib function | `stdlib/*.ae` | `tests/stdlib_test.rs` |
-| Add GC-managed value type | `src/interpreter/value.rs` (use Rc) | — |
-| Add member property/method | `src/interpreter/evaluator/members.rs` | — |
-| Add statement execution | `src/interpreter/evaluator/statements.rs` | — |
-| Add expression evaluation | `src/interpreter/evaluator/expressions.rs` | — |
-| Add I/O async builtin | `src/interpreter/evaluator/functions.rs` (`try_submit_io_task`) | `tests/io_pool_test.rs` |
-| Extend static checker | `src/checker.rs` | `tests/checker_test.rs` |
-| Extend formatter | `src/formatter.rs` | `tests/fmt_test.rs` |
-
-### Evaluator Sub-module Layout
-
-```
-src/interpreter/evaluator/
-  mod.rs          — Evaluator struct, constructors, public API, call_main
-  expressions.rs  — eval_expr, eval_index, eval_slice, await_value
-  statements.rs   — exec_stmt_internal (all Stmt variants)
-  functions.rs    — eval_call, call_value, exec_async_body, try_submit_io_task
-  members.rs      — eval_member, eval_method_call (all collection/struct methods)
-  modules.rs      — load_module, import_from, resolve_module_path
-  operators.rs    — eval_unary, eval_binary, arithmetic, comparison
-```
-
-### Key Helper Functions
-- `Value::string(s)` — create Rc-wrapped string
-- `Value::array(vec)` — create Rc<RefCell>-wrapped array (reference semantics)
-- `Value::dict(vec)` — create Rc<RefCell>-wrapped dict (reference semantics)
-- `Value::set(hashset)` — create Rc-wrapped set
-- `Value::promise(func, args)` — create a pending Promise
-- `Value::promise_io(rx)` — create a channel-backed I/O Promise
-- `Value::error_val(msg, stack, line)` — create an error object for catch blocks
-- `Value::is_truthy()` — boolean coercion for conditionals
-- `Value::is_hashable()` — check if value can be used as a set/dict key
-- `Environment::with_parent()` — create nested scope
-- `Evaluator::await_value(val)` — resolve a Promise (handles Pending and IoWaiting)
-
-### Stdlib Module Locations
-- **Core**: `stdlib/core.ae` — `range()`, `enumerate()`
-- **Collections**: `stdlib/collections.ae` — `map()`, `filter()`, `reduce()`, `find()`, `every()`, `some()`
-- **Math**: `stdlib/math.ae` — `abs()`, `min()`, `max()`, `sum()`, `clamp()`, `sign()`
-- **String**: `stdlib/string.ae` — `join()`, `repeat()`, `reverse()`, `starts_with()`, `ends_with()`
-- **Testing**: `stdlib/testing.ae` — `assert_eq()`, `assert_true()`, `assert_false()`, `assert_null()`, `assert_not_null()`, `expect_error()`, `test()`, `test_summary()`
-
-### Built-in vs Stdlib Decision Tree
-
-**Built-in (Rust)** if the function:
-- Requires interpreter internals (`type()`, `len()`, `await`)
-- Is performance-critical (operators, indexing)
-- Performs native I/O (`print`, `read_file`, `http_get`, `sleep`)
-
-**Stdlib (Aether)** if:
-- Can be written in Aether
-- Built on existing primitives
-- User-modifiable logic (`map`, `filter`, `range`)
-
-**Rule of thumb**: If you can write it in Aether, put it in stdlib.
-
-## Development Commands
-
-```bash
-# Build
-cargo build               # debug
-cargo build --release     # optimised
-
-# Test (always use --test-threads=1)
-cargo test -- --test-threads=1
-cargo test -- --test-threads=1 --nocapture   # show output
-cargo test --test error_context_test -- --test-threads=1  # single file
-
-# Memory / GC tests
-cargo test --test gc_test -- --test-threads=1
-
-# macOS leak check (spot-check after adding new Value variants)
-leaks --atExit -- ./target/debug/aether examples/<feature>_demo.ae
-
-# Run
-cargo run -- examples/error_context.ae
-AETHER_IO_WORKERS=4 cargo run -- examples/concurrent_io.ae
-
-# Code quality
-cargo fmt
-cargo clippy
-```
-
-## Post-Feature Checklist
-
-After implementing any feature, before committing:
-
-1. **Tests** — `tests/<feature>_test.rs` with happy path, edge cases, and error cases
-2. **Example program** — `examples/<feature>_demo.ae` covering all new functions/syntax
-3. **Docs** — update the relevant component doc + CLAUDE.md feature table + BACKLOG.md
-4. **Static checker** — add any new builtin/stdlib names to `BUILTINS` in `src/checker.rs`; add match arms for any new AST variants in `check_stmt`/`check_expr`; verify with `cargo run -- check examples/<feature>_demo.ae`
-5. **Memory check** — run `cargo test --test gc_test`; for new `Value` variants also run `leaks --atExit`
-6. **Code quality** — `cargo fmt && cargo clippy && cargo test -- --test-threads=1`
-
-Full details: **[DEVELOPMENT.md — Post-Feature Checklist](docs/dev/DEVELOPMENT.md#post-feature-checklist)**
-
-## Project Status
-
-**Phase**: 5 complete — language is fully functional with async I/O and rich stdlib.
-
-### Completed Feature Summary
-
-| Area | Features |
-|------|---------|
-| **Core language** | int, float, string, bool, null, array, dict, set; all operators; let, if/else, while, for, break, continue, return |
-| **Operators** | arithmetic, comparison, logical, bitwise `& \| ^ ~ << >>`, power `**`, ternary `?:`, null coalesce `??`, optional chain `?.` |
-| **Pattern matching** | `match` statement — literals, wildcard `_`, binding, or-patterns `\|`, enum variant patterns |
-| **Destructuring** | `let [a, b, ...rest] = arr`, `let {host, port: p = 5432} = dict` — array/dict, rest, rename, defaults |
-| **Functions** | declarations, expressions, closures, optional params, recursion (depth limit 100) |
-| **Strings** | indexing, interpolation `${expr}`, slicing `str[1:3]`, spread `[...arr]`, upper/lower/trim/split |
-| **Collections** | array (push/pop/sort/concat/slice/spread), dict (keys/values/contains), set (union/intersection/difference/subset); reference semantics for array/dict/struct; `==` is identity; `.equals()` depth-1 structural; `copy()` depth-1 shallow clone; `id()` for object identity |
-| **Error handling** | try/catch/finally/throw; `e.message`, `e.stack_trace`; stack frames include filename and line number |
-| **Modules** | `import mod`, `from mod import fn`, `import mod as alias`; filesystem + embedded stdlib |
-| **Structs** | fields, methods, `self` binding, mutable fields via RefCell; `.equals()` for depth-1 structural comparison |
-| **Iterators** | `has_next()`, `next()`, for-in over array/dict/set/string/iterator |
-| **Async/await** | `async fn`, `await expr`, Promise caching; `Promise.all`, `Promise.race`, `Promise.allSettled` |
-| **I/O thread pool** | `set_workers(n)`, `AETHER_IO_WORKERS` env var; async `http_get`, `sleep`, `read_file`, `write_file`, `http_post` |
-| **Event loop** | `on_ready(promise, callback)`, `event_loop()`; callback-based async; chained callbacks |
-| **Null safety** | `??` null coalescing (short-circuit), `?.` optional member/method chaining |
-| **JSON** | `json_parse()`, `json_stringify()` via serde_json |
-| **CSV** | `csv_parse(str[, delim])`, `csv_stringify(rows[, delim])`; parse CSV/TSV text to array of arrays and back |
-| **HTTP** | `http_get(url)`, `http_post(url, body)` via reqwest (blocking or async) |
-| **Time** | `clock()` (Unix epoch float), `sleep(secs)` |
-| **Random** | `random()` (float in `[0, 1)`), `rand_int(n)` (int in `[0, n)`) via the `rand` crate |
-| **TCP** | `tcp_listen(addr[, opts])`, `tcp_connect(addr)`; server events: `on_listen/connect/message/disconnect/error/timeout`, `accept()`, `close()`; client events: `on_connect/message/disconnect/error/timeout`, `start()`, `close()`, `write(data)`; event-driven via mio (single I/O thread, ~8–260 KB per connection); use array/dict for mutable closure state |
-| **UDP** | `udp_bind(addr)`; `on_message(fn(data, addr) { })`, `send_to(data, addr)`, `listen()`, `close()`; connectionless datagram socket; same mio I/O thread architecture as TCP |
-| **FFI / Plugins** | `load_plugin(path)` — load Rust shared libraries (`.so`/`.dylib`/`.dll`); call functions as methods; V1 protocol (int-only) and V2 protocol (`String`, `Vec<i64>`, `HashMap<String,i64>`) auto-detected at load; enables access to entire Rust ecosystem (databases, image processing, crypto, ML, etc.) |
-| **Standard library** | range, enumerate, map, filter, reduce, find, every, some, abs, min, max, sum, clamp, sign, join, repeat, reverse, starts_with, ends_with, first, last, chunk, partition, zip_longest, uniq_by, contains, index_of, replace, count, pad_left, pad_right, strip_prefix, strip_suffix, is_alpha, is_digit, is_space, pi, e, tau, factorial, trunc, degrees, radians, hypot, exp, sin, cos, tan |
-| **Number/string conversions** | `hex(n)`, `oct(n)`, `bin(n)`, `int(s, base)`, `base64_encode(s)`, `base64_decode(s)` |
-| **String formatting** | `format(fmt, ...args)` — `{}` positional placeholders, `{:.2f}` precision, `{:>10}` / `{:<10}` / `{:^10}` width+alignment, `{:0>5d}` fill char, `{:x}`/`{:o}`/`{:b}` integer bases |
-| **Testing framework** | assert_eq, assert_true/false/null, expect_error, test, test_summary |
-| **REPL** | rustyline with history (`~/.aether_history`), tab-completion, `_help`/`_env`/`_exit`, multi-line input (`>>` / `..`) |
-| **Configuration** | `AETHER_IO_WORKERS`, `AETHER_CALL_DEPTH`, `HOME` (see [CONFIGURATION.md](docs/lang/CONFIGURATION.md)) |
-| **Tooling** | `aether ast` (AST printer — indented tree or JSON), `aether fmt` (formatter), `aether test` (test runner), `aether check [file\|dir]` (undefined variable linter; dir mode enforces exactly one `main()`; missing `main()` is a warning not an error) |
-
-### Completed Milestones
-
-| Milestone | Tests at completion |
-|-----------|-------------------|
-| Phase 1: Core Interpreter | 102 |
-| Phase 2: Essential Features | 147 |
-| Phase 3: Standard Library | 230 |
-| Phase 4: Advanced Language Features | 314 |
-| Phase 5 Sprint 1: Testing Framework | 333 |
-| Phase 5 Sprint 2: Advanced Types (structs, sets, iterators) | 420 |
-| Phase 5 Sprint 3: Async/await + I/O pool | 476 |
-| Phase 5 Sprint 4: Error context + stack traces | ~547 |
-| Phase 5 Sprint 5: Null safety + Event loop | ~693 |
-| Phase 5 Sprint 6: Tooling (fmt, test, check, REPL multi-line) | ~1112 |
-
-### Test Coverage (2026-07-05)
-
-- **Total**: ~1184 tests passing (134 unit + ~1050 integration)
-- **Ignored/skipped**: ~9 http tests (require network), 2 known recursion stack-overflow
-- **Code quality**: cargo clippy clean (5 acceptable `mutable_key_type` warnings for HashSet)
-
-**Unit tests (134):**
-
-| Suite | Count |
-|-------|-------|
-| Lexer | 14 |
-| Parser | 53 |
-| Interpreter | 17 |
-| Built-ins | 15 |
-| Other unit | 35 |
-
-**Integration tests (~1050):**
-
-| Suite | Count |
-|-------|-------|
-| `stdlib_collections_test` | 54 |
-| `stdlib_math_test` | 39 |
-| `stdlib_string2_test` | 38 |
-| `operators_test` | 36 |
-| `number_conversion_test` | 35 |
-| `event_loop_test` | 32 |
-| `stdlib_math2_test` | 31 |
-| `async_test` | 30 |
-| `tcp_test` | 29 |
-| `integration_test` | 29 |
-| `reference_semantics_test` | 27 |
-| `dict_test` | 27 |
-| `checker_test` | 27 |
-| `fmt_test` | 26 |
-| `struct_test` | 25 |
-| `json_test` | 25 |
-| `file_io_test` | 25 |
-| `stdlib_string_test` | 24 |
-| `set_test` | 24 |
-| `stdlib_collections2_test` | 23 |
-| `null_coalesce_test` | 23 |
-| `iterator_test` | 22 |
-| `array_methods_test` | 22 |
-| `format_test` | 22 |
-| `enum_test` | 20 |
-| `destructure_test` | 20 |
-| `csv_test` | 20 |
-| `clippy_fix_regression_test` | 20 |
-| `stdlib_testing_test` | 19 |
-| `string_indexing_test` | 16 |
-| `slice_test` | 15 |
-| `error_handling_test` | 15 |
-| `io_pool_test` | 14 |
-| `module_test` | 13 |
-| `match_test` | 13 |
-| `gc_test` | 13 |
-| `function_expr_test` | 13 |
-| `error_context_test` | 11 |
-| `random_test` | 11 |
-| `time_test` | 10 |
-| `test_runner_test` | 10 |
-| `multiline_string_test` | 10 |
-| `string_interp_test` | 9 |
-| `stdlib_test` | 9 |
-| `spread_test` | 9 |
-| `http_test` | 9 (ignored — network) |
-| `udp_test` | 8 |
-| `string_methods_test` | 8 |
-| `member_access_test` | 8 |
-| `labeled_loop_test` | 8 |
-| `args_test` | 6 |
-| `io_test` | 5 |
-| `debugger_test` | 5 |
-| `closure_leak_test` | 4 |
-| `small_recursion_test` | 2 |
-| `recursion_limit_test` | 2 |
-
-### Backlog
-
-See **[docs/dev/BACKLOG.md](docs/dev/BACKLOG.md)** for the full prioritised backlog (~30 features across 6 tiers).
-
-Top-of-backlog highlights: variadic args, enums/tuples, named/default params.
-
-## Development Resources
-
-- **[DEVELOPMENT.md](docs/dev/DEVELOPMENT.md)** — guidelines, TDD workflow, file-size limits (max 1000 lines), code organisation
-- **[TESTING.md](docs/dev/TESTING.md)** — comprehensive testing guide with examples
-- **[ARCHITECTURE.md](docs/dev/ARCHITECTURE.md)** — system design and roadmap
-- **[BACKLOG.md](docs/dev/BACKLOG.md)** — feature backlog
-- **[CONFIGURATION.md](docs/lang/CONFIGURATION.md)** — all knobs and env vars
-- Component docs: LEXER.md, PARSER.md, INTERPRETER.md, REPL.md, STDLIB.md, MEMORY_MANAGEMENT.md, TCP_UDP.md
-
-## Documentation
-- gh-pages branch is used for the GitHub Pages website
-- Update docs in gh-pages when adding new user-facing features
-
-## Rules
-
-Before starting any task, check `.claude/rules/index.md` for the matching rule file and follow it.
-
-Rules live in `.claude/rules/`. Each file covers one action. Load the file for the task at hand.
+- The `gh-pages` branch serves the GitHub Pages website.
+- Update `gh-pages` when adding user-facing features.
+- Each doc owns one topic. Link between docs instead of duplicating content.

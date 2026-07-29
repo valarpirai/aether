@@ -10,6 +10,7 @@ Load the rule for the task at hand. Each file is self-contained.
 | Adding a new `Value` enum variant | `.claude/rules/add-value-variant.md` |
 | Adding a member method or property to a built-in type | `.claude/rules/add-member.md` |
 | Adding an async I/O built-in | `.claude/rules/add-async-builtin.md` |
+| Writing a plugin or changing the FFI protocol | `.claude/rules/add-plugin.md` |
 | Adding a builtin/stdlib name or new AST node | `.claude/rules/update-checker.md` |
 | Writing or fixing tests | `.claude/rules/write-tests.md` |
 | Updating documentation after a feature | `.claude/rules/update-docs.md` |

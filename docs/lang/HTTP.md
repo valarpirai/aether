@@ -3,7 +3,7 @@ layout: default
 title: "Aether — HTTP"
 ---
 
-[Home](../index.html) › Language Reference › HTTP
+[Home](../index.md) › Language Reference › HTTP
 
 # HTTP
 
@@ -133,9 +133,9 @@ try {
 
 ## Related
 
-- [Async/Await](ASYNC.html) — `await`, `Promise.all`, `.then()` for concurrent requests
-- [JSON](JSON.html) — parse response bodies as structured data
-- [Configuration](CONFIGURATION.html) — `set_workers`, `AETHER_HTTP_TIMEOUT`, `AETHER_HTTP_USER_AGENT`
+- [Async/Await](ASYNC.md) — `await`, `Promise.all`, `.then()` for concurrent requests
+- [JSON](JSON.md) — parse response bodies as structured data
+- [Configuration](CONFIGURATION.md) — `set_workers`, `AETHER_HTTP_TIMEOUT`, `AETHER_HTTP_USER_AGENT`
 
 ---
-[← JSON](JSON.html) &nbsp;&nbsp; [Time →](TIME.html)
+[← JSON](JSON.md) &nbsp;&nbsp; [Time →](TIME.md)

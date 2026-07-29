@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Backlog"
 ---
 
-[Home](../index.html) › Developer Docs › Backlog
+[Home](../index.md) › Developer Docs › Backlog
 
 # Aether Language Backlog
 
@@ -493,4 +493,4 @@ Every `Value::string()` allocates a new `Rc<String>`. Common dict keys (`"min"`,
 - JIT compilation — follow bytecode compiler first
 
 ---
-[← Memory Management](MEMORY_MANAGEMENT.html) &nbsp;&nbsp; [Home →](../index.html)
+[← Memory Management](MEMORY_MANAGEMENT.md) &nbsp;&nbsp; [Home →](../index.md)

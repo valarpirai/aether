@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Time"
 ---
 
-[Home](../index.html) › Language Reference › Time
+[Home](../index.md) › Language Reference › Time
 
 # Time
 
@@ -95,7 +95,7 @@ fn retry(func, max_attempts) {
 
 ## Related
 
-- [Async/Await](ASYNC.html) — `await sleep(n)` when workers are active; `.then()` for non-blocking callbacks
+- [Async/Await](ASYNC.md) — `await sleep(n)` when workers are active; `.then()` for non-blocking callbacks
 
 ---
-[← HTTP](HTTP.html) &nbsp;&nbsp; [Random →](RANDOM.html)
+[← HTTP](HTTP.md) &nbsp;&nbsp; [Random →](RANDOM.md)

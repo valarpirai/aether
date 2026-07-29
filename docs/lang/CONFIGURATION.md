@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Configuration"
 ---
 
-[Home](../index.html) › Language Reference › Configuration
+[Home](../index.md) › Language Reference › Configuration
 
 # Configuration
 
@@ -83,4 +83,4 @@ let resp = http_post("https://api.example.com/", payload, {
 | `user_agent` | string | `AETHER_HTTP_USER_AGENT` |
 
 ---
-[← Async](ASYNC.html) &nbsp;&nbsp; [Home →](../index.html)
+[← Async](ASYNC.md) &nbsp;&nbsp; [Home →](../index.md)

@@ -51,24 +51,17 @@ The documentation site is organized as follows:
 docs/
 ├── _config.yml          # Jekyll configuration
 ├── index.md             # Landing page
-├── DESIGN.md            # Language specification
-├── ARCHITECTURE.md      # System architecture
-├── DEVELOPMENT.md       # Development guide
-├── TESTING.md           # Testing guide
-├── LEXER.md            # Lexer documentation
-├── PARSER.md           # Parser documentation
-├── INTERPRETER.md      # Interpreter documentation
-├── REPL.md             # REPL documentation
-├── STDLIB.md           # Standard library
-├── MODULE_SYSTEM.md    # Module system
-├── STRUCT.md           # Structs feature
-├── ERROR_HANDLING.md   # Error handling
-├── STRING_FEATURES.md  # String features
-├── JSON.md             # JSON support
-├── TIME.md             # Time functions
-├── HTTP.md             # HTTP functions
-└── MEMORY_MANAGEMENT.md        # Garbage collection
+├── assets/css/          # Site styles
+├── lang/                # Language reference — what Aether does
+│   ├── STDLIB.md, BUILTINS.md, STRINGS.md, FORMAT.md, …
+│   └── (see the doc index in CLAUDE.md for the full list)
+└── dev/                 # Developer docs — how Aether is built
+    ├── ARCHITECTURE.md, DESIGN.md, DEVELOPMENT.md, TESTING.md, …
+    └── (see the doc index in CLAUDE.md for the full list)
 ```
+
+`docs/dev/GITHUB_PAGES.md` is excluded from the built site — see `exclude` in
+`_config.yml`.
 
 ## Navigation
 
@@ -237,7 +230,7 @@ Check the **Actions** tab in your GitHub repository:
 ### 404 Errors
 
 - Verify `baseurl` and `url` in `_config.yml`
-- Check file paths use `.html` extension in links
+- Docs link to each other with `.md`; the `jekyll-relative-links` plugin rewrites them to `.html` at build time
 - Ensure files have proper front matter
 
 ### Syntax Highlighting Not Working
@@ -268,7 +261,7 @@ Check the **Actions** tab in your GitHub repository:
 - Test links before committing
 - Keep navigation structure up to date
 - Add new pages to `_config.yml` navigation
-- Use relative links: `[Link](DESIGN.html)` not absolute URLs
+- Use relative links: `[Link](DESIGN.md)` not absolute URLs
 
 ## Custom Domain (Optional)
 

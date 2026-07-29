@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Memory Management"
 ---
 
-[Home](../index.html) › Developer Docs › Memory Management
+[Home](../index.md) › Developer Docs › Memory Management
 
 # Memory Management
 
@@ -322,4 +322,4 @@ use std::sync::Arc;  // Thread-safe RC
 **Status**: Rc-based GC implemented and working, 99%+ memory reduction achieved
 
 ---
-[← Interpreter](INTERPRETER.html) &nbsp;&nbsp; [Backlog →](BACKLOG.html)
+[← Interpreter](INTERPRETER.md) &nbsp;&nbsp; [Backlog →](BACKLOG.md)

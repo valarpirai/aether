@@ -3,7 +3,7 @@ layout: default
 title: "Aether — CSV"
 ---
 
-[Home](../index.html) › Language Reference › CSV
+[Home](../index.md) › Language Reference › CSV
 
 # CSV
 
@@ -97,8 +97,8 @@ fn main() {
 
 ## Related
 
-- [JSON](JSON.html) — structured data with types via `json_parse` / `json_stringify`
-- [File I/O](STDLIB.html#file-io) — read CSV files with `read_file`
+- [JSON](JSON.md) — structured data with types via `json_parse` / `json_stringify`
+- [File I/O](STDLIB.md#file-io) — read CSV files with `read_file`
 
 ---
-[← JSON](JSON.html) &nbsp;&nbsp; [HTTP →](HTTP.html)
+[← JSON](JSON.md) &nbsp;&nbsp; [HTTP →](HTTP.md)

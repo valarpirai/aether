@@ -3,7 +3,7 @@ layout: default
 title: Aether — Example Programs
 ---
 
-[Home](../index.html) › Language Reference › Examples
+[Home](../index.md) › Language Reference › Examples
 
 
 # Example Programs
@@ -890,4 +890,4 @@ fn main() {
 ```
 
 ---
-[← Home](../index.html)
+[← Home](../index.md)

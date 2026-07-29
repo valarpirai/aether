@@ -3,7 +3,7 @@ layout: default
 title: "Aether — TCP / UDP"
 ---
 
-[Home](../index.html) › Language Reference › TCP / UDP
+[Home](../index.md) › Language Reference › TCP / UDP
 
 # TCP / UDP
 
@@ -301,4 +301,4 @@ server.on_message(fn(conn, data) {
 - `examples/udp_demo.ae` — UDP echo server
 
 ---
-[← Async/Await](ASYNC.html) &nbsp;&nbsp; [Configuration →](CONFIGURATION.html)
+[← Async/Await](ASYNC.md) &nbsp;&nbsp; [Configuration →](CONFIGURATION.md)

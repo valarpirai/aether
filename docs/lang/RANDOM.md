@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Random"
 ---
 
-[Home](../index.html) › Language Reference › Random
+[Home](../index.md) › Language Reference › Random
 
 # Random
 
@@ -58,7 +58,7 @@ fn main() {
 
 ## Related
 
-- [Time](TIME.html) — `clock()`, `sleep()`
+- [Time](TIME.md) — `clock()`, `sleep()`
 
 ---
-[← Time](TIME.html) &nbsp;&nbsp; [Async →](ASYNC.html)
+[← Time](TIME.md) &nbsp;&nbsp; [Async →](ASYNC.md)

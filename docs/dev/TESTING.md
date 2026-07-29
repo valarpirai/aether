@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Testing Guide"
 ---
 
-[Home](../index.html) › Developer Docs › Testing Guide
+[Home](../index.md) › Developer Docs › Testing Guide
 
 # Aether Testing Guide
 
@@ -21,66 +21,39 @@ This document provides comprehensive guidance on testing the Aether interpreter.
 
 ### Directory Structure
 
-```
-tests/
-├── integration_test.rs          # Core end-to-end program tests (29)
-├── member_access_test.rs        # Member access feature tests (8)
-├── array_methods_test.rs        # Array method tests (22)
-├── string_methods_test.rs       # String method tests (8)
-├── string_indexing_test.rs      # String indexing tests (16)
-├── string_interp_test.rs        # String interpolation tests (9)
-├── function_expr_test.rs        # Function expression tests (13)
-├── closure_leak_test.rs         # Closure memory tests (4)
-├── dict_test.rs                 # Dict literal and method tests (27)
-├── set_test.rs                  # Set type tests (24)
-├── error_handling_test.rs       # try/catch/throw/finally tests (10)
-├── error_context_test.rs        # Stack trace and error context tests (11)
-├── module_test.rs               # Module system tests (13)
-├── io_test.rs                   # IO builtin tests (5)
-├── recursion_limit_test.rs      # Recursion depth tests (1, 1 ignored)
-├── small_recursion_test.rs      # Small recursion tests (1)
-├── gc_test.rs                   # GC / memory leak tests (7)
-├── http_test.rs                 # HTTP builtin tests (9)
-├── json_test.rs                 # JSON parse/stringify tests (25)
-├── time_test.rs                 # clock() and sleep() tests (10)
-├── async_test.rs                # async/await tests (21)
-├── io_pool_test.rs              # I/O thread pool tests (14)
-├── event_loop_test.rs           # Event loop tests (15)
-├── struct_test.rs               # Struct declaration and method tests (14)
-├── iterator_test.rs             # Iterator protocol tests (22)
-├── null_coalesce_test.rs        # ?? and ?. null safety tests (23)
-├── spread_test.rs               # Spread operator tests (9)
-├── slice_test.rs                # Slice syntax tests (15)
-├── clippy_fix_regression_test.rs # Clippy/regression tests (20)
-├── stdlib_test.rs               # Core stdlib tests (9)
-├── stdlib_testing_test.rs       # Testing framework tests (19)
-├── stdlib_collections_test.rs   # Collections stdlib tests (38)
-├── stdlib_math_test.rs          # Math stdlib tests (26)
-└── stdlib_string_test.rs        # String stdlib tests (24)
+Integration tests are one file per feature in `tests/`, named
+`<feature>_test.rs`. Unit tests live beside the code they cover, named
+`<module>_tests.rs` (note the plural — that suffix is what distinguishes them):
 
+```
 src/
 ├── lexer/
-│   └── lexer_tests.rs           # Lexer unit tests (14)
+│   └── lexer_tests.rs           # Lexer unit tests
 ├── parser/
-│   └── parser_tests.rs          # Parser unit tests (53)
+│   └── parser_tests.rs          # Parser unit tests
 └── interpreter/
-    ├── interpreter_tests.rs     # Interpreter unit tests (17)
-    └── builtins_tests.rs        # Built-ins unit tests (15)
+    ├── interpreter_tests.rs     # Interpreter unit tests
+    └── builtins_tests.rs        # Built-ins unit tests
+```
+
+To list the integration suites and their sizes:
+
+```bash
+ls tests/
+cargo test -- --test-threads=1        # per-suite counts in the output
 ```
 
 ### Test Categories
 
-**Unit Tests** (134 tests):
-- Test individual components in isolation
-- Located in module test files (`*_tests.rs`)
-- Fast execution (< 1 second)
-- No dependencies between tests
+**Unit tests** — individual components in isolation, in `src/**/*_tests.rs`.
+Fast (< 1 second), no inter-test dependencies. Run as `unittests src/lib.rs`.
 
-**Integration Tests** (~559 tests):
-- Test complete programs end-to-end
-- Located in `tests/` directory
-- Test feature interaction
-- Ignored: 2 tests (deep recursion stack overflow in debug builds — known limitation)
+**Integration tests** — complete programs end-to-end, in `tests/`. These exercise
+feature interaction and are where new features get their coverage.
+
+Counts are deliberately not listed here; see
+[ARCHITECTURE.md — Current Status](ARCHITECTURE.md#current-status) for the last
+measured total and the command to re-measure.
 
 ## Running Tests
 
@@ -312,14 +285,14 @@ match result {
 ```
 ---- test_division_by_zero panicked at 'assertion failed: `(left == right)`
   left: `Ok(Int(5))`,
- right: `Err(DivisionByZero)`', tests/integration_tests.rs:42:5
+ right: `Err(DivisionByZero)`', tests/integration_test.rs:42:5
 ```
 
 **Key information**:
 - Test name: `test_division_by_zero`
 - Expected: `Err(DivisionByZero)`
 - Actual: `Ok(Int(5))`
-- Location: `tests/integration_tests.rs:42:5`
+- Location: `tests/integration_test.rs:42:5`
 
 ### Step 2: Isolate the Test
 
@@ -396,36 +369,22 @@ match &value {
 
 ## Test Coverage Goals
 
-### Current Coverage (Phase 5)
+### Current Coverage
 
-- **Total**: 333 tests ✅ (1 known stack-overflow in recursion limit test)
-- **Success Rate**: ~99.7%
-- **Lines Covered**: ~85% (estimated)
+The suite is expected to be fully green — 0 failed, 0 ignored. A new `#[ignore]`
+needs a comment saying why and what would un-ignore it.
+
+For the current total, see
+[ARCHITECTURE.md — Current Status](ARCHITECTURE.md#current-status).
 
 ### Coverage by Component
 
-| Component | Unit Tests | Integration Tests | Status |
-|-----------|------------|-------------------|--------|
-| Lexer | 14 | - | ✅ Complete |
-| Parser | 53 | - | ✅ Complete |
-| Interpreter | 17 | 29 | ✅ Complete |
-| Built-ins | 15 | - | ✅ Complete |
-| Member Access | - | 8 | ✅ Complete |
-| Array Methods | - | 8 | ✅ Complete |
-| String Methods | - | 8 | ✅ Complete |
-| String Indexing | - | 16 | ✅ Complete |
-| String Interpolation | - | 9 | ✅ Complete |
-| Function Expressions | - | 13 | ✅ Complete |
-| Closures | - | 3 | ✅ Complete |
-| Dict Literals | - | 10 | ✅ Complete |
-| Error Handling | - | 10 | ✅ Complete |
-| Module System | - | 13 | ✅ Complete |
-| IO Builtins | - | 5 | ✅ Complete |
-| Stdlib Core | - | 9 | ✅ Complete |
-| Stdlib Testing | - | 19 | ✅ Complete |
-| Stdlib Collections | - | 24 | ✅ Complete |
-| Stdlib Math | - | 26 | ✅ Complete |
-| Stdlib String | - | 24 | ✅ Complete |
+Every shipped feature has a dedicated suite. `ls tests/` is the authoritative
+list; the file name maps to the feature (`tcp_test.rs` → TCP, `enum_test.rs` →
+enums, `plugin_v2_test.rs` → the V2 FFI protocol).
+
+A feature without a `tests/<feature>_test.rs` file is not considered shipped —
+see the [Post-Feature Checklist](DEVELOPMENT.md#post-feature-checklist).
 
 ### What to Test
 
@@ -534,8 +493,8 @@ jobs:
 ## Resources
 
 ### Internal Documentation
-- **[DEVELOPMENT.md](DEVELOPMENT.html)** - Development workflow
-- **[CLAUDE.md](../CLAUDE.html)** - Project overview
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Development workflow
+- **`CLAUDE.md`** (repo root) - Project overview
 - Component docs: LEXER.md, PARSER.md, INTERPRETER.md
 
 ### External Resources
@@ -545,9 +504,8 @@ jobs:
 
 ---
 
-**Last Updated**: April 17, 2026
-**Phase**: 5 Complete (base)
-**Status**: 333 tests passing, comprehensive test coverage
+**Last Updated**: July 29, 2026
+**Phase**: 5 Complete
 
 ---
-[← Development Guide](DEVELOPMENT.html) &nbsp;&nbsp; [Lexer →](LEXER.html)
+[← Development Guide](DEVELOPMENT.md) &nbsp;&nbsp; [Lexer →](LEXER.md)

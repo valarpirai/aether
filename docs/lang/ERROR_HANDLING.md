@@ -3,7 +3,7 @@ layout: default
 title: "Aether — Error Handling"
 ---
 
-[Home](../index.html) › Language Reference › Error Handling
+[Home](../index.md) › Language Reference › Error Handling
 
 # Error Handling
 
@@ -151,4 +151,4 @@ fn load_data(sources) {
 - No custom exception classes or type hierarchy
 
 ---
-[← Format](FORMAT.html) &nbsp;&nbsp; [Structs →](STRUCT.html)
+[← Format](FORMAT.md) &nbsp;&nbsp; [Structs →](STRUCT.md)
